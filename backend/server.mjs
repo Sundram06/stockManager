@@ -153,8 +153,16 @@ app.post("/history", authenticateJWT, async (req, res) => {
 		stockId: new mongoose.Types.ObjectId(newHistory.stockId),
 		...newHistory,
 	});
-	await history.save();
-	res.json({ newHistory, history });
+
+	const stock = await Stock.findById(history.stockId);
+	stock.avgPrice = Number(
+		(stock.avgPrice * stock.quantity + history.quantity * history.avgPrice) /
+			(stock.quantity + history.quantity)
+	).toFixed(2);
+	stock.quantity = stock.quantity + history.quantity;
+
+	await Promise.all([stock.save(), history.save()]);
+	res.json({ history, stock });
 });
 
 app.listen(port, () => {

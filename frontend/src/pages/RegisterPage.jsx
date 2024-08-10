@@ -26,7 +26,7 @@ const RegistrationForm = () => {
 		onSuccess: (data) => {
 			console.log("inside addUser onsuccess", data);
 			dispatch(setAuth({ user: data.user }));
-			navigate("/login");
+			navigate("/");
 		},
 	});
 

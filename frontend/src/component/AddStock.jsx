@@ -18,7 +18,7 @@ export default function AddStock({
 		console.log(event.target);
 		console.log(formData);
 		const data = Object.fromEntries(formData);
-		data.stockName ? data.stockName.toUpperCase() : null;
+		data.stockName ? (data.stockName = data.stockName.toUpperCase()) : null;
 		data.avgPrice = parseFloat(data.avgPrice);
 		console.log("inside handleSubmit");
 		console.log(data);
@@ -60,8 +60,6 @@ export default function AddStock({
 						<TextField
 							name="avgPrice"
 							label="Average Price"
-							type="number"
-							step="2"
 							placeholder="Buy Price"
 							fullWidth
 							margin="normal"

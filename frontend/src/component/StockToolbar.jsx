@@ -67,7 +67,7 @@ export default function StockToolbar() {
 	const handleLogout = () => {
 		logoutUser();
 		dispatch(logout());
-		navigate("/login");
+		navigate("/");
 	};
 
 	const handleDeleteAll = () => {
