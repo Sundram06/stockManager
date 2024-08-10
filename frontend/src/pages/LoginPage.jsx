@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
 	Avatar,
 	Button,
@@ -23,6 +23,8 @@ export default function LoginPage() {
 	const [password, setPassword] = useState("");
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
+
+	const logoutMessage = useSelector((state) => state.auth.logoutMessage);
 
 	const { mutate } = useMutation({
 		mutationKey: ["login"],
@@ -58,6 +60,11 @@ export default function LoginPage() {
 						alignItems: "center",
 					}}
 				>
+					{logoutMessage && ( // Display the logout message
+						<Typography variant="body2" color="error">
+							{logoutMessage}
+						</Typography>
+					)}
 					<Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
 						<LockOutlinedIcon />
 					</Avatar>

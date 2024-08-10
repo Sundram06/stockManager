@@ -1,8 +1,12 @@
+import { jwtDecode } from "jwt-decode";
+import { logout } from "../store/auth-slice";
+import store from "../store/store.js";
 import { QueryClient } from "@tanstack/react-query";
 export const queryClient = new QueryClient();
 
 export async function createStock(stockData) {
 	const token = localStorage.getItem("token");
+	checkTokenExpiry(token);
 	console.log(stockData);
 	const response = await fetch("http://localhost:3000/stocks", {
 		method: "POST",
@@ -19,14 +23,47 @@ export async function createStock(stockData) {
 	return data;
 }
 
+export const checkTokenExpiry = (token) => {
+	if (!token) {
+		console.log("no token found");
+		store.dispatch(logout({ message: "Session expired. Please login again." }));
+		return false;
+	}
+	const { exp } = jwtDecode(token);
+	const currentTime = Math.floor(Date.now() / 1000);
+	const timeUntillExpiry = exp - currentTime;
+	if (timeUntillExpiry <= 0) {
+		localStorage.removeItem("token");
+		store.dispatch(logout({ message: "Session expired. Please login again." }));
+	} else {
+		setTimeout(() => {
+			localStorage.removeItem("token");
+			store.dispatch(
+				logout({ message: "Session expired. Please login again." })
+			);
+		}, timeUntillExpiry * 1000);
+	}
+};
+
+// const handleTokenExpiry = async (response) => {
+// 	if (response.status === 401 || response.status === 403) {
+// 		localStorage.removeItem("token");
+// 		store.dispatch(logout({ message: "Session expired. Please login again." }));
+// 		throw new Error("Unauthorized");
+// 	}
+// };
+
 export const fetchStocks = async () => {
 	const token = localStorage.getItem("token");
+	const tokenCheck = checkTokenExpiry(token);
+	if (tokenCheck === false) return tokenCheck;
 	console.log(token);
 	const response = await fetch("http://localhost:3000/stocks", {
 		headers: {
 			Authorization: `Bearer ${token}`,
 		},
 	});
+	// await handleTokenExpiry(response);
 	const data = await response.json();
 	console.log("get query of stocks", data);
 	return data;
@@ -34,11 +71,13 @@ export const fetchStocks = async () => {
 
 export const fetchStockHistoryById = async () => {
 	const token = localStorage.getItem("token");
+	checkTokenExpiry(token);
 	const response = await fetch(`http://localhost:3000/history/`, {
 		headers: {
 			Authorization: `Bearer ${token}`,
 		},
 	});
+	// await handleTokenExpiry(response);
 	const data = await response.json();
 	console.log("get history of stock id ", data);
 	return data;
@@ -55,6 +94,7 @@ export async function deleteAllStocks() {
 
 export async function handleAddStockRowInHistory(stockData) {
 	const token = localStorage.getItem("token");
+	checkTokenExpiry(token);
 	console.log("data in handleAddStockRowInHistory", stockData);
 	const response = await fetch("http://localhost:3000/history", {
 		method: "POST",
@@ -64,6 +104,7 @@ export async function handleAddStockRowInHistory(stockData) {
 		},
 		body: JSON.stringify(stockData),
 	});
+	// await handleTokenExpiry(response);
 	if (!response.ok) {
 		throw new Error("Unable to create stock");
 	}
