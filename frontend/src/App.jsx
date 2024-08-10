@@ -15,7 +15,7 @@ function App() {
 			element: <RootLayout />,
 			children: [
 				{ path: "/dashboard", element: <DashboardPage /> },
-				{ index: true, path: "/login", element: <LoginPage /> },
+				{ index: true, element: <LoginPage /> },
 				{ path: "register", element: <RegisterPage /> },
 			],
 		},
