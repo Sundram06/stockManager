@@ -11,6 +11,7 @@ import {
 } from "../util/http.mjs";
 import AddStock from "./AddStock";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 // import { Table } from "@mui/material";
 
 export default function Portfolio() {
@@ -18,9 +19,18 @@ export default function Portfolio() {
 	// console.log(stocks);
 	const [isOpen, setIsOpen] = useState(false);
 	const [stockId, setStockId] = useState("");
+	const navigate = useNavigate();
 	const { data, isLoading, error } = useQuery({
 		queryKey: ["stocks"],
 		queryFn: fetchStocks,
+		// onError: (error) => {
+		// 	if (
+		// 		error.message === "Token expired" ||
+		// 		error.message.includes("Unauthorized")
+		// 	) {
+		// 		navigate("/"); // Redirect to login page on token expiration
+		// 	}
+		// },
 		// staleTime: 3000,
 	});
 
@@ -66,9 +76,21 @@ export default function Portfolio() {
 		console.log("sell stock by id", id);
 	};
 
+	// useEffect(() => {
+	// 	if (error || data === false) {
+	// 		navigate("/"); // Redirect if there's an error or if data is false
+	// 	}
+	// }, [error, data]);
+	if (data === false) {
+		navigate("/");
+		return null;
+	}
 	if (isLoading) return <p>Loading...</p>;
-	if (error) return <p>Error loading stocks</p>;
-
+	// if (error) {
+	// 	navigate("/");
+	// 	return null;
+	// }
+	if (!data || error) return null;
 	return (
 		<>
 			<AddStock
