@@ -6,6 +6,7 @@ const authSlice = createSlice({
 		user: null,
 		token: null,
 		logoutMessage: null,
+		sessionActive: null,
 	},
 	reducers: {
 		setAuth: (state, action) => {
@@ -21,11 +22,13 @@ const authSlice = createSlice({
 			state.user = action.payload.user;
 			state.token = action.payload.token;
 			state.logoutMessage = null;
+			state.sessionActive = action.payload?.sessionActive || true;
 		},
 		logout(state, action) {
 			state.user = null;
 			state.isAuthenticated = false;
 			state.logoutMessage = action.payload?.message || "Logged out";
+			state.sessionActive = action.payload?.sessionActive || false;
 		},
 	},
 });

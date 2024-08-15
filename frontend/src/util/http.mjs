@@ -26,7 +26,12 @@ export async function createStock(stockData) {
 export const checkTokenExpiry = (token) => {
 	if (!token) {
 		console.log("no token found");
-		store.dispatch(logout({ message: "Session expired. Please login again." }));
+		store.dispatch(
+			logout({
+				message: "Session expired. Please login again.",
+				sessionActive: "notLoggedIn",
+			})
+		);
 		return false;
 	}
 	const { exp } = jwtDecode(token);
@@ -34,12 +39,20 @@ export const checkTokenExpiry = (token) => {
 	const timeUntillExpiry = exp - currentTime;
 	if (timeUntillExpiry <= 0) {
 		localStorage.removeItem("token");
-		store.dispatch(logout({ message: "Session expired. Please login again." }));
+		store.dispatch(
+			logout({
+				message: "Session expired. Please login again.",
+				sessionActive: "expired",
+			})
+		);
 	} else {
 		setTimeout(() => {
 			localStorage.removeItem("token");
 			store.dispatch(
-				logout({ message: "Session expired. Please login again." })
+				logout({
+					message: "Session expired. Please login again.",
+					sessionActive: "expired",
+				})
 			);
 		}, timeUntillExpiry * 1000);
 	}
