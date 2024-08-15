@@ -23,15 +23,17 @@ export default function LoginPage() {
 	const [password, setPassword] = useState("");
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
-
+	
+	const sessionActive = useSelector((state) => state.auth.sessionActive);
 	const logoutMessage = useSelector((state) => state.auth.logoutMessage);
-
+	console.log(sessionActive);
 	const { mutate } = useMutation({
 		mutationKey: ["login"],
 		mutationFn: loginUser,
 		onSuccess: (data) => {
 			console.log("inside loginUser onsuccess", data);
 			localStorage.setItem("token", data.token);
+			localStorage.setItem("sessionActive", true);
 			dispatch(login(data.user));
 			navigate("/dashboard");
 		},
@@ -60,11 +62,18 @@ export default function LoginPage() {
 						alignItems: "center",
 					}}
 				>
-					{logoutMessage && ( // Display the logout message
-						<Typography variant="body2" color="error">
-							{logoutMessage}
-						</Typography>
-					)}
+					{logoutMessage &&
+						sessionActive === "expired" && ( // Display the logout message
+							<Typography variant="body2" color="error">
+								Session Expired. Please login again.
+							</Typography>
+						)}
+					{logoutMessage &&
+						sessionActive === "loggedout" && ( // Display the logout message
+							<Typography variant="body2" color="error">
+								Logged Out
+							</Typography>
+						)}
 					<Avatar sx={{ m: 1, bgcolor: "secondary.main" }}>
 						<LockOutlinedIcon />
 					</Avatar>
