@@ -6,6 +6,7 @@ import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+// import UpstoxClient from "upstox-js-sdk";
 
 connectMongo();
 const app = express();
@@ -17,9 +18,55 @@ app.get("/", async (req, res) => {
 	console.log("Hello hi");
 });
 
+
+app.get("/api/upstox/login", (req, res) => {
+	const loginUrl = `https://api.upstox.com/v2/login/authorization/dialog?response_type=code&client_id=${process.env.UPSTOX_API_KEY}&redirect_uri=${process.env.UPSTOX_REDIRECT_URI}`;
+	console.log(loginUrl);
+	res.json(loginUrl);
+});
+
+app.get("/api/upstocks/callback", async (req, res) => {
+	const authorizationCode = req.query.code;
+	console.log("redirected to upstocks/callback");
+	console.log("authorizationCode", authorizationCode);
+	process.env['upstox_auth_code'] = authorizationCode
+
+	try {
+		const url = "https://api.upstox.com/v2/login/authorization/token";
+		const headers = {
+			accept: "application/json",
+			"Content-Type": "application/x-www-form-urlencoded",
+		};
+
+		const body = new URLSearchParams();
+		body.append("code", authorizationCode);
+		body.append("client_id", process.env.UPSTOX_API_KEY);
+		body.append("client_secret", process.env.UPSTOX_API_SECRET);
+		body.append("redirect_uri", process.env.UPSTOX_REDIRECT_URI);
+		body.append("grant_type", "authorization_code");
+		console.log(url);
+		fetch(url, {
+			method: "POST",
+			headers: headers,
+			body: body.toString(),
+		})
+			.then((response) => response.json())
+			.then((data) => {
+				console.log(data)
+				process.env['access_token'] = data.access_token
+				res.redirect("http://localhost:5173/");
+				// res.send("Upstox authentication successful. API calls possible now.");
+			})
+			.catch((error) => console.error("Error:", error));
+		
+	} catch (error) {
+		console.error("Error during upstox OAuth process", error);
+		res.status(500).send("Error during upstox OAuth process");
+	}
+});
+
 const authenticateJWT = (req, res, next) => {
 	const authHeader = req.headers["authorization"];
-	// console.log(req.headers);
 	if (authHeader && authHeader.startsWith("Bearer ")) {
 		const token = authHeader.split(" ")[1];
 		jwt.verify(token, JWT_SECRET, (err, user) => {
@@ -33,6 +80,18 @@ const authenticateJWT = (req, res, next) => {
 		res.sendStatus(401);
 	}
 };
+
+app.get("/api/stocks/ltp/:symbol", authenticateJWT, async (req, res) => {
+	const { symbol } = req.params;
+	try {
+		const accessToken = req.session.accessToken;
+		upstox.setAccessToken(accessToken);
+		const stockData = await upstox.getQuote(symbol); // Adjust this based on Upstox API documentation
+		res.json(stockData);
+	} catch (error) {
+		res.status(500).json({ message: "Error fetching stock data", error });
+	}
+});
 
 app.post("/register", async (req, res) => {
 	const { name, email, password } = req.body;
@@ -104,7 +163,9 @@ app.get("/stocks", authenticateJWT, async (req, res) => {
 		const updatedStocks = [];
 
 		for (const stock of stocks) {
-			const totalCostOfStock = stock.quantity * stock.avgPrice;
+			const totalCostOfStock = parseFloat(
+				(stock.quantity * stock.avgPrice).toFixed(2)
+			);
 			stock.ltp = 20;
 			stock.currVal = 20;
 			stock.pnl = 20;

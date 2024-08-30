@@ -15,7 +15,6 @@ import { logout } from "../store/auth-slice";
 export default function Portfolio() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [stockId, setStockId] = useState("");
-	// const [sessionActive, setSessionActive] = useState();
 	const navigate = useNavigate();
 	const dispatch = useDispatch();
 
@@ -38,7 +37,6 @@ export default function Portfolio() {
 		onError: (error) => {
 			if (!localStorage.getItem("token")) {
 				localStorage.setItem("sessionActive", false);
-				// setSessionActive(false);
 				dispatch(logout());
 				navigate("/");
 			}
@@ -83,7 +81,6 @@ export default function Portfolio() {
 	const handleAddStockInHistory = (row) => {
 		setIsOpen(true);
 		setStockId(row._id);
-		// mutateAddStockRowInHistory();
 		console.log("add stock in history by id", row._id);
 	};
 	const handleClickCloseDialog = () => {

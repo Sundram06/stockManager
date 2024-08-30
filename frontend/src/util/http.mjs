@@ -66,6 +66,16 @@ export const checkTokenExpiry = (token) => {
 // 	}
 // };
 
+export const fetchUpstoxData = async () => {
+	const response = await fetch(`http://localhost:3000/api/upstox/login`);
+	if (!response.ok) {
+		throw new Error("Unable to fetch upstox data");
+	}
+	const data = await response.json();
+	console.log(data);
+	return data;
+}; 
+
 export const fetchStocks = async () => {
 	const token = localStorage.getItem("token");
 	const tokenCheck = checkTokenExpiry(token);
