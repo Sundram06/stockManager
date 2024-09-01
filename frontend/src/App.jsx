@@ -8,7 +8,7 @@ import { queryClient } from "./util/http.mjs";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import { useEffect } from "react";
-import Upstocks from "./pages/Upstocks";
+
 function App() {
 	useEffect(() => {
 		const token = localStorage.getItem("token");
@@ -22,7 +22,6 @@ function App() {
 				{ path: "/dashboard", element: <DashboardPage /> },
 				{ index: true, element: <LoginPage /> },
 				{ path: "register", element: <RegisterPage /> },
-				{ path: "upstocks", element: <Upstocks /> },
 			],
 		},
 	]);
