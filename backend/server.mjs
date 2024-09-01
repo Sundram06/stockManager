@@ -6,6 +6,7 @@ import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { extractData } from "./assets/extractDataa.mjs";
 // import UpstoxClient from "upstox-js-sdk";
 
 connectMongo();
@@ -18,6 +19,7 @@ app.get("/", async (req, res) => {
 	console.log("Hello hi");
 });
 
+extractData();
 
 app.get("/api/upstox/login", (req, res) => {
 	const loginUrl = `https://api.upstox.com/v2/login/authorization/dialog?response_type=code&client_id=${process.env.UPSTOX_API_KEY}&redirect_uri=${process.env.UPSTOX_REDIRECT_URI}`;
@@ -29,7 +31,7 @@ app.get("/api/upstocks/callback", async (req, res) => {
 	const authorizationCode = req.query.code;
 	console.log("redirected to upstocks/callback");
 	console.log("authorizationCode", authorizationCode);
-	process.env['upstox_auth_code'] = authorizationCode
+	process.env["upstox_auth_code"] = authorizationCode;
 
 	try {
 		const url = "https://api.upstox.com/v2/login/authorization/token";
@@ -52,13 +54,12 @@ app.get("/api/upstocks/callback", async (req, res) => {
 		})
 			.then((response) => response.json())
 			.then((data) => {
-				console.log(data)
-				process.env['access_token'] = data.access_token
+				console.log(data);
+				process.env["access_token"] = data.access_token;
 				res.redirect("http://localhost:5173/");
 				// res.send("Upstox authentication successful. API calls possible now.");
 			})
 			.catch((error) => console.error("Error:", error));
-		
 	} catch (error) {
 		console.error("Error during upstox OAuth process", error);
 		res.status(500).send("Error during upstox OAuth process");
@@ -122,7 +123,7 @@ app.post("/login", async (req, res) => {
 		const isPasswordValid = bcrypt.compare(password, user.password);
 		if (user && isPasswordValid) {
 			const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
-				expiresIn: "1m",
+				expiresIn: "1h",
 			});
 			console.log("Login successful for:", email);
 			res.json({ user, token });
@@ -145,7 +146,6 @@ app.use(authenticateJWT);
 
 app.post("/stocks", authenticateJWT, async (req, res) => {
 	const newStock = req.body;
-	console.log(newStock);
 	newStock.userId = req.userId;
 	const stock = new Stock(newStock);
 	newStock.stockId = stock._id;
