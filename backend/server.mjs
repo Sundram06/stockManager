@@ -123,7 +123,7 @@ app.post("/login", async (req, res) => {
 		const isPasswordValid = bcrypt.compare(password, user.password);
 		if (user && isPasswordValid) {
 			const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
-				expiresIn: "1h",
+				expiresIn: "10h",
 			});
 			console.log("Login successful for:", email);
 			res.json({ user, token });
