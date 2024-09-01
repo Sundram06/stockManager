@@ -1,4 +1,4 @@
-import { Button } from "@mui/material";
+import { Button, TextField } from "@mui/material";
 import classes from "./AddStock.module.css";
 import AddStock from "./AddStock";
 import {
@@ -83,15 +83,21 @@ export default function StockToolbar() {
 				nameInputField={true}
 			/>
 			<div className={classes.addStock}>
-				<input
+				<TextField
+					variant="outlined"
+					size="small"
 					type="search"
 					name="Search"
 					placeholder="Search"
 					className={classes.searchBar}
 				/>
-				<button className={classes.addButton} onClick={handleClickOpen}>
+				<Button
+					variant="outlined"
+					// className={classes.addButton}
+					onClick={handleClickOpen}
+				>
 					+
-				</button>
+				</Button>
 				<Button variant="contained" color="primary" onClick={handleLogout}>
 					Logout
 				</Button>

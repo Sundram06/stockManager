@@ -6,4 +6,5 @@ backend/.env
 #frontend
 frontend/node_modules
 
+complete.json
 
