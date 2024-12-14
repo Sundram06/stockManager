@@ -10,6 +10,10 @@ const historySchema = new Schema({
 	age: Number,
 	stockId: { type: Schema.Types.ObjectId, ref: "Stock" },
 	date: { type: Date, default: Date.now },
+	dateSold: Date,
+	quantitySold: Number,
+	sellingPrice: Number,
+	pnl: Number,
 });
 
 const stockSchema = new Schema({

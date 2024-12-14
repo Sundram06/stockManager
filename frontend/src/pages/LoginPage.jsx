@@ -75,6 +75,12 @@ export default function LoginPage() {
 		// navigate("/upstocks");
 	}
 
+	// const navigateToWS = () => navigate("/ws");
+	// async function handleWS() {
+	// 	console.log("inside handleWS");
+	// 	navigate("/ws");
+	// }
+
 	return (
 		<>
 			<ThemeProvider theme={theme}>
@@ -167,6 +173,9 @@ export default function LoginPage() {
 			</ThemeProvider>
 			<div>
 				<Button onClick={() => handleUpstox()}>Upstocks</Button>
+			</div>
+			<div>
+				<Link to="/ws">Websocket</Link>
 			</div>
 		</>
 	);
