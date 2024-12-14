@@ -2,6 +2,7 @@
 # backend
 backend/node_modules
 backend/.env
+backend/instruments.json
 
 #frontend
 frontend/node_modules
