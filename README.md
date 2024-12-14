@@ -38,14 +38,13 @@ Table 1: Stock Purchases
 _______________________________________________________________
 
 Table 2: Stocks Sold (FCFS Order)
-You sell 150 shares at ₹40.
+You sell 150 shares at ₹40. (100 shares of 10rs + 50 shares of 20rs = 2000rs = C.P of these shares )
 
-| Lot No. | Quantity Sold | Purchase Price (₹) | Selling Price (₹) | Profit per Share (₹) | Total Profit (₹) |
-|---------|---------------|-------------------|------------------|----------------------|-----------------|
-| Lot 1   | 100           | 10                | 40               | 30                   | 3000            |
-| Lot 2   | 50            | 20                | 40               | 20                   | 1000            |
-| **Total** | **150**       |                   |                  |                      | **4000**        |
-
+| Lot No. | Quantity Sold | Purchase Price (₹) | Selling Price (₹) | Total Cost Price (₹) | Total Selling Price (₹) | Profit (₹) |
+|---------|---------------|-------------------|------------------|-----------------------|--------------------------|------------|
+| Lot 1   | 100           | 10                | 40               | 1000                  | 4000                     | 3000       |
+| Lot 2   | 50            | 20                | 40               | 1000                  | 2000                     | 1000       |
+| **Total** | **150**       |                   |                  | **2000**              | **6000**                 | **4000**   |
 _______________________________________________________________
 
 Table 3: Remaining Active Stocks in Portfolio
