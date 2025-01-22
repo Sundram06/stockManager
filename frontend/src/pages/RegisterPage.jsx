@@ -131,7 +131,7 @@ const RegistrationForm = () => {
 						<Grid container>
 							<Grid item style={{ marginTop: "1rem" }}>
 								<Link
-									to="/login"
+									to="/"
 									style={{
 										textDecoration: "underline",
 										color: "blue",
