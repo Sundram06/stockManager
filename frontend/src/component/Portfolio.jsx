@@ -4,6 +4,7 @@ import {
 	fetchStockHistoryById,
 	fetchStocks,
 	handleAddStockRowInHistory,
+	handleSellStockRowInHistory,
 	queryClient,
 } from "../util/http.mjs";
 import AddStock from "./AddStock";
@@ -15,6 +16,7 @@ import { logout } from "../store/auth-slice";
 export default function Portfolio() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [stockId, setStockId] = useState("");
+	const [actionType, setActionType] = useState("");
 	const navigate = useNavigate();
 	const dispatch = useDispatch();
 
@@ -72,21 +74,58 @@ export default function Portfolio() {
 			});
 		},
 	});
-	const mutateCall = (data) => {
+	const { mutate: mutateSellStockRowInHistory } = useMutation({
+		mutationFn: handleSellStockRowInHistory,
+		mutationKey: ["history"],
+
+		onSuccess: () => {
+			console.log("inside onsuccess");
+			queryClient.invalidateQueries("history");
+		},
+		onError: (error) => {
+			throw new Error("Failed to sell history entry of stock ", {
+				cause: error,
+			});
+		},
+	});
+	// const mutateCall = (data) => {
+	// 	data.stockId = stockId;
+	// 	console.log(data.stockId);
+	// 	console.log("inside mutateCall2", data);
+	// 	mutateAddStockRowInHistory(data);
+	// };
+	// const mutateCallSell = (data) => {
+	// 	data.stockId = stockId;
+	// 	console.log(data.stockId);
+	// 	console.log("inside mutateCall2", data);
+	// 	mutateSellStockRowInHistory(data);
+	// };
+
+	// Decide which function to call based on actionType
+	const handleMutate = (data) => {
 		data.stockId = stockId;
-		console.log(data.stockId);
-		console.log("inside mutateCall2", data);
-		mutateAddStockRowInHistory(data);
+		console.log("Inside handleMutate", data, "ActionType:", actionType);
+		if (actionType === "add") {
+			mutateAddStockRowInHistory(data);
+		} else if (actionType === "sell") {
+			mutateSellStockRowInHistory(data);
+		}
 	};
+
 	const handleAddStockInHistory = (row) => {
 		setIsOpen(true);
 		setStockId(row._id);
+		setActionType("add");
 		console.log("add stock in history by id", row._id);
 	};
 	const handleClickCloseDialog = () => {
 		setIsOpen(false);
+		setActionType("");
 	};
 	const handleSellStock = (id) => {
+		setIsOpen(true);
+		setStockId(id);
+		setActionType("sell");
 		console.log("sell stock by id", id);
 	};
 	if (data === false) {
@@ -99,10 +138,11 @@ export default function Portfolio() {
 		<>
 			<AddStock
 				open={isOpen}
-				mutateCall={mutateCall}
+				mutateCall={handleMutate}
 				handleClickCloseDialog={handleClickCloseDialog}
 				nameInputField={false}
 			/>
+
 			{data.length == 0 && <p>No stocks in portfolio</p>}
 			{data.length > 0 && (
 				<CollapsibleTable

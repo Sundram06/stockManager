@@ -55,7 +55,9 @@ export default function HistoryTable({ historyRow }) {
 							<TableCell>{history.avgPrice}</TableCell>
 							<TableCell>{calculateStockAge(history.date)}</TableCell>
 							<TableCell>{history.currPnl}</TableCell>
-							<TableCell>{history.dateSold}</TableCell>
+							<TableCell>
+								{history.dateSold ? dateFormatter(history.dateSold) : ""}
+							</TableCell>
 							<TableCell>{history.quantitySold}</TableCell>
 							<TableCell>{history.sellingPrice}</TableCell>
 							<TableCell>{history.pnl}</TableCell>
