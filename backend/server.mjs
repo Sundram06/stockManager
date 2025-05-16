@@ -226,6 +226,155 @@ app.post("/history", authenticateJWT, async (req, res) => {
 	res.json({ history, stock });
 });
 
+app.post("/history/sell", authenticateJWT, async (req, res) => {
+	try {
+		const { quantity, avgPrice, date, stockId } = req.body;
+
+		const quantityToSell = Number(quantity);
+		const sellingPrice = Number(avgPrice);
+		const dateSold = new Date(date);
+
+		let remainingToSell = quantityToSell;
+		let totalPnl = 0;
+		let updatedRows = [];
+
+		const fifoRows = await History.find({
+			stockId,
+			$expr: { $gt: ["$quantity", { $ifNull: ["$quantitySold", 0] }] },
+		}).sort({ date: 1 });
+
+		if (!fifoRows.length) {
+			return res.status(400).json({ message: "No stock to sell" });
+		}
+
+		for (let row of fifoRows) {
+			if (remainingToSell <= 0) break;
+
+			const alreadySold = row.quantitySold || 0;
+			const available = row.quantity - alreadySold;
+			const sellQty = Math.min(remainingToSell, available);
+
+			// Profit for this transaction
+			const pnl = sellQty * (sellingPrice - row.avgPrice);
+			totalPnl += pnl;
+
+			// Weighted average selling price
+			const prevTotalSellValue = (row.sellingPrice || 0) * alreadySold;
+			const newTotalSellValue = prevTotalSellValue + sellingPrice * sellQty;
+			const newQtySold = alreadySold + sellQty;
+			const newAvgSellingPrice = newTotalSellValue / newQtySold;
+
+			// Update row
+			row.quantitySold = newQtySold;
+			row.sellingPrice = newAvgSellingPrice;
+			row.dateSold = dateSold; // Latest date
+			row.pnl = (row.pnl || 0) + pnl;
+
+			await row.save();
+			updatedRows.push(row);
+
+			remainingToSell -= sellQty;
+		}
+
+		if (remainingToSell > 0) {
+			return res.status(400).json({ message: "Not enough stock to sell" });
+		}
+
+		res.status(200).json({
+			message: "Stock sold using FIFO",
+			totalPnl,
+			updatedRows,
+		});
+	} catch (error) {
+		console.error("Sell API error:", error);
+		res.status(500).json({ message: "Internal Server Error" });
+	}
+});
+
+
+// app.post("/history/sell", authenticateJWT, async (req, res) => {
+// 	try {
+// 		// Correct destructuring based on frontend data
+// 		const { quantity, avgPrice, date, stockId } = req.body;
+
+// 		// Convert data types correctly
+// 		const quantitySold = Number(quantity); // Ensure it's a number
+// 		const sellingPrice = Number(avgPrice); // Ensure it's a number
+// 		const dateSold = new Date(date); // Convert string to Date object
+
+// 		console.log("Processed Sell Stock Request:", {
+// 			quantitySold,
+// 			sellingPrice,
+// 			dateSold,
+// 			stockId,
+// 		});
+
+// 		// Fetch stock history in FCFS order, including partially sold stocks
+// 		let purchaseHistory = await History.find({
+// 			stockId,
+// 			$expr: { $gt: ["$quantity", { $ifNull: ["$quantitySold", 0] }] },
+// 		}).sort({ date: 1 });
+
+// 		if (!purchaseHistory.length) {
+// 			return res.status(400).json({ message: "No available stock to sell." });
+// 		}
+
+// 		let remainingToSell = quantitySold;
+// 		let totalPnl = 0;
+// 		let updatedEntries = [];
+
+// 		for (let purchase of purchaseHistory) {
+// 			if (remainingToSell <= 0) break; // Stop when all stocks are sold
+
+// 			let availableQty = purchase.quantity - (purchase.quantitySold || 0);
+// 			let sellQty = Math.min(remainingToSell, availableQty);
+// 			let pnlForThisSale = sellQty * (sellingPrice - purchase.avgPrice);
+// 			totalPnl += pnlForThisSale;
+
+// 			// Update the existing history entry
+// 			let updatedHistory = await History.findByIdAndUpdate(
+// 				purchase._id,
+// 				{
+// 					$set: { dateSold, sellingPrice },
+// 					$inc: { quantitySold: sellQty, pnl: pnlForThisSale },
+// 				},
+// 				{ new: true } // This returns the modified document
+// 			);
+
+// 			updatedEntries.push(updatedHistory); // Store updated records for frontend
+
+// 			remainingToSell -= sellQty;
+// 		}
+
+// 		if (remainingToSell > 0) {
+// 			return res
+// 				.status(400)
+// 				.json({ message: "Not enough stocks available to sell." });
+// 		}
+
+// 		// Fetch updated history
+// 		const updatedHistoryTable = await History.find({ stockId }).sort({
+// 			date: 1,
+// 		});
+
+// 		res.json({
+// 			message: "Stock sold successfully",
+// 			totalPnl,
+// 			updatedHistory: updatedHistoryTable,
+// 		});
+// 	} catch (error) {
+// 		console.error("Error processing stock sale:", error);
+// 		res.status(500).json({ message: "Internal server error" });
+// 	}
+// });
+
+// app.post("/history/sell", authenticateJWT, async (req, res) => {
+// 	const newSellHistory = req.body;
+// 	console.log("post history request");
+// 	console.log("newhistory ", newSellHistory);
+// 	const sellHistory = await History.findById(newSellHistory._id);
+// });
+
 app.listen(port, () => {
 	console.log("Server running on port : ", port);
 });

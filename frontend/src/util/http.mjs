@@ -74,7 +74,7 @@ export const fetchUpstoxData = async () => {
 	const data = await response.json();
 	console.log(data);
 	return data;
-}; 
+};
 
 export const fetchStocks = async () => {
 	const token = localStorage.getItem("token");
@@ -172,6 +172,27 @@ export async function loginUser(loginData) {
 	const data = await response.json();
 	return data;
 }
+
+export async function handleSellStockRowInHistory(stockData) {
+	const token = localStorage.getItem("token");
+	checkTokenExpiry(token);
+	console.log("data in handleSellStockRowInHistory", stockData);
+	const response = await fetch("http://localhost:3000/history/sell", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${token}`,
+		},
+		body: JSON.stringify(stockData),
+	});
+	// await handleTokenExpiry(response);
+	if (!response.ok) {
+		throw new Error("Unable to sell stock");
+	}
+	const data = await response.json();
+	return data;
+}
+
 export async function logoutUser() {
 	console.log("Logging out user");
 	localStorage.removeItem("token");
