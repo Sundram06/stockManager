@@ -60,7 +60,17 @@ export default function HistoryTable({ historyRow }) {
 							</TableCell>
 							<TableCell>{history.quantitySold}</TableCell>
 							<TableCell>{history.sellingPrice}</TableCell>
-							<TableCell>{history.pnl}</TableCell>
+							<TableCell
+								style={
+									history.pnl > 0
+										? { color: "green" }
+										: history.pnl < 0
+										? { color: "red" }
+										: {}
+								}
+							>
+								{history.pnl}
+							</TableCell>
 						</TableRow>
 					))}
 				</TableBody>

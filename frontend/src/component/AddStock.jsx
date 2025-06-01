@@ -20,9 +20,11 @@ export default function AddStock({
 }) {
 	const [query, setQuery] = useState("");
 	const [suggestions, setSuggestions] = useState([]);
+	const [errors, setErrors] = useState({});
 
 	const handleClickClose = () => {
 		setQuery("");
+		setErrors({}); // to clear the validation error when you click on cancel
 		handleClickCloseDialog();
 	};
 
@@ -46,6 +48,24 @@ export default function AddStock({
 		}
 	}, [query]);
 
+	const validate = (data) => {
+		const newErrors = {};
+		if (nameInputField && (!data.stockName || data.stockName.trim() === "")) {
+			newErrors.stockName = "Stock Name is required";
+		}
+		if (!data.quantity || isNaN(data.quantity) || Number(data.quantity) <= 0) {
+			newErrors.quantity = "Quantity is required and must be greater than 0";
+		}
+		if (!data.avgPrice || isNaN(data.avgPrice) || Number(data.avgPrice) <= 0) {
+			newErrors.avgPrice =
+				"Average Price is required and must be greater than 0";
+		}
+		if (!data.date) {
+			newErrors.date = "Date Purchased is required";
+		}
+		return newErrors;
+	};
+
 	const handleSubmit = (event) => {
 		event.preventDefault();
 		const formData = new FormData(event.target);
@@ -54,6 +74,11 @@ export default function AddStock({
 		const data = Object.fromEntries(formData);
 		data.stockName ? (data.stockName = data.stockName.toUpperCase()) : null;
 		data.avgPrice = parseFloat(data.avgPrice);
+		const validationErrors = validate(data);
+		if (Object.keys(validationErrors).length > 0) {
+			setErrors(validationErrors);
+			return;
+		}
 		console.log("inside handleSubmit");
 		console.log(data);
 		mutateCall(data);
@@ -99,6 +124,8 @@ export default function AddStock({
 									autoComplete="off"
 									fullWidth
 									margin="normal"
+									error={!!errors.stockName}
+									helperText={errors.stockName}
 								/>
 								{suggestions.length > 0 && (
 									<List
@@ -141,6 +168,8 @@ export default function AddStock({
 							placeholder="Quantity"
 							fullWidth
 							margin="normal"
+							error={!!errors.quantity}
+							helperText={errors.quantity}
 						/>
 						<TextField
 							name="avgPrice"
@@ -148,6 +177,8 @@ export default function AddStock({
 							placeholder="Buy Price"
 							fullWidth
 							margin="normal"
+							error={!!errors.avgPrice}
+							helperText={errors.avgPrice}
 						/>
 						<TextField
 							name="date"
@@ -157,6 +188,8 @@ export default function AddStock({
 							fullWidth
 							margin="normal"
 							InputLabelProps={{ shrink: true }} // Ensures the label shrinks when a value is present
+							error={!!errors.date}
+							helperText={errors.date}
 						/>
 						<DialogActions>
 							<Button variant="contained" type="submit">
