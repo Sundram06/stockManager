@@ -1,12 +1,8 @@
-import { Button, TextField } from "@mui/material";
-import classes from "./AddStock.module.css";
+import { Button, TextField, Box, Tooltip } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import LogoutIcon from "@mui/icons-material/Logout";
 import AddStock from "./AddStock";
-import {
-	createStock,
-	deleteAllStocks,
-	logoutUser,
-	queryClient,
-} from "../util/http.mjs";
+import { createStock, logoutUser, queryClient } from "../util/http.mjs";
 import { useMutation } from "@tanstack/react-query";
 import { addStockToPortfolio } from "../store/stocks-slice";
 import { useDispatch } from "react-redux";
@@ -14,53 +10,26 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../store/auth-slice";
 
-// eslint-disable-next-line react/prop-types
 export default function StockToolbar() {
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
 	const [isOpen, setIsOpen] = useState(false);
 
-	const handleClickOpen = () => {
-		setIsOpen(true);
-	};
+	const handleClickOpen = () => setIsOpen(true);
+	const handleClickCloseDialog = () => setIsOpen(false);
 
-	const handleClickCloseDialog = () => {
-		setIsOpen(false);
-	};
-
-	const mutateCall = (data) => {
-		console.log("inside mutateCall", data);
-		mutate(data);
-	};
+	const mutateCall = (data) => mutate(data);
 
 	const { mutate } = useMutation({
 		mutationFn: createStock,
 		mutationKey: ["stocks"],
 		onSuccess: (data) => {
-			console.log("inside onsuccess");
 			dispatch(addStockToPortfolio(data));
 			queryClient.invalidateQueries("stocks");
 			handleClickCloseDialog();
 		},
 		onError: (error) => {
-			throw new Error("Failed to do stocks entry", {
-				cause: error,
-			});
-		},
-	});
-
-	const { mutate: mutateDeleteAll } = useMutation({
-		mutationFn: deleteAllStocks,
-		mutationKey: ["stocks"],
-
-		onSuccess: () => {
-			console.log("All stocks and history deleted");
-			queryClient.invalidateQueries("stocks");
-		},
-		onError: (error) => {
-			throw new Error("Failed to delete all stocks and history", {
-				cause: error,
-			});
+			throw new Error("Failed to add stock", { cause: error });
 		},
 	});
 
@@ -68,10 +37,6 @@ export default function StockToolbar() {
 		logoutUser();
 		dispatch(logout({ sessionActive: "loggedout" }));
 		navigate("/");
-	};
-
-	const handleDeleteAll = () => {
-		mutateDeleteAll();
 	};
 
 	return (
@@ -82,29 +47,76 @@ export default function StockToolbar() {
 				handleClickCloseDialog={handleClickCloseDialog}
 				nameInputField={true}
 			/>
-			<div className={classes.addStock}>
-				<TextField
-					variant="outlined"
-					size="small"
-					type="search"
-					name="Search"
-					placeholder="Search"
-					className={classes.searchBar}
-				/>
-				<Button
-					variant="outlined"
-					// className={classes.addButton}
-					onClick={handleClickOpen}
+			{/* Outer wrapper with shadow and no margin-bottom */}
+			<Box
+				sx={{
+					boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+					borderRadius: 2,
+					backgroundColor: "#ffffff",
+				}}
+			>
+				{/* Inner toolbar */}
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "space-between",
+						p: 2,
+						flexWrap: "wrap",
+						gap: 2,
+					}}
 				>
-					+
-				</Button>
-				<Button variant="contained" color="primary" onClick={handleLogout}>
-					Logout
-				</Button>
-				<Button onClick={handleDeleteAll} variant="contained">
-					Delete All
-				</Button>
-			</div>
+					<Tooltip title="Search coming soon!">
+						<TextField
+							variant="outlined"
+							size="small"
+							type="search"
+							name="Search"
+							placeholder="Search (Coming Soon)"
+							disabled
+							sx={{
+								minWidth: 250,
+								backgroundColor: "#f9f9f9",
+								borderRadius: 1,
+							}}
+						/>
+					</Tooltip>
+					<Box display="flex" gap={2}>
+						<Button
+							variant="contained"
+							startIcon={<AddIcon />}
+							sx={{
+								backgroundColor: "#1976d2",
+								color: "white",
+								boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+								"&:hover": {
+									backgroundColor: "#1565c0",
+								},
+								borderRadius: 2,
+							}}
+							onClick={handleClickOpen}
+						>
+							Add Stock
+						</Button>
+						<Button
+							variant="outlined"
+							startIcon={<LogoutIcon />}
+							sx={{
+								color: "#1976d2",
+								borderColor: "#1976d2",
+								boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+								borderRadius: 2,
+								"&:hover": {
+									backgroundColor: "#f0f0f0",
+								},
+							}}
+							onClick={handleLogout}
+						>
+							Logout
+						</Button>
+					</Box>
+				</Box>
+			</Box>
 		</>
 	);
 }
