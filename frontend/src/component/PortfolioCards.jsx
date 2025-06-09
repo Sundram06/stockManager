@@ -1,0 +1,187 @@
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { Grid, Typography, Box } from "@mui/material";
+import AddStock from "./AddStock";
+import StockCard from "./StockCard";
+import StockHistoryModal from "./StockHistoryModal";
+import {
+	fetchStocks,
+	fetchStockHistoryById,
+	handleAddStockRowInHistory,
+	handleSellStockRowInHistory,
+	queryClient,
+} from "../util/http.mjs";
+import { logout } from "../store/auth-slice";
+import DeleteStockModal from "./DeleteStockModal";
+
+export default function PortfolioCards() {
+	const [isOpen, setIsOpen] = useState(false);
+	const [stockId, setStockId] = useState("");
+	const [actionType, setActionType] = useState("");
+	const [selectedStock, setSelectedStock] = useState(null);
+	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+	const [stockToDelete, setStockToDelete] = useState(null);
+	const navigate = useNavigate();
+	const dispatch = useDispatch();
+
+	const sessionStatus = useSelector((state) => state.auth.sessionActive);
+
+	useEffect(() => {
+		if (!sessionStatus || sessionStatus === "expired") {
+			localStorage.setItem("sessionActive", false);
+			dispatch(logout({ sessionActive: "expired" }));
+			navigate("/");
+		}
+	}, [navigate, sessionStatus, dispatch]);
+
+	const {
+		data: stocks,
+		isLoading,
+		error,
+	} = useQuery({
+		queryKey: ["stocks"],
+		queryFn: fetchStocks,
+		cacheTime: 10,
+		staleTime: 10,
+	});
+
+	const { data: historyRows } = useQuery({
+		queryKey: ["history"],
+		queryFn: fetchStockHistoryById,
+	});
+
+	const { mutate: mutateAdd } = useMutation({
+		mutationFn: handleAddStockRowInHistory,
+		onSuccess: () => {
+			queryClient.invalidateQueries("history");
+		},
+	});
+
+	const { mutate: mutateSell } = useMutation({
+		mutationFn: handleSellStockRowInHistory,
+		onSuccess: () => {
+			queryClient.invalidateQueries("history");
+		},
+	});
+
+	const { mutate: mutateDelete } = useMutation({
+		mutationFn: async (stockId) => {
+			const token = localStorage.getItem("token");
+			const response = await fetch(`http://localhost:3000/stocks/${stockId}`, {
+				method: "DELETE",
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			if (!response.ok) throw new Error("Failed to delete stock");
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries("stocks");
+			queryClient.invalidateQueries("history");
+			setDeleteModalOpen(false);
+		},
+		onError: (error) => {
+			console.error("Delete error:", error);
+		},
+	});
+
+	const handleMutate = (data) => {
+		data.stockId = stockId;
+		if (actionType === "add") {
+			mutateAdd(data);
+		} else if (actionType === "sell") {
+			mutateSell(data);
+		}
+	};
+
+	const handleAddStock = (row) => {
+		setIsOpen(true);
+		setStockId(row._id);
+		setActionType("add");
+	};
+
+	const handleSellStock = (id) => {
+		setIsOpen(true);
+		setStockId(id);
+		setActionType("sell");
+	};
+
+	const handleViewHistory = (stock) => {
+		const filteredHistory =
+			historyRows?.filter((row) => row.stockId === stock._id) || [];
+		setSelectedStock({ ...stock, history: filteredHistory });
+	};
+
+	const handleDeleteStock = (stock) => {
+		setStockToDelete(stock);
+		setDeleteModalOpen(true);
+	};
+
+	const handleConfirmDelete = () => {
+		if (stockToDelete) {
+			mutateDelete(stockToDelete._id);
+		}
+	};
+
+	if (isLoading) return <p>Loading...</p>;
+	if (error) return <p>Error loading stocks.</p>;
+
+	// ✅ Sort stocks alphabetically by stock name (case-insensitive)
+	const sortedStocks = stocks?.slice().sort((a, b) => {
+		const nameA = a.stockName.toUpperCase();
+		const nameB = b.stockName.toUpperCase();
+		return nameA.localeCompare(nameB);
+	});
+
+	return (
+		<>
+			<AddStock
+				open={isOpen}
+				mutateCall={handleMutate}
+				handleClickCloseDialog={() => setIsOpen(false)}
+				nameInputField={actionType !== "sell"}
+				buttonLabel={actionType === "sell" ? "Sell" : "Add"}
+			/>
+
+			<Box sx={{ backgroundColor: "#f9f9f9", minHeight: "100vh", p: 4 }}>
+				<Typography variant="h4" align="center" gutterBottom>
+					Stock Dashboard
+				</Typography>
+				{stocks?.length === 0 && (
+					<Typography>No stocks in portfolio</Typography>
+				)}
+				<Grid container spacing={3} justifyContent="center">
+					{sortedStocks?.map((stock) => (
+						<Grid item key={stock._id}>
+							<StockCard
+								stock={stock}
+								onAdd={handleAddStock}
+								onSell={handleSellStock}
+								onViewHistory={handleViewHistory}
+								onDelete={handleDeleteStock} // ✅ Keep delete functionality
+							/>
+						</Grid>
+					))}
+				</Grid>
+			</Box>
+
+			{selectedStock && (
+				<StockHistoryModal
+					open={!!selectedStock}
+					onClose={() => setSelectedStock(null)}
+					stockName={selectedStock.stockName}
+					history={selectedStock.history}
+				/>
+			)}
+
+			<DeleteStockModal
+				open={deleteModalOpen}
+				onClose={() => setDeleteModalOpen(false)}
+				onConfirm={handleConfirmDelete}
+				stockName={stockToDelete?.stockName}
+			/>
+		</>
+	);
+}

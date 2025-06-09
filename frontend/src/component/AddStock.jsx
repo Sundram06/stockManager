@@ -3,20 +3,25 @@ import { useEffect, useState } from "react";
 import classes from "./AddStock.module.css";
 import {
 	Dialog,
-	Button,
+	DialogContent,
 	DialogActions,
+	Button,
 	TextField,
 	List,
 	ListItem,
 	ListItemText,
 	Box,
+	Typography,
+	Divider,
 } from "@mui/material";
 import instruments from "../../../backend/instruments.json";
+
 export default function AddStock({
 	open,
 	mutateCall,
 	handleClickCloseDialog,
 	nameInputField,
+	buttonLabel = "Add",
 }) {
 	const [query, setQuery] = useState("");
 	const [suggestions, setSuggestions] = useState([]);
@@ -24,7 +29,7 @@ export default function AddStock({
 
 	const handleClickClose = () => {
 		setQuery("");
-		setErrors({}); // to clear the validation error when you click on cancel
+		setErrors({});
 		handleClickCloseDialog();
 	};
 
@@ -33,15 +38,11 @@ export default function AddStock({
 			const filteredStocks = instruments.filter((stock) => {
 				const nameMatch =
 					stock.name && stock.name.toLowerCase().includes(query.toLowerCase());
-				// const shortNameMatch =
-				// 	stock.short_name &&
-				// 	stock.short_name.toLowerCase().includes(query.toLowerCase());
 				const tradingSymbolMatch =
 					stock.trading_symbol &&
 					stock.trading_symbol.toLowerCase().includes(query.toLowerCase());
 				return nameMatch || tradingSymbolMatch;
 			});
-			// .slice(0, 5);
 			setSuggestions(filteredStocks);
 		} else {
 			setSuggestions([]);
@@ -69,8 +70,6 @@ export default function AddStock({
 	const handleSubmit = (event) => {
 		event.preventDefault();
 		const formData = new FormData(event.target);
-		console.log(event.target);
-		console.log(formData);
 		const data = Object.fromEntries(formData);
 		data.stockName ? (data.stockName = data.stockName.toUpperCase()) : null;
 		data.avgPrice = parseFloat(data.avgPrice);
@@ -79,8 +78,6 @@ export default function AddStock({
 			setErrors(validationErrors);
 			return;
 		}
-		console.log("inside handleSubmit");
-		console.log(data);
 		mutateCall(data);
 		event.target.reset();
 		setQuery("");
@@ -90,118 +87,157 @@ export default function AddStock({
 
 	const handleSelect = (stock) => {
 		setQuery(stock.trading_symbol);
-		console.log("trading_symbol", stock.trading_symbol);
 		setSuggestions([]);
 		const inputElement = document.querySelector("input[name='quantity']");
 		if (inputElement) {
-			inputElement.focus(); // Highlighted Change: This line ensures the input field is focused after selection
+			inputElement.focus();
 		}
 	};
 
 	return (
-		<>
-			<Dialog
-				className={classes.dialog}
-				open={open}
-				onClose={handleClickClose}
-				BackdropProps={{
-					classes: {
-						root: classes.backdrop,
-					},
+		<Dialog
+			open={open}
+			onClose={handleClickClose}
+			PaperProps={{
+				sx: {
+					p: 0,
+					overflow: "hidden",
+					borderRadius: "8px",
+					boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+				},
+			}}
+		>
+			{/* Custom header bar with blue background */}
+			<Box
+				sx={{
+					backgroundColor: "#1976d2",
+					color: "#fff",
+					px: 2,
+					py: 1.5,
 				}}
 			>
-				<div>
-					<form className={classes.dialogContent} onSubmit={handleSubmit}>
-						<h2>Stock Details</h2>
-						{nameInputField && (
-							<Box position="relative" width="100%" style={{ minWidth: "0px" }}>
-								<TextField
-									name="stockName"
-									label="Stock Name"
-									placeholder="Stock Name"
-									value={query}
-									onChange={(e) => setQuery(e.target.value)}
-									autoComplete="off"
-									fullWidth
-									margin="normal"
-									error={!!errors.stockName}
-									helperText={errors.stockName}
-								/>
-								{suggestions.length > 0 && (
-									<List
-										className={classes.suggestionsList}
-										style={{
-											position: "absolute",
-											top: "100%",
-											left: 0,
-											right: 0,
-											zIndex: 10, // Ensure it appears on top of other elements
-											backgroundColor: "white",
-											boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)",
-											maxHeight: "200px",
-											overflowY: "auto",
-										}}
-									>
-										{suggestions.map((stock, index) => (
-											<ListItem
-												button
-												key={index}
-												onClick={() => handleSelect(stock)}
-											>
-												<ListItemText
-													primary={`${stock.name} ${
-														stock.trading_symbol
-															? `(${stock.trading_symbol})`
-															: ""
-													}`}
-												/>
-											</ListItem>
-										))}
-									</List>
-								)}
-							</Box>
-						)}
-						<TextField
-							name="quantity"
-							type="number"
-							label="Quantity"
-							placeholder="Quantity"
-							fullWidth
-							margin="normal"
-							error={!!errors.quantity}
-							helperText={errors.quantity}
-						/>
-						<TextField
-							name="avgPrice"
-							label="Average Price"
-							placeholder="Buy Price"
-							fullWidth
-							margin="normal"
-							error={!!errors.avgPrice}
-							helperText={errors.avgPrice}
-						/>
-						<TextField
-							name="date"
-							type="date"
-							label="Date Purchased"
-							placeholder="Date Purchased"
-							fullWidth
-							margin="normal"
-							InputLabelProps={{ shrink: true }} // Ensures the label shrinks when a value is present
-							error={!!errors.date}
-							helperText={errors.date}
-						/>
-						<DialogActions>
-							<Button variant="contained" type="submit">
-								Add
-							</Button>
-							<Button onClick={handleClickClose} type="reset">
-								Cancel
-							</Button>
-						</DialogActions>
-					</form>
-				</div>
-			</Dialog>
-		</>
+				<Typography variant="h6" fontWeight="bold">
+					Stock Details
+				</Typography>
+			</Box>
+
+			<Divider />
+
+			<DialogContent sx={{ p: 3 }}>
+				<form onSubmit={handleSubmit}>
+					{nameInputField && (
+						<Box position="relative" width="100%">
+							<TextField
+								name="stockName"
+								label="Stock Name"
+								placeholder="Stock Name"
+								value={query}
+								onChange={(e) => setQuery(e.target.value)}
+								autoComplete="off"
+								fullWidth
+								margin="normal"
+								error={!!errors.stockName}
+								helperText={errors.stockName}
+							/>
+							{suggestions.length > 0 && (
+								<List
+									className={classes.suggestionsList}
+									sx={{
+										position: "absolute",
+										top: "100%",
+										left: 0,
+										right: 0,
+										zIndex: 10,
+										backgroundColor: "white",
+										boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)",
+										maxHeight: "200px",
+										overflowY: "auto",
+									}}
+								>
+									{suggestions.map((stock, index) => (
+										<ListItem
+											button
+											key={index}
+											onClick={() => handleSelect(stock)}
+										>
+											<ListItemText
+												primary={`${stock.name} ${
+													stock.trading_symbol
+														? `(${stock.trading_symbol})`
+														: ""
+												}`}
+											/>
+										</ListItem>
+									))}
+								</List>
+							)}
+						</Box>
+					)}
+					<TextField
+						name="quantity"
+						type="number"
+						label="Quantity"
+						placeholder="Quantity"
+						fullWidth
+						margin="normal"
+						error={!!errors.quantity}
+						helperText={errors.quantity}
+					/>
+					<TextField
+						name="avgPrice"
+						label="Average Price"
+						placeholder="Buy Price"
+						fullWidth
+						margin="normal"
+						error={!!errors.avgPrice}
+						helperText={errors.avgPrice}
+					/>
+					<TextField
+						name="date"
+						type="date"
+						label="Date Purchased"
+						placeholder="Date Purchased"
+						fullWidth
+						margin="normal"
+						InputLabelProps={{ shrink: true }}
+						error={!!errors.date}
+						helperText={errors.date}
+					/>
+
+					<DialogActions
+						sx={{
+							mt: 2,
+							justifyContent: "flex-end",
+							gap: 1.5,
+						}}
+					>
+						<Button
+							variant="outlined"
+							color="primary"
+							onClick={handleClickClose}
+							sx={{
+								minWidth: 80,
+								borderColor: "#1976d2",
+								color: "#1976d2",
+								"&:hover": {
+									backgroundColor: "#f0f0f0",
+									borderColor: "#1976d2",
+								},
+							}}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="contained"
+							type="submit"
+							color={buttonLabel === "Sell" ? "warning" : "primary"}
+							sx={{ minWidth: 80 }}
+						>
+							{buttonLabel}
+						</Button>
+					</DialogActions>
+				</form>
+			</DialogContent>
+		</Dialog>
 	);
 }
