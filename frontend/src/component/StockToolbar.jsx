@@ -35,6 +35,7 @@ export default function StockToolbar() {
 
 	const handleLogout = () => {
 		logoutUser();
+		sessionStorage.setItem("showLogoutMessage", "1");
 		dispatch(logout({ sessionActive: "loggedout" }));
 		navigate("/");
 	};

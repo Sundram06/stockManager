@@ -107,7 +107,7 @@ app.post("/login", async (req, res) => {
 		if (!user) {
 			return res.status(401).json({ message: "Invalid credentials" });
 		}
-		const isPasswordValid = bcrypt.compare(password, user.password);
+		const isPasswordValid = await bcrypt.compare(password, user.password);
 		if (user && isPasswordValid) {
 			const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
 				expiresIn: "10h",
@@ -143,58 +143,57 @@ app.post("/stocks", authenticateJWT, async (req, res) => {
 	res.json(newStock);
 });
 
-/** 🔥🔥 HIGHLIGHTED CHANGE: Updated /stocks endpoint to filter active stocks only */
 app.get("/stocks", authenticateJWT, async (req, res) => {
 	try {
 		const userId = new mongoose.Types.ObjectId(req.userId);
 		const stocks = await Stock.find({ userId });
-		const updatedStocks = [];
+		const stocksList = [];
 
 		for (const stock of stocks) {
-			// Aggregate total quantity sold from History
-			const soldHistory = await History.aggregate([
-				{
-					$match: {
-						stockId: stock._id,
-						quantitySold: { $gt: 0 },
-					},
-				},
-				{
-					$group: {
-						_id: "$stockId",
-						totalSold: { $sum: "$quantitySold" },
-					},
-				},
-			]);
+			// Fetch all purchase rows for this stock from History
+			const historyRows = await History.find({ stockId: stock._id }).sort({
+				date: 1,
+			});
 
-			const totalSold = soldHistory.length > 0 ? soldHistory[0].totalSold : 0;
-			const remainingQuantity = stock.quantity - totalSold;
+			let totalRemainingQty = 0;
+			let totalRemainingCost = 0;
 
-			// Only include stocks that have quantity left to sell
-			if (remainingQuantity <= 0) {
-				continue;
+			for (const row of historyRows) {
+				const quantitySold = row.quantitySold || 0;
+				const remainingQty = row.quantity - quantitySold;
+
+				if (remainingQty > 0) {
+					totalRemainingQty += remainingQty;
+					totalRemainingCost += remainingQty * row.avgPrice;
+				}
 			}
 
-			const totalCostOfStock = parseFloat(
-				(remainingQuantity * stock.avgPrice).toFixed(2)
-			);
+			// If **all shares sold** (dormant), set all holding details to 0
+			const isDormant = totalRemainingQty === 0;
 
-			const updatedStock = {
+			const avgPrice = isDormant
+				? 0
+				: Number((totalRemainingCost / totalRemainingQty).toFixed(2));
+			const totalCostOfStock = isDormant
+				? 0
+				: parseFloat((totalRemainingQty * avgPrice).toFixed(2));
+			const currVal = isDormant ? 0 : 20; // Replace with LTP*qty if you want
+			const quantity = isDormant ? 0 : totalRemainingQty;
+
+			stocksList.push({
 				...stock.toObject(),
-				quantity: remainingQuantity, // updated quantity
+				quantity,
+				avgPrice,
 				totalCostOfStock,
-				ltp: 20,
-				currVal: 20,
-				pnl: 20,
+				ltp: 20, // Placeholder
+				currVal,
+				pnl: 20, // Placeholder, or calculate realized P&L
 				netChange: 20,
 				dayChange: 20,
-			};
-
-			updatedStocks.push(updatedStock);
+			});
 		}
 
-		console.log("updated active stocks", updatedStocks);
-		res.json(updatedStocks);
+		res.json(stocksList);
 	} catch (err) {
 		console.error("Error fetching stocks:", err);
 		res.status(500).json({ message: err.message });
@@ -247,15 +246,36 @@ app.post("/history", authenticateJWT, async (req, res) => {
 	});
 
 	const stock = await Stock.findById(history.stockId);
-	stock.avgPrice = Number(
-		(stock.avgPrice * stock.quantity + history.quantity * history.avgPrice) /
-			(stock.quantity + history.quantity)
-	).toFixed(2);
-	stock.quantity = stock.quantity + history.quantity;
+
+	// ✅ Fetch only unsold shares (exclude fully sold rows)
+	const activeHistoryRows = await History.find({
+		stockId: stock._id,
+		$expr: { $gt: ["$quantity", { $ifNull: ["$quantitySold", 0] }] },
+	});
+
+	let totalActiveQty = 0;
+	let totalActiveCost = 0;
+
+	activeHistoryRows.forEach((row) => {
+		const unsoldQty = row.quantity - (row.quantitySold || 0);
+		totalActiveQty += unsoldQty;
+		totalActiveCost += unsoldQty * row.avgPrice;
+	});
+
+	// ✅ Add the new purchase
+	totalActiveQty += history.quantity;
+	totalActiveCost += history.quantity * history.avgPrice;
+
+	// ✅ Update stock quantity
+	stock.quantity = totalActiveQty < 0 ? 0 : totalActiveQty;
+
+	// ✅ Update avgPrice
+	stock.avgPrice = Number((totalActiveCost / totalActiveQty).toFixed(2));
 
 	await Promise.all([stock.save(), history.save()]);
 	res.json({ history, stock });
 });
+
 
 app.post("/history/sell", authenticateJWT, async (req, res) => {
 	try {
