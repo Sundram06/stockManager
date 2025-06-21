@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { Grid, Typography, Box } from "@mui/material";
+import { Typography, Box } from "@mui/material";
 import AddStock from "./AddStock";
-import StockCard from "./StockCard";
 import StockHistoryModal from "./StockHistoryModal";
+import DeleteStockModal from "./DeleteStockModal";
 import {
 	fetchStocks,
 	fetchStockHistoryById,
@@ -14,7 +14,7 @@ import {
 	queryClient,
 } from "../util/http.mjs";
 import { logout } from "../store/auth-slice";
-import DeleteStockModal from "./DeleteStockModal";
+import StocksList from "./StockList";
 
 export default function PortfolioCards() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -23,6 +23,7 @@ export default function PortfolioCards() {
 	const [selectedStock, setSelectedStock] = useState(null);
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 	const [stockToDelete, setStockToDelete] = useState(null);
+	const [maxSellQuantity, setMaxSellQuantity] = useState(0);
 	const navigate = useNavigate();
 	const dispatch = useDispatch();
 
@@ -54,16 +55,12 @@ export default function PortfolioCards() {
 
 	const { mutate: mutateAdd } = useMutation({
 		mutationFn: handleAddStockRowInHistory,
-		onSuccess: () => {
-			queryClient.invalidateQueries("history");
-		},
+		onSuccess: () => queryClient.invalidateQueries("history"),
 	});
 
 	const { mutate: mutateSell } = useMutation({
 		mutationFn: handleSellStockRowInHistory,
-		onSuccess: () => {
-			queryClient.invalidateQueries("history");
-		},
+		onSuccess: () => queryClient.invalidateQueries("history"),
 	});
 
 	const { mutate: mutateDelete } = useMutation({
@@ -71,9 +68,7 @@ export default function PortfolioCards() {
 			const token = localStorage.getItem("token");
 			const response = await fetch(`http://localhost:3000/stocks/${stockId}`, {
 				method: "DELETE",
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
+				headers: { Authorization: `Bearer ${token}` },
 			});
 			if (!response.ok) throw new Error("Failed to delete stock");
 		},
@@ -82,18 +77,11 @@ export default function PortfolioCards() {
 			queryClient.invalidateQueries("history");
 			setDeleteModalOpen(false);
 		},
-		onError: (error) => {
-			console.error("Delete error:", error);
-		},
 	});
 
 	const handleMutate = (data) => {
 		data.stockId = stockId;
-		if (actionType === "add") {
-			mutateAdd(data);
-		} else if (actionType === "sell") {
-			mutateSell(data);
-		}
+		actionType === "add" ? mutateAdd(data) : mutateSell(data);
 	};
 
 	const handleAddStock = (row) => {
@@ -103,9 +91,11 @@ export default function PortfolioCards() {
 	};
 
 	const handleSellStock = (id) => {
+		const stock = sortedStocks.find((s) => s._id === id);
 		setIsOpen(true);
 		setStockId(id);
 		setActionType("sell");
+		setMaxSellQuantity(stock.quantity);
 	};
 
 	const handleViewHistory = (stock) => {
@@ -120,20 +110,20 @@ export default function PortfolioCards() {
 	};
 
 	const handleConfirmDelete = () => {
-		if (stockToDelete) {
-			mutateDelete(stockToDelete._id);
-		}
+		if (stockToDelete) mutateDelete(stockToDelete._id);
 	};
 
 	if (isLoading) return <p>Loading...</p>;
 	if (error) return <p>Error loading stocks.</p>;
 
-	// ✅ Sort stocks alphabetically by stock name (case-insensitive)
 	const sortedStocks = stocks?.slice().sort((a, b) => {
 		const nameA = a.stockName.toUpperCase();
 		const nameB = b.stockName.toUpperCase();
 		return nameA.localeCompare(nameB);
 	});
+
+	const activeStocks = sortedStocks?.filter((stock) => stock.quantity > 0);
+	const dormantStocks = sortedStocks?.filter((stock) => stock.quantity <= 0);
 
 	return (
 		<>
@@ -141,30 +131,43 @@ export default function PortfolioCards() {
 				open={isOpen}
 				mutateCall={handleMutate}
 				handleClickCloseDialog={() => setIsOpen(false)}
-				nameInputField={actionType !== "sell"}
+				nameInputField={stockId === ""}
 				buttonLabel={actionType === "sell" ? "Sell" : "Add"}
+				maxSellQuantity={actionType === "sell" ? maxSellQuantity : undefined}
 			/>
 
 			<Box sx={{ backgroundColor: "#f9f9f9", minHeight: "100vh", p: 4 }}>
 				<Typography variant="h4" align="center" gutterBottom>
 					Stock Dashboard
 				</Typography>
-				{stocks?.length === 0 && (
-					<Typography>No stocks in portfolio</Typography>
+
+				{activeStocks?.length > 0 && (
+					<StocksList
+						title="Active Stocks"
+						stocks={activeStocks}
+						onAdd={handleAddStock}
+						onSell={handleSellStock}
+						onViewHistory={handleViewHistory}
+						onDelete={handleDeleteStock}
+						isDormant={false}
+					/>
 				)}
-				<Grid container spacing={3} justifyContent="center">
-					{sortedStocks?.map((stock) => (
-						<Grid item key={stock._id}>
-							<StockCard
-								stock={stock}
-								onAdd={handleAddStock}
-								onSell={handleSellStock}
-								onViewHistory={handleViewHistory}
-								onDelete={handleDeleteStock} // ✅ Keep delete functionality
-							/>
-						</Grid>
-					))}
-				</Grid>
+
+				{dormantStocks?.length > 0 && (
+					<StocksList
+						title="Dormant Stocks"
+						stocks={dormantStocks}
+						onAdd={handleAddStock}
+						onSell={handleSellStock}
+						onViewHistory={handleViewHistory}
+						onDelete={handleDeleteStock}
+						isDormant={true}
+					/>
+				)}
+
+				{stocks?.length === 0 && (
+					<Typography>No stocks in portfolio.</Typography>
+				)}
 			</Box>
 
 			{selectedStock && (

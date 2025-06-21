@@ -22,6 +22,7 @@ export default function AddStock({
 	handleClickCloseDialog,
 	nameInputField,
 	buttonLabel = "Add",
+	maxSellQuantity = Infinity,
 }) {
 	const [query, setQuery] = useState("");
 	const [suggestions, setSuggestions] = useState([]);
@@ -55,14 +56,16 @@ export default function AddStock({
 			newErrors.stockName = "Stock Name is required";
 		}
 		if (!data.quantity || isNaN(data.quantity) || Number(data.quantity) <= 0) {
-			newErrors.quantity = "Quantity is required and must be greater than 0";
+			newErrors.quantity = "Quantity must be greater than 0";
 		}
 		if (!data.avgPrice || isNaN(data.avgPrice) || Number(data.avgPrice) <= 0) {
-			newErrors.avgPrice =
-				"Average Price is required and must be greater than 0";
+			newErrors.avgPrice = "Average Price must be greater than 0";
 		}
 		if (!data.date) {
 			newErrors.date = "Date Purchased is required";
+		}
+		if (buttonLabel === "Sell" && Number(data.quantity) > maxSellQuantity) {
+			newErrors.quantity = `Cannot sell more than available (${maxSellQuantity})`;
 		}
 		return newErrors;
 	};
@@ -89,9 +92,7 @@ export default function AddStock({
 		setQuery(stock.trading_symbol);
 		setSuggestions([]);
 		const inputElement = document.querySelector("input[name='quantity']");
-		if (inputElement) {
-			inputElement.focus();
-		}
+		if (inputElement) inputElement.focus();
 	};
 
 	return (
@@ -107,22 +108,12 @@ export default function AddStock({
 				},
 			}}
 		>
-			{/* Custom header bar with blue background */}
-			<Box
-				sx={{
-					backgroundColor: "#1976d2",
-					color: "#fff",
-					px: 2,
-					py: 1.5,
-				}}
-			>
+			<Box sx={{ backgroundColor: "#1976d2", color: "#fff", px: 2, py: 1.5 }}>
 				<Typography variant="h6" fontWeight="bold">
 					Stock Details
 				</Typography>
 			</Box>
-
 			<Divider />
-
 			<DialogContent sx={{ p: 3 }}>
 				<form onSubmit={handleSubmit}>
 					{nameInputField && (
@@ -182,7 +173,17 @@ export default function AddStock({
 						margin="normal"
 						error={!!errors.quantity}
 						helperText={errors.quantity}
+						InputProps={
+							buttonLabel === "Sell"
+								? { inputProps: { min: 1, max: maxSellQuantity } }
+								: undefined
+						}
 					/>
+					{buttonLabel === "Sell" && (
+						<Typography variant="caption" color="textSecondary" sx={{ mb: 1 }}>
+							Unsold shares available: <strong>{maxSellQuantity}</strong>
+						</Typography>
+					)}
 					<TextField
 						name="avgPrice"
 						label="Average Price"
@@ -204,13 +205,7 @@ export default function AddStock({
 						helperText={errors.date}
 					/>
 
-					<DialogActions
-						sx={{
-							mt: 2,
-							justifyContent: "flex-end",
-							gap: 1.5,
-						}}
-					>
+					<DialogActions sx={{ mt: 2, justifyContent: "flex-end", gap: 1.5 }}>
 						<Button
 							variant="outlined"
 							color="primary"

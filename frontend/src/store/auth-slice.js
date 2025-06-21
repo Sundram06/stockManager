@@ -50,8 +50,12 @@ const authSlice = createSlice({
 			state.logoutMessage = action.payload?.message || "Logged out";
 			state.sessionActive = action.payload?.sessionActive || "loggedout";
 		},
+		clearLogoutMessage: (state) => {
+			state.logoutMessage = null;
+		},
 	},
 });
 
-export const { setAuth, clearAuth, login, logout } = authSlice.actions;
+export const { setAuth, clearAuth, login, logout, clearLogoutMessage } =
+	authSlice.actions;
 export default authSlice;

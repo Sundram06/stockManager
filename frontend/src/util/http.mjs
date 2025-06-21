@@ -39,6 +39,7 @@ export const checkTokenExpiry = (token) => {
 	const timeUntillExpiry = exp - currentTime;
 	if (timeUntillExpiry <= 0) {
 		localStorage.removeItem("token");
+		sessionStorage.setItem("sessionExpired", "1");
 		store.dispatch(
 			logout({
 				message: "Session expired. Please login again.",
@@ -48,6 +49,7 @@ export const checkTokenExpiry = (token) => {
 	} else {
 		setTimeout(() => {
 			localStorage.removeItem("token");
+			sessionStorage.setItem("sessionExpired", "1");
 			store.dispatch(
 				logout({
 					message: "Session expired. Please login again.",

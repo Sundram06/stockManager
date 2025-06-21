@@ -19,8 +19,13 @@ export default function StockCard({
 	onSell,
 	onViewHistory,
 	onDelete,
+	isDormant,
 }) {
-	const totalCost = (stock.quantity * stock.avgPrice).toFixed(2);
+	const displayQuantity = stock.quantity > 0 ? stock.quantity : 0;
+	const displayAvgCost = stock.quantity > 0 ? stock.avgPrice : 0;
+	const displayTotalCost =
+		stock.quantity > 0 ? (stock.quantity * stock.avgPrice).toFixed(2) : 0;
+	const displayCurrVal = stock.quantity > 0 ? stock.currVal : 0;
 
 	return (
 		<Paper
@@ -35,16 +40,15 @@ export default function StockCard({
 				position: "relative",
 				backgroundColor: "#ffffff",
 				boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-				borderTop: "4px solid #1976d2", // Primary theme color
+				borderTop: "4px solid #1976d2",
 			}}
 		>
-			{/* Stock name container with delete icon */}
 			<Box
 				sx={{
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "space-between",
-					backgroundColor: "#f4f6f8", // Soft gray
+					backgroundColor: "#f4f6f8",
 					borderRadius: "4px",
 					py: 1,
 					px: 2,
@@ -76,12 +80,12 @@ export default function StockCard({
 
 			<Divider sx={{ mb: 1 }} />
 
-			<Typography variant="body2">Quantity: {stock.quantity}</Typography>
+			<Typography variant="body2">Quantity: {displayQuantity}</Typography>
 			<Typography variant="body2" color="text.secondary">
-				Avg. Cost: ₹{stock.avgPrice}
+				Avg. Cost: ₹{displayAvgCost}
 			</Typography>
 			<Typography variant="body2" color="text.secondary">
-				Total Cost: ₹{totalCost}
+				Total Cost: ₹{displayTotalCost}
 			</Typography>
 			<Typography
 				variant="body2"
@@ -93,7 +97,7 @@ export default function StockCard({
 				LTP: ₹{stock.ltp}
 			</Typography>
 			<Typography variant="body2" color="text.secondary">
-				Curr. Val: ₹{stock.currVal}
+				Curr. Val: ₹{displayCurrVal}
 			</Typography>
 
 			<Stack direction="row" spacing={1} mt={2} justifyContent="center">
@@ -114,6 +118,7 @@ export default function StockCard({
 					startIcon={<RemoveIcon />}
 					onClick={() => onSell(stock._id)}
 					sx={{ minWidth: 80 }}
+					disabled={isDormant}
 				>
 					SELL
 				</Button>
@@ -138,4 +143,5 @@ StockCard.propTypes = {
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,
 	onDelete: PropTypes.func.isRequired,
+	isDormant: PropTypes.bool,
 };
