@@ -2,10 +2,14 @@
 # backend
 backend/node_modules
 backend/.env
+backend/.env.production
+backend/.env.development
 backend/instruments.json
 
 #frontend
 frontend/node_modules
+frontend/.env.production
+frontend/.env.development
 
 complete.json
 

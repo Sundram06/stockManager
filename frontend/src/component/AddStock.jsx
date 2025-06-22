@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import classes from "./AddStock.module.css";
 import {
 	Dialog,
@@ -23,10 +23,12 @@ export default function AddStock({
 	nameInputField,
 	buttonLabel = "Add",
 	maxSellQuantity = Infinity,
+	stockName = "",
 }) {
 	const [query, setQuery] = useState("");
 	const [suggestions, setSuggestions] = useState([]);
 	const [errors, setErrors] = useState({});
+	const debounceTimeout = useRef();
 
 	const handleClickClose = () => {
 		setQuery("");
@@ -35,19 +37,31 @@ export default function AddStock({
 	};
 
 	useEffect(() => {
+		if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 		if (query) {
-			const filteredStocks = instruments.filter((stock) => {
-				const nameMatch =
-					stock.name && stock.name.toLowerCase().includes(query.toLowerCase());
-				const tradingSymbolMatch =
-					stock.trading_symbol &&
-					stock.trading_symbol.toLowerCase().includes(query.toLowerCase());
-				return nameMatch || tradingSymbolMatch;
-			});
-			setSuggestions(filteredStocks);
+			debounceTimeout.current = setTimeout(() => {
+				const filteredStocks = instruments.filter((stock) => {
+					const nameMatch =
+						stock.name &&
+						stock.name.toLowerCase().includes(query.toLowerCase());
+					const tradingSymbolMatch =
+						stock.trading_symbol &&
+						stock.trading_symbol.toLowerCase().includes(query.toLowerCase());
+					return nameMatch || tradingSymbolMatch;
+				});
+
+				// If the query exactly matches a trading symbol or name, don't show suggestions
+				const exactMatch = filteredStocks.some(
+					(stock) =>
+						stock.trading_symbol?.toLowerCase() === query.toLowerCase() ||
+						stock.name?.toLowerCase() === query.toLowerCase()
+				);
+				setSuggestions(exactMatch ? [] : filteredStocks);
+			}, 300); // 300ms debounce
 		} else {
 			setSuggestions([]);
 		}
+		return () => clearTimeout(debounceTimeout.current);
 	}, [query]);
 
 	const validate = (data) => {
@@ -110,7 +124,11 @@ export default function AddStock({
 		>
 			<Box sx={{ backgroundColor: "#1976d2", color: "#fff", px: 2, py: 1.5 }}>
 				<Typography variant="h6" fontWeight="bold">
-					Stock Details
+					{buttonLabel === "Add"
+						? `Add${stockName ? ` ${stockName}` : " Stock"}`
+						: buttonLabel === "Sell"
+						? `Sell${stockName ? ` ${stockName}` : " Stock"}`
+						: "Stock Details"}
 				</Typography>
 			</Box>
 			<Divider />
@@ -149,7 +167,7 @@ export default function AddStock({
 										<ListItem
 											button
 											key={index}
-											onClick={() => handleSelect(stock)}
+											onMouseDown={() => handleSelect(stock)}
 										>
 											<ListItemText
 												primary={`${stock.name} ${

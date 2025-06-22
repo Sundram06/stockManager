@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
 	Avatar,
@@ -11,9 +11,11 @@ import {
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import { login } from "../store/auth-slice";
+import { login, clearLogoutMessage } from "../store/auth-slice";
 import { useMutation } from "@tanstack/react-query";
 import { loginUser } from "../util/http.mjs";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function LoginPage() {
 	const [email, setEmail] = useState("");
@@ -24,12 +26,26 @@ export default function LoginPage() {
 	const sessionActive = useSelector((state) => state.auth.sessionActive);
 	const logoutMessage = useSelector((state) => state.auth.logoutMessage);
 
+	useEffect(() => {
+		// Only clear the logout message if it was already shown once
+		if (logoutMessage) {
+			// Use a sessionStorage flag to track if we just landed here from logout/session expiry
+			const justLoggedOut = sessionStorage.getItem("justLoggedOut");
+			if (justLoggedOut) {
+				sessionStorage.removeItem("justLoggedOut");
+			} else {
+				dispatch(clearLogoutMessage());
+			}
+		}
+	}, [dispatch, logoutMessage]);
+
 	const { mutate } = useMutation({
 		mutationKey: ["login"],
 		mutationFn: loginUser,
 		onSuccess: (data) => {
 			localStorage.setItem("token", data.token);
 			localStorage.setItem("sessionActive", true);
+			console.log(data.user);
 			dispatch(login(data.user));
 			navigate("/dashboard");
 		},
@@ -115,6 +131,34 @@ export default function LoginPage() {
 						>
 							Sign In
 						</Button>
+
+						{/* --- OAUTH BUTTONS START HERE --- */}
+						<Box display="flex" flexDirection="column" mt={3} gap={1}>
+							<Button
+								fullWidth
+								variant="outlined"
+								color="primary"
+								sx={{ textTransform: "none" }}
+								onClick={() => {
+									window.location.href = `${API_URL}/api/auth/google`;
+								}}
+							>
+								Continue with Google
+							</Button>
+							<Button
+								fullWidth
+								variant="outlined"
+								color="success"
+								sx={{ textTransform: "none" }}
+								onClick={() => {
+									window.location.href = `${API_URL}/api/upstox/login`;
+								}}
+							>
+								Continue with Upstox
+							</Button>
+						</Box>
+						{/* --- OAUTH BUTTONS END HERE --- */}
+
 						<Box display="flex" justifyContent="space-between" mt={2}>
 							<Link
 								to="#"
@@ -143,3 +187,5 @@ export default function LoginPage() {
 		</Box>
 	);
 }
+
+//google auth and dev prod url

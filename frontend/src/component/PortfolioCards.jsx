@@ -12,6 +12,7 @@ import {
 	handleAddStockRowInHistory,
 	handleSellStockRowInHistory,
 	queryClient,
+	API_URL,
 } from "../util/http.mjs";
 import { logout } from "../store/auth-slice";
 import StocksList from "./StockList";
@@ -24,6 +25,7 @@ export default function PortfolioCards() {
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 	const [stockToDelete, setStockToDelete] = useState(null);
 	const [maxSellQuantity, setMaxSellQuantity] = useState(0);
+	const [stockName, setStockName] = useState(""); // <-- NEW
 	const navigate = useNavigate();
 	const dispatch = useDispatch();
 
@@ -66,7 +68,7 @@ export default function PortfolioCards() {
 	const { mutate: mutateDelete } = useMutation({
 		mutationFn: async (stockId) => {
 			const token = localStorage.getItem("token");
-			const response = await fetch(`http://localhost:3000/stocks/${stockId}`, {
+			const response = await fetch(`${API_URL}/stocks/${stockId}`, {
 				method: "DELETE",
 				headers: { Authorization: `Bearer ${token}` },
 			});
@@ -88,6 +90,7 @@ export default function PortfolioCards() {
 		setIsOpen(true);
 		setStockId(row._id);
 		setActionType("add");
+		setStockName(row.stockName || ""); // <-- NEW
 	};
 
 	const handleSellStock = (id) => {
@@ -96,6 +99,7 @@ export default function PortfolioCards() {
 		setStockId(id);
 		setActionType("sell");
 		setMaxSellQuantity(stock.quantity);
+		setStockName(stock.stockName || ""); // <-- NEW
 	};
 
 	const handleViewHistory = (stock) => {
@@ -134,6 +138,7 @@ export default function PortfolioCards() {
 				nameInputField={stockId === ""}
 				buttonLabel={actionType === "sell" ? "Sell" : "Add"}
 				maxSellQuantity={actionType === "sell" ? maxSellQuantity : undefined}
+				stockName={stockName} // <-- NEW
 			/>
 
 			<Box sx={{ backgroundColor: "#f9f9f9", minHeight: "100vh", p: 4 }}>
@@ -150,6 +155,7 @@ export default function PortfolioCards() {
 						onViewHistory={handleViewHistory}
 						onDelete={handleDeleteStock}
 						isDormant={false}
+						// No need to pass historyRows here; only for dormant
 					/>
 				)}
 
@@ -162,6 +168,8 @@ export default function PortfolioCards() {
 						onViewHistory={handleViewHistory}
 						onDelete={handleDeleteStock}
 						isDormant={true}
+						historyRows={historyRows}
+						// pass all historyRows here so StockCard can filter per stock
 					/>
 				)}
 
@@ -179,12 +187,16 @@ export default function PortfolioCards() {
 				/>
 			)}
 
-			<DeleteStockModal
-				open={deleteModalOpen}
-				onClose={() => setDeleteModalOpen(false)}
-				onConfirm={handleConfirmDelete}
-				stockName={stockToDelete?.stockName}
-			/>
+			{deleteModalOpen && stockToDelete && (
+				<DeleteStockModal
+					open={deleteModalOpen}
+					onClose={() => setDeleteModalOpen(false)}
+					onConfirm={handleConfirmDelete}
+					stockName={stockToDelete.stockName}
+				/>
+			)}
 		</>
 	);
 }
+
+//asd11

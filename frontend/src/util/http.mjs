@@ -4,11 +4,13 @@ import store from "../store/store.js";
 import { QueryClient } from "@tanstack/react-query";
 export const queryClient = new QueryClient();
 
+// Get API base URL from env (Vite will replace this at build time)
+export const API_URL = import.meta.env.VITE_API_URL;
+
 export async function createStock(stockData) {
 	const token = localStorage.getItem("token");
 	checkTokenExpiry(token);
-	console.log(stockData);
-	const response = await fetch("http://localhost:3000/stocks", {
+	const response = await fetch(`${API_URL}/stocks`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -25,7 +27,6 @@ export async function createStock(stockData) {
 
 export const checkTokenExpiry = (token) => {
 	if (!token) {
-		console.log("no token found");
 		store.dispatch(
 			logout({
 				message: "Session expired. Please login again.",
@@ -60,21 +61,12 @@ export const checkTokenExpiry = (token) => {
 	}
 };
 
-// const handleTokenExpiry = async (response) => {
-// 	if (response.status === 401 || response.status === 403) {
-// 		localStorage.removeItem("token");
-// 		store.dispatch(logout({ message: "Session expired. Please login again." }));
-// 		throw new Error("Unauthorized");
-// 	}
-// };
-
 export const fetchUpstoxData = async () => {
-	const response = await fetch(`http://localhost:3000/api/upstox/login`);
+	const response = await fetch(`${API_URL}/api/upstox/login`);
 	if (!response.ok) {
 		throw new Error("Unable to fetch upstox data");
 	}
 	const data = await response.json();
-	console.log(data);
 	return data;
 };
 
@@ -82,34 +74,29 @@ export const fetchStocks = async () => {
 	const token = localStorage.getItem("token");
 	const tokenCheck = checkTokenExpiry(token);
 	if (tokenCheck === false) return tokenCheck;
-	console.log(token);
-	const response = await fetch("http://localhost:3000/stocks", {
+	const response = await fetch(`${API_URL}/stocks`, {
 		headers: {
 			Authorization: `Bearer ${token}`,
 		},
 	});
-	// await handleTokenExpiry(response);
 	const data = await response.json();
-	console.log("get query of stocks", data);
 	return data;
 };
 
 export const fetchStockHistoryById = async () => {
 	const token = localStorage.getItem("token");
 	checkTokenExpiry(token);
-	const response = await fetch(`http://localhost:3000/history/`, {
+	const response = await fetch(`${API_URL}/history/`, {
 		headers: {
 			Authorization: `Bearer ${token}`,
 		},
 	});
-	// await handleTokenExpiry(response);
 	const data = await response.json();
-	console.log("get history of stock id ", data);
 	return data;
 };
 
 export async function deleteAllStocks() {
-	const response = await fetch("http://localhost:3000/stocks", {
+	const response = await fetch(`${API_URL}/stocks`, {
 		method: "DELETE",
 	});
 	if (!response.ok) {
@@ -120,8 +107,7 @@ export async function deleteAllStocks() {
 export async function handleAddStockRowInHistory(stockData) {
 	const token = localStorage.getItem("token");
 	checkTokenExpiry(token);
-	console.log("data in handleAddStockRowInHistory", stockData);
-	const response = await fetch("http://localhost:3000/history", {
+	const response = await fetch(`${API_URL}/history`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -129,7 +115,6 @@ export async function handleAddStockRowInHistory(stockData) {
 		},
 		body: JSON.stringify(stockData),
 	});
-	// await handleTokenExpiry(response);
 	if (!response.ok) {
 		throw new Error("Unable to create stock");
 	}
@@ -138,8 +123,7 @@ export async function handleAddStockRowInHistory(stockData) {
 }
 
 export async function addUser(registerData) {
-	console.log("inside addUser", registerData);
-	const response = await fetch("http://localhost:3000/register", {
+	const response = await fetch(`${API_URL}/register`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -157,9 +141,7 @@ export async function addUser(registerData) {
 }
 
 export async function loginUser(loginData) {
-	console.log("inside loginUser", loginData);
-
-	const response = await fetch("http://localhost:3000/login", {
+	const response = await fetch(`${API_URL}/login`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -168,18 +150,17 @@ export async function loginUser(loginData) {
 	});
 	if (!response.ok) {
 		const error = await response.json();
-		console.log("Login error : ", error.message);
 		throw new Error("Unable to login ", error.message);
 	}
 	const data = await response.json();
+	console.log("loginUser", data);
 	return data;
 }
 
 export async function handleSellStockRowInHistory(stockData) {
 	const token = localStorage.getItem("token");
 	checkTokenExpiry(token);
-	console.log("data in handleSellStockRowInHistory", stockData);
-	const response = await fetch("http://localhost:3000/history/sell", {
+	const response = await fetch(`${API_URL}/history/sell`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -187,7 +168,6 @@ export async function handleSellStockRowInHistory(stockData) {
 		},
 		body: JSON.stringify(stockData),
 	});
-	// await handleTokenExpiry(response);
 	if (!response.ok) {
 		throw new Error("Unable to sell stock");
 	}
@@ -196,6 +176,5 @@ export async function handleSellStockRowInHistory(stockData) {
 }
 
 export async function logoutUser() {
-	console.log("Logging out user");
 	localStorage.removeItem("token");
 }
