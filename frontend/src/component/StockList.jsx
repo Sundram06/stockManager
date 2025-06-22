@@ -10,6 +10,7 @@ export default function StockList({
 	onViewHistory,
 	onDelete,
 	isDormant,
+	historyRows,
 }) {
 	return (
 		<>
@@ -26,6 +27,7 @@ export default function StockList({
 							onViewHistory={onViewHistory}
 							onDelete={onDelete}
 							isDormant={isDormant}
+							historyRows={isDormant ? historyRows : undefined} // Only pass on dormant
 						/>
 					</Grid>
 				))}
@@ -42,4 +44,5 @@ StockList.propTypes = {
 	onViewHistory: PropTypes.func.isRequired,
 	onDelete: PropTypes.func.isRequired,
 	isDormant: PropTypes.bool,
+	historyRows: PropTypes.array,
 };

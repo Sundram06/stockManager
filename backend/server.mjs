@@ -7,14 +7,99 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { extractData } from "./assets/extractDataa.mjs";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
+import session from "express-session";
 // import UpstoxClient from "upstox-js-sdk";
+
+// 1. Load .env file based on NODE_ENV
+dotenv.config({
+	path:
+		process.env.NODE_ENV === "production"
+			? ".env.production"
+			: ".env.development",
+});
+
+// 2. Make sure all env vars are loaded
+const {
+	FE_URL,
+	PORT = 3000,
+	JWT_SECRET,
+	UPSTOX_API_KEY,
+	UPSTOX_API_SECRET,
+	UPSTOX_REDIRECT_URI,
+	GOOGLE_CLIENT_ID,
+	GOOGLE_CLIENT_SECRET,
+	SESSION_SECRET,
+} = process.env;
 
 connectMongo();
 const app = express();
-app.use(cors());
+app.use(
+	cors({
+		origin: FE_URL,
+		credentials: true,
+	})
+);
 app.use(bodyParser.json());
+
+app.use(
+	session({
+		secret: SESSION_SECRET,
+		resave: false,
+		saveUninitialized: true,
+		cookie: {
+			secure: process.env.NODE_ENV === "production", // Use secure cookies in prod
+			sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+		},
+	})
+);
+
+// 7. Passport Google OAuth2 setup
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Serialize and deserialize user (for sessions)
+passport.serializeUser((user, done) => {
+	done(null, user);
+});
+passport.deserializeUser((obj, done) => {
+	done(null, obj);
+});
+
+// Configure Google OAuth2 Strategy
+passport.use(
+	new GoogleStrategy(
+		{
+			clientID: GOOGLE_CLIENT_ID,
+			clientSecret: GOOGLE_CLIENT_SECRET,
+			callbackURL: process.env.GOOGLE_REDIRECT_URI, // You can change this route as needed
+		},
+		async function (accessToken, refreshToken, profile, done) {
+			let user = await User.findOne({ email: profile.emails[0].value });
+			if (!user) {
+				user = await User.create({
+					googleId: profile.id,
+					name: profile.displayName,
+					email: profile.emails[0].value,
+					provider: "google",
+				});
+			} else if (!user.googleId) {
+				user.googleId = profile.id;
+				user.provider = "google";
+				await user.save();
+			}
+			// When creating JWT, always use user._id
+			return done(null, user);
+		}
+	)
+);
+
+
 const port = process.env.PORT || 3000;
-const JWT_SECRET = "your_jwt_secret";
+// const JWT_SECRET = "your_jwt_secret";
 
 app.get("/", async (req, res) => {
 	console.log("Hello hi");
@@ -22,18 +107,15 @@ app.get("/", async (req, res) => {
 
 extractData();
 
+// Upstox login URL
 app.get("/api/upstox/login", (req, res) => {
-	const loginUrl = `https://api.upstox.com/v2/login/authorization/dialog?response_type=code&client_id=${process.env.UPSTOX_API_KEY}&redirect_uri=${process.env.UPSTOX_REDIRECT_URI}`;
-	console.log(loginUrl);
+	const loginUrl = `https://api.upstox.com/v2/login/authorization/dialog?response_type=code&client_id=${UPSTOX_API_KEY}&redirect_uri=${UPSTOX_REDIRECT_URI}`;
 	res.json(loginUrl);
 });
 
+// Upstox callback
 app.get("/api/upstocks/callback", async (req, res) => {
 	const authorizationCode = req.query.code;
-	console.log("redirected to upstocks/callback");
-	console.log("authorizationCode", authorizationCode);
-	process.env["upstox_auth_code"] = authorizationCode;
-
 	try {
 		const url = "https://api.upstox.com/v2/login/authorization/token";
 		const headers = {
@@ -43,29 +125,52 @@ app.get("/api/upstocks/callback", async (req, res) => {
 
 		const body = new URLSearchParams();
 		body.append("code", authorizationCode);
-		body.append("client_id", process.env.UPSTOX_API_KEY);
-		body.append("client_secret", process.env.UPSTOX_API_SECRET);
-		body.append("redirect_uri", process.env.UPSTOX_REDIRECT_URI);
+		body.append("client_id", UPSTOX_API_KEY);
+		body.append("client_secret", UPSTOX_API_SECRET);
+		body.append("redirect_uri", UPSTOX_REDIRECT_URI);
 		body.append("grant_type", "authorization_code");
 
-		fetch(url, {
+		const response = await fetch(url, {
 			method: "POST",
-			headers: headers,
+			headers,
 			body: body.toString(),
-		})
-			.then((response) => response.json())
-			.then((data) => {
-				console.log(data);
-				process.env["access_token"] = data.access_token;
-				res.redirect("http://localhost:5173/");
-			})
-			.catch((error) => console.error("Error:", error));
+		});
+
+		const data = await response.json();
+		process.env["access_token"] = data.access_token;
+
+		// Redirect to frontend after login (use FE_URL for prod, localhost for dev)
+		res.redirect(FE_URL + "/");
 	} catch (error) {
 		console.error("Error during upstox OAuth process", error);
 		res.status(500).send("Error during upstox OAuth process");
 	}
 });
 
+// Google OAuth2 login
+app.get(
+	"/api/auth/google",
+	passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+// Google OAuth2 callback
+app.get(
+	"/api/auth/google/callback",
+	passport.authenticate("google", {
+		failureRedirect: FE_URL + "/login",
+		session: true,
+	}),
+	(req, res) => {
+		// Create a JWT for this user
+		const token = jwt.sign({ userId: req.user._id }, JWT_SECRET, {
+			expiresIn: "10h",
+		});
+		// Redirect to FE with token in query param
+		res.redirect(`${FE_URL}/oauth-success?token=${token}`);
+	}
+);
+
+// JWT authentication middleware
 const authenticateJWT = (req, res, next) => {
 	const authHeader = req.headers["authorization"];
 	if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -81,6 +186,19 @@ const authenticateJWT = (req, res, next) => {
 		res.sendStatus(401);
 	}
 };
+
+// Add this route after your authenticateJWT middleware
+app.get("/api/me", authenticateJWT, async (req, res) => {
+	try {
+		const user = await User.findById(req.userId).select("-password"); // don't send password
+		if (!user) return res.status(404).json({ message: "User not found" });
+		console.log("User profile fetched:", user);
+		res.json(user);
+	} catch (err) {
+		res.status(500).json({ message: "Error fetching user profile" });
+	}
+});
+
 
 app.post("/register", async (req, res) => {
 	const { name, email, password } = req.body;
@@ -276,7 +394,6 @@ app.post("/history", authenticateJWT, async (req, res) => {
 	res.json({ history, stock });
 });
 
-
 app.post("/history/sell", authenticateJWT, async (req, res) => {
 	try {
 		const { quantity, avgPrice, date, stockId } = req.body;
@@ -345,3 +462,5 @@ app.post("/history/sell", authenticateJWT, async (req, res) => {
 app.listen(port, () => {
 	console.log("Server running on port:", port);
 });
+
+//before google auth and prod env changes together

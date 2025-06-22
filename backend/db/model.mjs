@@ -34,12 +34,15 @@ const userSchema = new Schema({
 	id: Schema.ObjectId,
 	name: String,
 	email: { type: String, required: true, unique: true },
-	password: String,
+	password: String, // Not required for Google login
+	googleId: String, // <-- NEW: Store Google account id
+	provider: { type: String, default: "local" }, // local or google
 });
 
-userSchema.pre("save", function (next) {
-	if (this.isModified("password") || this.isNew) {
-		this.password = bcrypt.hash(this.password, 10);
+// Only hash password if present and changed
+userSchema.pre("save", async function (next) {
+	if (this.isModified("password") && this.password) {
+		this.password = await bcrypt.hash(this.password, 10);
 	}
 	next();
 });
