@@ -161,7 +161,11 @@ export default function LoginPage() {
 
 						<Box display="flex" justifyContent="space-between" mt={2}>
 							<Link
-								to="#"
+								to={
+									email
+										? "/forgot-password?email=" + encodeURIComponent(email)
+										: "/forgot-password"
+								}
 								style={{
 									textDecoration: "underline",
 									color: "#1976d2",
