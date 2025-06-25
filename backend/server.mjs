@@ -247,6 +247,27 @@ app.post("/logout", (req, res) => {
 	res.json({ message: "Logout successful" });
 });
 
+// Forgot Password endpoint
+app.post("/api/forgot-password", async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            // For security, always respond with success
+            return res.json({ message: "If an account with that email exists, a reset link has been sent." });
+        }
+        // TODO: Generate a reset token and send email
+        // For now, just log the action
+        console.log(`Password reset requested for: ${email}`);
+        // You would generate a token, save it to the user, and send an email here
+        return res.json({ message: "If an account with that email exists, a reset link has been sent." });
+    } catch (err) {
+        console.error("Forgot password error:", err);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+
 app.use(authenticateJWT);
 
 app.post("/stocks", authenticateJWT, async (req, res) => {
@@ -458,6 +479,8 @@ app.post("/history/sell", authenticateJWT, async (req, res) => {
 		res.status(500).json({ message: "Internal Server Error" });
 	}
 });
+
+
 
 app.listen(port, () => {
 	console.log("Server running on port:", port);

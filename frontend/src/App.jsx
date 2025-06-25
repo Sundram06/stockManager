@@ -10,6 +10,7 @@ import RegisterPage from "./pages/RegisterPage";
 import { useEffect } from "react";
 import MarketDataFeed from "./component/Testwebsocket";
 import OAuthSuccessPage from "./pages/OAuthSuccessPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 // Add these:
 import { useDispatch, useSelector } from "react-redux";
@@ -46,6 +47,7 @@ function App() {
 				{ path: "login", element: <LoginPage /> },
 				{ path: "register", element: <RegisterPage /> },
 				{ path: "/ws", element: <MarketDataFeed token={auth_token} /> },
+				{ path: "/forgot-password", element: <ForgotPasswordPage /> },
 			],
 		},
 	]);
