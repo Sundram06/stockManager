@@ -14,7 +14,7 @@ import {
 	Typography,
 	Divider,
 } from "@mui/material";
-import instruments from "../../../backend/instruments.json";
+import instruments from "../../../backend/assets/instruments.json";
 
 export default function AddStock({
 	open,
@@ -50,13 +50,7 @@ export default function AddStock({
 					return nameMatch || tradingSymbolMatch;
 				});
 
-				// If the query exactly matches a trading symbol or name, don't show suggestions
-				const exactMatch = filteredStocks.some(
-					(stock) =>
-						stock.trading_symbol?.toLowerCase() === query.toLowerCase() ||
-						stock.name?.toLowerCase() === query.toLowerCase()
-				);
-				setSuggestions(exactMatch ? [] : filteredStocks);
+				setSuggestions(filteredStocks);
 			}, 300); // 300ms debounce
 		} else {
 			setSuggestions([]);
