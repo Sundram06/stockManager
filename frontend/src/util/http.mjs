@@ -10,6 +10,7 @@ export const API_URL = import.meta.env.VITE_API_URL;
 export async function createStock(stockData) {
 	const token = localStorage.getItem("token");
 	checkTokenExpiry(token);
+	console.log("http mjs createStock function");
 	const response = await fetch(`${API_URL}/stocks`, {
 		method: "POST",
 		headers: {

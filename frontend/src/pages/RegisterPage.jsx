@@ -24,7 +24,7 @@ const RegistrationForm = () => {
 		mutationFn: addUser,
 		onSuccess: (data) => {
 			dispatch(setAuth({ user: data.user }));
-			navigate("/");
+			navigate("/login");
 		},
 	});
 
