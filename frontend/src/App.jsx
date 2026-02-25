@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import MarketDataFeed from "./component/Testwebsocket";
 import OAuthSuccessPage from "./pages/OAuthSuccessPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import DemoLandingPage from "./pages/DemoLandingPage";
 
 // Add these:
 import { useDispatch, useSelector } from "react-redux";
@@ -42,6 +43,7 @@ function App() {
 			path: "/",
 			element: <RootLayout />,
 			children: [
+				{ path: "", element: <DemoLandingPage /> },
 				{ path: "/oauth-success", element: <OAuthSuccessPage /> },
 				{ path: "/dashboard", element: <DashboardPage /> },
 				{ path: "login", element: <LoginPage /> },

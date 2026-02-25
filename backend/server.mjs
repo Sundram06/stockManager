@@ -203,11 +203,13 @@ app.get("/api/me", authenticateJWT, async (req, res) => {
 app.post("/register", async (req, res) => {
 	const { name, email, password } = req.body;
 	try {
+		console.log("Password before hash:", password);
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
 			return res.status(400).json({ message: "Email already exists" });
 		}
 		const hashedPassword = await bcrypt.hash(password, 10);
+		console.log("Password after hash:", hashedPassword);
 		const newUser = new User({ name, email, password: hashedPassword });
 		await newUser.save();
 		res.status(201).json({ message: "User registered successfully" });
@@ -225,6 +227,8 @@ app.post("/login", async (req, res) => {
 		if (!user) {
 			return res.status(401).json({ message: "Invalid credentials" });
 		}
+		console.log("Entered password:", password);
+		console.log("Stored hash:", user.password);
 		const isPasswordValid = await bcrypt.compare(password, user.password);
 		if (user && isPasswordValid) {
 			const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
