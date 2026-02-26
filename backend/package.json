@@ -4,7 +4,7 @@
 	"main": "server.js",
 	"scripts": {
 		"dev": "cross-env NODE_ENV=development node --env-file=.env.development --watch server.mjs",
-		"start": "cross-env NODE_ENV=production node --env-file=.env.production server.mjs",
+		"start": "node server.mjs",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"author": "",
