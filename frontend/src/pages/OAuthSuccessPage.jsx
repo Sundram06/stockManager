@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { login, setAuthLoading } from "../store/auth-slice";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import { API_URL } from "../util/http.mjs";
 
 export default function OAuthSuccessPage() {
 	const dispatch = useDispatch();
@@ -19,7 +20,7 @@ export default function OAuthSuccessPage() {
 			const decoded = jwtDecode(token);
 			const fetchProfile = async () => {
 				try {
-					const res = await fetch("http://localhost:3000/api/me", {
+					const res = await fetch(`${API_URL}/api/me`, {
 						headers: { Authorization: `Bearer ${token}` },
 					});
 					if (!res.ok) throw new Error("Failed to fetch user");
