@@ -102,7 +102,11 @@ const port = process.env.PORT || 3000;
 // const JWT_SECRET = "your_jwt_secret";
 
 app.get("/", async (req, res) => {
-	console.log("Hello hi");
+	res.status(200).json({ status: "ok" });
+});
+
+app.get("/healthz", (req, res) => {
+	res.status(200).json({ status: "ok" });
 });
 
 extractData();
