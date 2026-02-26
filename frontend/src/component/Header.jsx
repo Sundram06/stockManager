@@ -13,6 +13,17 @@ export default function Header() {
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
 
+	const getFirstName = (userInfo) => {
+		if (!userInfo) return "User";
+		if (userInfo.name && userInfo.name.trim()) {
+			return userInfo.name.trim().split(/\s+/)[0];
+		}
+		if (userInfo.email && userInfo.email.includes("@")) {
+			return userInfo.email.split("@")[0];
+		}
+		return "User";
+	};
+
 	const handleLogout = () => {
 		logoutUser();
 		dispatch(logout({ sessionActive: "loggedout" }));
@@ -36,7 +47,7 @@ export default function Header() {
 				{user && (
 					<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
 						<Typography variant="body2" sx={{ color: "#ffffff", mr: 2 }}>
-							Welcome, {user.email || user.name || "User"}
+							Welcome, {getFirstName(user) || "User"}!
 						</Typography>
 						<Button
 							variant="outlined"
