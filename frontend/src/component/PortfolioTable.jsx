@@ -9,6 +9,7 @@ import {
 	fetchStocks,
 	fetchStockHistoryById,
 	createStock,
+	handleAddStockRowInHistory,
 	handleSellStockRowInHistory,
 	queryClient,
 	API_URL,
@@ -69,6 +70,15 @@ export default function PortfolioTable({
 		onSuccess: (data) => {
 			dispatch(addStockToPortfolio(data));
 			queryClient.invalidateQueries("stocks");
+			queryClient.invalidateQueries("history");
+			setAddOpen(false);
+		},
+	});
+	const { mutate: mutateAddToHistory } = useMutation({
+		mutationFn: handleAddStockRowInHistory,
+		onSuccess: () => {
+			queryClient.invalidateQueries("stocks");
+			queryClient.invalidateQueries("history");
 			setAddOpen(false);
 		},
 	});
@@ -94,8 +104,11 @@ export default function PortfolioTable({
 
 	const handleMutate = (data) => {
 		if (actionType === "add") {
-			console.log("add new stock", data);
-			mutateAdd(data);
+			if (stockId) {
+				mutateAddToHistory({ ...data, stockId });
+			} else {
+				mutateAdd(data);
+			}
 		} else if (actionType === "sell") {
 			data.stockId = stockId;
 			mutateSell(data);
