@@ -207,16 +207,16 @@ app.get("/api/me", authenticateJWT, async (req, res) => {
 app.post("/register", async (req, res) => {
 	const { name, email, password } = req.body;
 	try {
-		console.log("Password before hash:", password);
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
 			return res.status(400).json({ message: "Email already exists" });
 		}
-		const hashedPassword = await bcrypt.hash(password, 10);
-		console.log("Password after hash:", hashedPassword);
-		const newUser = new User({ name, email, password: hashedPassword });
+		const newUser = new User({ name, email, password });
 		await newUser.save();
-		res.status(201).json({ message: "User registered successfully" });
+		res.status(201).json({
+			message: "User registered successfully",
+			user: { _id: newUser._id, name: newUser.name, email: newUser.email },
+		});
 	} catch (error) {
 		console.log("Registration error:", error);
 		res.status(500).json({ message: "Internal server error" });
