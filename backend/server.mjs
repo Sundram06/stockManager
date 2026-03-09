@@ -10,6 +10,7 @@ import { extractData } from "./assets/extractDataa.mjs";
 import dotenv from "dotenv";
 import fetch from "node-fetch";
 import session from "express-session";
+import instruments from "./assets/instruments.json" assert { type: "json" };
 // import UpstoxClient from "upstox-js-sdk";
 
 // 1. Load .env file based on NODE_ENV
@@ -39,7 +40,7 @@ app.use(
 	cors({
 		origin: FE_URL,
 		credentials: true,
-	})
+	}),
 );
 app.use(bodyParser.json());
 
@@ -52,7 +53,7 @@ app.use(
 			secure: process.env.NODE_ENV === "production", // Use secure cookies in prod
 			sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
 		},
-	})
+	}),
 );
 
 // 7. Passport Google OAuth2 setup
@@ -93,10 +94,9 @@ passport.use(
 			}
 			// When creating JWT, always use user._id
 			return done(null, user);
-		}
-	)
+		},
+	),
 );
-
 
 const port = process.env.PORT || 3000;
 // const JWT_SECRET = "your_jwt_secret";
@@ -154,7 +154,7 @@ app.get("/api/upstocks/callback", async (req, res) => {
 // Google OAuth2 login
 app.get(
 	"/api/auth/google",
-	passport.authenticate("google", { scope: ["profile", "email"] })
+	passport.authenticate("google", { scope: ["profile", "email"] }),
 );
 
 // Google OAuth2 callback
@@ -171,7 +171,7 @@ app.get(
 		});
 		// Redirect to FE with token in query param
 		res.redirect(`${FE_URL}/oauth-success?token=${token}`);
-	}
+	},
 );
 
 // JWT authentication middleware
@@ -203,6 +203,9 @@ app.get("/api/me", authenticateJWT, async (req, res) => {
 	}
 });
 
+app.get("/api/instruments", (req, res) => {
+	res.json(instruments);
+});
 
 app.post("/register", async (req, res) => {
 	const { name, email, password } = req.body;

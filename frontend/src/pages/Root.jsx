@@ -13,7 +13,6 @@ export default function RootLayout() {
 		"/register",
 		"/forgot-password",
 	].includes(location.pathname);
-	const isDashboard = location.pathname === "/dashboard";
 
 	return (
 		<Box
@@ -21,7 +20,7 @@ export default function RootLayout() {
 				minHeight: "100vh",
 				display: "flex",
 				flexDirection: "column",
-				backgroundColor: "#f5f7fa",
+				backgroundColor: "background.default",
 			}}
 		>
 			<Header />
@@ -29,7 +28,7 @@ export default function RootLayout() {
 				component="main"
 				sx={{
 					flex: 1,
-					backgroundColor: isDashboard ? "#f5f7fa" : "#ffffff",
+					backgroundColor: "background.default",
 					display: "flex",
 					flexDirection: "column",
 				}}

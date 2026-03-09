@@ -13,3 +13,13 @@ frontend/.env.development
 
 complete.json
 
+# local planning/docs not for check-in
+OPTIMIZATION_IMPROVEMENT_PLAN.md
+RENDER_DEPLOYMENT_GUIDE.md
+RENDER_SETUP_QUICK_REFERENCE.md
+THEME_COLORS_TEMP.md
+
+# env examples
+.env.*.example
+**/.env.*.example
+

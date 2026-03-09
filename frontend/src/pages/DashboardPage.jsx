@@ -1,5 +1,5 @@
 import { useSelector } from "react-redux";
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PortfolioTable from "../component/PortfolioTable";
 import {
@@ -22,6 +22,7 @@ export default function DashboardPage() {
 
 	const [tab, setTab] = useState(0);
 	const [search, setSearch] = useState("");
+	const deferredSearch = useDeferredValue(search);
 	const [addOpen, setAddOpen] = useState(false);
 
 	useEffect(() => {
@@ -70,40 +71,56 @@ export default function DashboardPage() {
 	};
 
 	return (
-		<Box sx={{ mx: "auto", py: 4, px: 2, width: "100%" }}>
+		<Box
+			sx={{
+				mx: "auto",
+				py: { xs: 2, sm: 4 },
+				px: { xs: 1.5, sm: 2 },
+				width: "100%",
+			}}
+		>
 			{/* Heading and Add Stock */}
 			<Box
 				sx={{
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "space-between",
+					gap: 1,
 					mb: 2,
+					flexWrap: { xs: "wrap", sm: "nowrap" },
 				}}
 			>
-				<Typography variant="h4" fontWeight="bold">
+				<Typography
+					variant="h4"
+					fontWeight="bold"
+					sx={{
+						fontSize: { xs: "1.5rem", sm: "2.125rem" },
+						flex: { xs: "1 1 100%", sm: "auto" },
+					}}
+				>
 					My Portfolio
 				</Typography>
 				<Button
 					variant="contained"
+					color="primary"
+					onClick={handleAddStock}
 					startIcon={<AddIcon />}
 					sx={{
-						borderRadius: 2,
-						fontWeight: "bold",
-						bgcolor: "#1976d2",
-						color: "#fff",
-						px: 3,
-						boxShadow: "none",
-						"&:hover": { bgcolor: "#1565c0" },
+						px: { xs: 1, sm: 3 },
+						py: { xs: 0.75, sm: 1 },
+						fontSize: { xs: "0.75rem", sm: "1rem" },
+						minWidth: { xs: "44px", sm: "auto" },
+						whiteSpace: "nowrap",
 					}}
-					onClick={handleAddStock}
 				>
-					Add Stock
+					<Box sx={{ display: { xs: "none", sm: "block" } }}>Add Stock</Box>
 				</Button>
 			</Box>
 
 			{/* Search Bar */}
 			<TextField
 				fullWidth
+				size="small"
 				variant="outlined"
 				placeholder="Search for a stock"
 				value={search}
@@ -111,15 +128,33 @@ export default function DashboardPage() {
 				InputProps={{
 					startAdornment: (
 						<InputAdornment position="start">
-							<SearchIcon />
+							<SearchIcon sx={{ fontSize: { xs: "1.2rem", sm: "1.5rem" } }} />
 						</InputAdornment>
 					),
 				}}
-				sx={{ mb: 3, background: "#f7f8fa", borderRadius: 2 }}
-			/>
+				sx={{
+					mb: 2.5,
+					"& .MuiOutlinedInput-root": {
+						fontSize: { xs: "0.875rem", sm: "1rem" },
+						backgroundColor: (theme) => theme.palette.mode === 'dark' 
+							? theme.palette.background.elevated 
+						: theme.palette.background.elevated,
+				},
+			}}
+		/>
 
-			{/* Tabs for Active/Dormant */}
-			<Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+		{/* Tabs for Active/Dormant */}
+		<Tabs
+			value={tab}
+			onChange={(_, v) => setTab(v)}
+			sx={{
+				mb: 2,
+				minHeight: { xs: "40px", sm: "48px" },
+				"& .MuiTab-root": {
+					fontSize: { xs: "0.8rem", sm: "1rem" },
+					px: { xs: 1, sm: 2 },					minHeight: { xs: "40px", sm: "48px" },
+				},
+			}}			>
 				<Tab label="Active Stocks" />
 				<Tab label="Dormant Stocks" />
 			</Tabs>
@@ -127,7 +162,7 @@ export default function DashboardPage() {
 			{/* Table List */}
 			<PortfolioTable
 				activeTab={tab}
-				search={search}
+				search={deferredSearch}
 				addOpen={addOpen}
 				setAddOpen={setAddOpen}
 			/>
