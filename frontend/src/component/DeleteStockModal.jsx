@@ -22,18 +22,16 @@ export default function DeleteStockModal({
 			onClose={onClose}
 			PaperProps={{
 				sx: {
-					p: 0, // Remove default padding
+					p: 0,
 					overflow: "hidden",
-					borderRadius: "8px",
-					boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+					borderRadius: "0.5rem",
 				},
 			}}
 		>
-			{/* Custom header bar with blue background */}
 			<Box
 				sx={{
-					backgroundColor: "#1976d2",
-					color: "#fff",
+					backgroundColor: "primary.main",
+					color: "primary.contrastText",
 					px: 2,
 					py: 1.5,
 				}}
@@ -46,7 +44,7 @@ export default function DeleteStockModal({
 			<DialogContent sx={{ p: 3 }}>
 				<Typography variant="body1" sx={{ mb: 1 }}>
 					Are you sure you want to delete{" "}
-					<strong style={{ color: "#1976d2" }}>{stockName}</strong>?
+					<strong style={{ color: "inherit", fontWeight: 700 }}>{stockName}</strong>?
 				</Typography>
 				<Typography variant="body2" color="text.secondary">
 					<strong>Warning:</strong> Any unsold shares for this stock will also
@@ -71,12 +69,6 @@ export default function DeleteStockModal({
 					onClick={onClose}
 					sx={{
 						minWidth: 80,
-						borderColor: "#1976d2",
-						color: "#1976d2",
-						"&:hover": {
-							backgroundColor: "#f0f0f0",
-							borderColor: "#1976d2",
-						},
 					}}
 				>
 					Cancel
@@ -87,9 +79,6 @@ export default function DeleteStockModal({
 					onClick={onConfirm}
 					sx={{
 						minWidth: 80,
-						"&:hover": {
-							backgroundColor: "#d32f2f",
-						},
 					}}
 				>
 					Delete

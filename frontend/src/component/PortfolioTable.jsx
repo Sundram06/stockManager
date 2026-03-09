@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Typography } from "@mui/material";
 import StockTable from "./StockTable";
 import AddStock from "./AddStock";
@@ -17,6 +17,9 @@ import {
 import { useDispatch } from "react-redux";
 import { addStockToPortfolio } from "../store/stocks-slice";
 import PropTypes from "prop-types";
+
+const QUERY_STALE_TIME = 60 * 1000;
+const QUERY_GC_TIME = 5 * 60 * 1000;
 
 export default function PortfolioTable({
 	activeTab,
@@ -57,34 +60,38 @@ export default function PortfolioTable({
 	} = useQuery({
 		queryKey: ["stocks"],
 		queryFn: fetchStocks,
-		cacheTime: 10,
-		staleTime: 10,
+		staleTime: QUERY_STALE_TIME,
+		gcTime: QUERY_GC_TIME,
+		refetchOnWindowFocus: false,
 	});
 	const { data: historyRows = [] } = useQuery({
 		queryKey: ["history"],
 		queryFn: fetchStockHistoryById,
+		staleTime: QUERY_STALE_TIME,
+		gcTime: QUERY_GC_TIME,
+		refetchOnWindowFocus: false,
 	});
 
 	const { mutate: mutateAdd } = useMutation({
 		mutationFn: createStock,
 		onSuccess: (data) => {
 			dispatch(addStockToPortfolio(data));
-			queryClient.invalidateQueries("stocks");
-			queryClient.invalidateQueries("history");
+			queryClient.invalidateQueries({ queryKey: ["stocks"] });
+			queryClient.invalidateQueries({ queryKey: ["history"] });
 			setAddOpen(false);
 		},
 	});
 	const { mutate: mutateAddToHistory } = useMutation({
 		mutationFn: handleAddStockRowInHistory,
 		onSuccess: () => {
-			queryClient.invalidateQueries("stocks");
-			queryClient.invalidateQueries("history");
+			queryClient.invalidateQueries({ queryKey: ["stocks"] });
+			queryClient.invalidateQueries({ queryKey: ["history"] });
 			setAddOpen(false);
 		},
 	});
 	const { mutate: mutateSell } = useMutation({
 		mutationFn: handleSellStockRowInHistory,
-		onSuccess: () => queryClient.invalidateQueries("history"),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["history"] }),
 	});
 	const { mutate: mutateDelete } = useMutation({
 		mutationFn: async (stockId) => {
@@ -96,51 +103,117 @@ export default function PortfolioTable({
 			if (!response.ok) throw new Error("Failed to delete stock");
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries("stocks");
-			queryClient.invalidateQueries("history");
+			queryClient.invalidateQueries({ queryKey: ["stocks"] });
+			queryClient.invalidateQueries({ queryKey: ["history"] });
 			setDeleteModalOpen(false);
 		},
 	});
 
-	const handleMutate = (data) => {
-		if (actionType === "add") {
-			if (stockId) {
-				mutateAddToHistory({ ...data, stockId });
-			} else {
-				mutateAdd(data);
+	const handleMutate = useCallback(
+		(data) => {
+			if (actionType === "add") {
+				if (stockId) {
+					mutateAddToHistory({ ...data, stockId });
+				} else {
+					mutateAdd(data);
+				}
+			} else if (actionType === "sell") {
+				data.stockId = stockId;
+				mutateSell(data);
 			}
-		} else if (actionType === "sell") {
-			data.stockId = stockId;
-			mutateSell(data);
-		}
-	};
+		},
+		[actionType, stockId, mutateAddToHistory, mutateAdd, mutateSell],
+	);
 
-	const handleAddStock = (row) => {
-		setAddOpen(true);
-		setStockId(row._id);
-		setActionType("add");
-		setStockName(row.stockName || "");
-	};
-	const handleSellStock = (id) => {
-		const stock = stocks.find((s) => s._id === id);
-		setAddOpen(true);
-		setStockId(id);
-		setActionType("sell");
-		setMaxSellQuantity(stock.quantity);
-		setStockName(stock.stockName || "");
-	};
-	const handleViewHistory = (stock) => {
-		const filteredHistory =
-			historyRows?.filter((row) => row.stockId === stock._id) || [];
-		setSelectedStock({ ...stock, history: filteredHistory });
-	};
-	const handleDeleteStock = (stock) => {
+	const handleAddStock = useCallback(
+		(row) => {
+			setAddOpen(true);
+			setStockId(row._id);
+			setActionType("add");
+			setStockName(row.stockName || "");
+		},
+		[setAddOpen],
+	);
+
+	const handleSellStock = useCallback(
+		(id) => {
+			const stock = stocks.find((s) => s._id === id);
+			if (!stock) return;
+			setAddOpen(true);
+			setStockId(id);
+			setActionType("sell");
+			setMaxSellQuantity(stock.quantity);
+			setStockName(stock.stockName || "");
+		},
+		[stocks, setAddOpen],
+	);
+
+	// Pre-aggregate history by stockId to ensure single source of truth for calculations
+	const historyByStockId = useMemo(() => {
+		const map = {};
+		historyRows.forEach((row) => {
+			if (!map[row.stockId]) {
+				map[row.stockId] = [];
+			}
+			map[row.stockId].push(row);
+		});
+		return map;
+	}, [historyRows]);
+
+	// Compute aggregated metrics for active stocks from history data
+	const activeStockMetrics = useMemo(() => {
+		const metrics = {};
+		stocks.forEach((stock) => {
+			if (stock.quantity > 0) {
+				const stockHistory = historyByStockId[stock._id] || [];
+				let totalQty = 0;
+				let totalCost = 0;
+
+				stockHistory.forEach((row) => {
+					const unsoldQty = (row.quantity || 0) - (row.quantitySold || 0);
+					if (unsoldQty > 0) {
+						totalQty += unsoldQty;
+						totalCost += unsoldQty * (row.avgPrice || 0);
+					}
+				});
+
+				metrics[stock._id] = {
+					totalInvested: totalCost,
+					avgPrice: totalQty > 0 ? totalCost / totalQty : stock.avgPrice,
+				};
+			}
+		});
+		return metrics;
+	}, [stocks, historyByStockId]);
+
+	const handleViewHistory = useCallback(
+		(stock) => {
+			const filteredHistory = historyByStockId[stock._id] || [];
+			setSelectedStock({ ...stock, history: filteredHistory });
+		},
+		[historyByStockId],
+	);
+
+	const handleDeleteStock = useCallback((stock) => {
 		setStockToDelete(stock);
 		setDeleteModalOpen(true);
-	};
-	const handleConfirmDelete = () => {
+	}, []);
+
+	const handleConfirmDelete = useCallback(() => {
 		if (stockToDelete) mutateDelete(stockToDelete._id);
-	};
+	}, [stockToDelete, mutateDelete]);
+
+	const handleCloseAddDialog = useCallback(() => {
+		setAddOpen(false);
+	}, [setAddOpen]);
+
+	const handleCloseHistoryModal = useCallback(() => {
+		setSelectedStock(null);
+	}, []);
+
+	const handleCloseDeleteModal = useCallback(() => {
+		setDeleteModalOpen(false);
+	}, []);
 
 	// Filtering and sorting
 	const sortedStocks = useMemo(() => {
@@ -148,14 +221,17 @@ export default function PortfolioTable({
 			.slice()
 			.sort((a, b) => (a.stockName || "").localeCompare(b.stockName || ""));
 	}, [stocks]);
+
+	const normalizedSearch = useMemo(() => search.toLowerCase(), [search]);
+
 	const filteredStocks = useMemo(() => {
 		return sortedStocks.filter(
 			(stock) =>
 				(activeTab === 0 ? stock.quantity > 0 : stock.quantity <= 0) &&
-				(!search ||
-					stock.stockName.toLowerCase().includes(search.toLowerCase())),
+				(!normalizedSearch ||
+					stock.stockName.toLowerCase().includes(normalizedSearch)),
 		);
-	}, [sortedStocks, activeTab, search]);
+	}, [sortedStocks, activeTab, normalizedSearch]);
 
 	if (isLoading) return <Typography>Loading...</Typography>;
 	if (error) return <Typography>Error loading stocks.</Typography>;
@@ -165,7 +241,7 @@ export default function PortfolioTable({
 			<AddStock
 				open={addOpen}
 				mutateCall={handleMutate}
-				handleClickCloseDialog={() => setAddOpen(false)}
+				handleClickCloseDialog={handleCloseAddDialog}
 				nameInputField={stockId === ""}
 				buttonLabel={actionType === "sell" ? "Sell" : "Add"}
 				maxSellQuantity={actionType === "sell" ? maxSellQuantity : undefined}
@@ -173,8 +249,9 @@ export default function PortfolioTable({
 			/>
 			<StockTable
 				stocks={filteredStocks}
-				historyRows={historyRows}
 				activeTab={activeTab}
+				historyByStockId={historyByStockId}
+				activeStockMetrics={activeStockMetrics}
 				onAdd={handleAddStock}
 				onSell={handleSellStock}
 				onViewHistory={handleViewHistory}
@@ -183,7 +260,7 @@ export default function PortfolioTable({
 			{selectedStock && (
 				<StockHistoryModal
 					open={!!selectedStock}
-					onClose={() => setSelectedStock(null)}
+					onClose={handleCloseHistoryModal}
 					stockName={selectedStock.stockName}
 					history={selectedStock.history}
 				/>
@@ -191,7 +268,7 @@ export default function PortfolioTable({
 			{deleteModalOpen && stockToDelete && (
 				<DeleteStockModal
 					open={deleteModalOpen}
-					onClose={() => setDeleteModalOpen(false)}
+					onClose={handleCloseDeleteModal}
 					onConfirm={handleConfirmDelete}
 					stockName={stockToDelete.stockName}
 				/>

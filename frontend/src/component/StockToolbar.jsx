@@ -51,9 +51,8 @@ export default function StockToolbar() {
 			{/* Outer wrapper with shadow and no margin-bottom */}
 			<Box
 				sx={{
-					boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-					borderRadius: 2,
-					backgroundColor: "#ffffff",
+					boxShadow: 2,
+					backgroundColor: 'background.paper',
 				}}
 			>
 				{/* Inner toolbar */}
@@ -77,39 +76,24 @@ export default function StockToolbar() {
 							disabled
 							sx={{
 								minWidth: 250,
-								backgroundColor: "#f9f9f9",
-								borderRadius: 1,
 							}}
 						/>
 					</Tooltip>
 					<Box display="flex" gap={2}>
 						<Button
 							variant="contained"
+							color="primary"
 							startIcon={<AddIcon />}
-							sx={{
-								backgroundColor: "#1976d2",
-								color: "white",
-								boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-								"&:hover": {
-									backgroundColor: "#1565c0",
-								},
-								borderRadius: 2,
-							}}
 							onClick={handleClickOpen}
 						>
 							Add Stock
 						</Button>
 						<Button
 							variant="outlined"
+							color="primary"
 							startIcon={<LogoutIcon />}
 							sx={{
-								color: "#1976d2",
-								borderColor: "#1976d2",
 								boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-								borderRadius: 2,
-								"&:hover": {
-									backgroundColor: "#f0f0f0",
-								},
 							}}
 							onClick={handleLogout}
 						>

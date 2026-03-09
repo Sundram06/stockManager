@@ -1,35 +1,52 @@
 import { TableRow, TableCell, IconButton } from "@mui/material";
+import { memo, useCallback, useMemo } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import DeleteIcon from "@mui/icons-material/Delete";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import PropTypes from "prop-types";
 
-export default function StockTableRow({
+function StockTableRow({
 	stock,
-	historyRows,
 	activeTab,
+	historyByStockId,
+	activeStockMetrics,
 	onAdd,
 	onSell,
 	onViewHistory,
 	onDelete,
 }) {
+	const handleAdd = useCallback(() => onAdd(stock), [onAdd, stock]);
+	const handleViewHistory = useCallback(
+		() => onViewHistory(stock),
+		[onViewHistory, stock],
+	);
+	const handleDelete = useCallback(() => onDelete(stock), [onDelete, stock]);
+	const handleSell = useCallback(() => onSell(stock._id), [onSell, stock._id]);
+
 	const rupee = (num) =>
 		typeof num === "number" && !isNaN(num)
 			? `₹${num.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
 			: "—";
 
-	if (activeTab === 1) {
-		// Dormant: aggregate history
-		const filteredHistory = historyRows.filter(
-			(row) => row.stockId === stock._id
-		);
-		let totalSoldQty = 0,
-			totalSoldCost = 0,
-			totalSellValue = 0,
-			totalPnl = 0,
-			avgBuyPrice = 0,
-			avgSellPrice = 0;
+	const dormantMetrics = useMemo(() => {
+		if (activeTab !== 1) {
+			return {
+				totalSoldQty: 0,
+				totalSoldCost: 0,
+				totalSellValue: 0,
+				totalPnl: 0,
+				avgBuyPrice: 0,
+				avgSellPrice: 0,
+			};
+		}
+
+		const filteredHistory = historyByStockId[stock._id] || [];
+		let totalSoldQty = 0;
+		let totalSoldCost = 0;
+		let totalSellValue = 0;
+		let totalPnl = 0;
+
 		filteredHistory.forEach((row) => {
 			if (row.quantitySold && row.quantitySold > 0) {
 				totalSoldQty += row.quantitySold;
@@ -38,10 +55,53 @@ export default function StockTableRow({
 				totalPnl += row.pnl || 0;
 			}
 		});
-		if (totalSoldQty > 0) {
-			avgBuyPrice = totalSoldCost / totalSoldQty;
-			avgSellPrice = totalSellValue / totalSoldQty;
-		}
+
+		const avgBuyPrice = totalSoldQty > 0 ? totalSoldCost / totalSoldQty : 0;
+		const avgSellPrice = totalSoldQty > 0 ? totalSellValue / totalSoldQty : 0;
+
+		return {
+			totalSoldQty,
+			totalSoldCost,
+			totalSellValue,
+			totalPnl,
+			avgBuyPrice,
+			avgSellPrice,
+		};
+	}, [activeTab, historyByStockId, stock._id]);
+
+	const activeMetrics = useMemo(() => {
+		// Use pre-aggregated metrics from parent to avoid floating-point rounding issues
+		const metrics = activeStockMetrics[stock._id];
+		const totalInvested = metrics ? metrics.totalInvested : 0;
+		const avgPriceFromHistory = metrics ? metrics.avgPrice : stock.avgPrice;
+
+		const currVal =
+			stock.quantity > 0 && stock.ltp
+				? (stock.quantity * stock.ltp).toFixed(2)
+				: 0;
+		const pnl =
+			stock.pnl !== undefined
+				? stock.pnl
+				: (stock.ltp - avgPriceFromHistory) * stock.quantity;
+
+		return {
+			totalInvested,
+			currVal,
+			pnl,
+			avgPrice: avgPriceFromHistory,
+		};
+	}, [stock, activeStockMetrics]);
+
+	if (activeTab === 1) {
+		const {
+			totalSoldQty,
+			totalSoldCost,
+			totalSellValue,
+			totalPnl,
+			avgBuyPrice,
+			avgSellPrice,
+		} = dormantMetrics;
+
 		return (
 			<TableRow hover>
 				<TableCell>{stock.stockName}</TableCell>
@@ -61,7 +121,7 @@ export default function StockTableRow({
 					{rupee(totalPnl)}
 				</TableCell>
 				<TableCell align="center">
-					<IconButton color="primary" onClick={() => onAdd(stock)} title="Add">
+					<IconButton color="primary" onClick={handleAdd} title="Add">
 						<AddIcon />
 					</IconButton>
 					<IconButton
@@ -74,7 +134,7 @@ export default function StockTableRow({
 					</IconButton>
 					<IconButton
 						color="info"
-						onClick={() => onViewHistory(stock)}
+						onClick={handleViewHistory}
 						title="History"
 						sx={{ ml: 0.5 }}
 					>
@@ -82,7 +142,7 @@ export default function StockTableRow({
 					</IconButton>
 					<IconButton
 						color="error"
-						onClick={() => onDelete(stock)}
+						onClick={handleDelete}
 						title="Delete"
 						sx={{ ml: 0.5 }}
 					>
@@ -92,22 +152,13 @@ export default function StockTableRow({
 			</TableRow>
 		);
 	} else {
-		// Active: use stock fields
-		const totalInvested =
-			stock.quantity > 0 ? stock.quantity * stock.avgPrice : 0;
-		const currVal =
-			stock.quantity > 0 && stock.ltp
-				? (stock.quantity * stock.ltp).toFixed(2)
-				: 0;
-		const pnl =
-			stock.pnl !== undefined
-				? stock.pnl
-				: (stock.ltp - stock.avgPrice) * stock.quantity;
+		const { totalInvested, currVal, pnl, avgPrice } = activeMetrics;
+
 		return (
 			<TableRow hover>
 				<TableCell>{stock.stockName}</TableCell>
 				<TableCell align="right">{stock.quantity}</TableCell>
-				<TableCell align="right">{rupee(stock.avgPrice)}</TableCell>
+				<TableCell align="right">{rupee(avgPrice)}</TableCell>
 				<TableCell align="right">{rupee(totalInvested)}</TableCell>
 				<TableCell align="right">{rupee(stock.ltp)}</TableCell>
 				<TableCell align="right">{rupee(currVal)}</TableCell>
@@ -121,12 +172,12 @@ export default function StockTableRow({
 					{rupee(pnl)}
 				</TableCell>
 				<TableCell align="center">
-					<IconButton color="primary" onClick={() => onAdd(stock)} title="Add">
+					<IconButton color="primary" onClick={handleAdd} title="Add">
 						<AddIcon />
 					</IconButton>
 					<IconButton
 						color="warning"
-						onClick={() => onSell(stock._id)}
+						onClick={handleSell}
 						title="Sell"
 						disabled={stock.quantity <= 0}
 						sx={{ ml: 0.5 }}
@@ -135,7 +186,7 @@ export default function StockTableRow({
 					</IconButton>
 					<IconButton
 						color="info"
-						onClick={() => onViewHistory(stock)}
+						onClick={handleViewHistory}
 						title="History"
 						sx={{ ml: 0.5 }}
 					>
@@ -143,7 +194,7 @@ export default function StockTableRow({
 					</IconButton>
 					<IconButton
 						color="error"
-						onClick={() => onDelete(stock)}
+						onClick={handleDelete}
 						title="Delete"
 						sx={{ ml: 0.5 }}
 					>
@@ -164,10 +215,15 @@ StockTableRow.propTypes = {
 		ltp: PropTypes.number,
 		pnl: PropTypes.number,
 	}).isRequired,
-	historyRows: PropTypes.arrayOf(PropTypes.object).isRequired,
 	activeTab: PropTypes.number.isRequired,
+	historyByStockId: PropTypes.object.isRequired,
+	activeStockMetrics: PropTypes.object.isRequired,
 	onAdd: PropTypes.func.isRequired,
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,
 	onDelete: PropTypes.func.isRequired,
 };
+
+const MemoizedStockTableRow = memo(StockTableRow);
+
+export default MemoizedStockTableRow;
