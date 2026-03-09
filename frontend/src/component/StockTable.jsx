@@ -9,13 +9,15 @@ import {
 	Typography,
 	Box,
 } from "@mui/material";
+import { memo } from "react";
 import StockTableRow from "./StockTableRow";
 import PropTypes from "prop-types";
 
-export default function StockTable({
+function StockTable({
 	stocks,
-	historyRows,
 	activeTab,
+	historyByStockId,
+	activeStockMetrics,
 	onAdd,
 	onSell,
 	onViewHistory,
@@ -24,9 +26,8 @@ export default function StockTable({
 	return (
 		<TableContainer
 			component={Paper}
+			elevation={2}
 			sx={{
-				borderRadius: 3,
-				boxShadow: "0 2px 8px 0 rgba(100,100,130,0.10)",
 				mb: 4,
 			}}
 		>
@@ -80,8 +81,9 @@ export default function StockTable({
 							<StockTableRow
 								key={stock._id}
 								stock={stock}
-								historyRows={historyRows}
 								activeTab={activeTab}
+								historyByStockId={historyByStockId}
+								activeStockMetrics={activeStockMetrics}
 								onAdd={onAdd}
 								onSell={onSell}
 								onViewHistory={onViewHistory}
@@ -97,10 +99,15 @@ export default function StockTable({
 
 StockTable.propTypes = {
 	stocks: PropTypes.arrayOf(PropTypes.object).isRequired,
-	historyRows: PropTypes.arrayOf(PropTypes.object).isRequired,
 	activeTab: PropTypes.number.isRequired,
+	historyByStockId: PropTypes.object.isRequired,
+	activeStockMetrics: PropTypes.object.isRequired,
 	onAdd: PropTypes.func.isRequired,
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,
 	onDelete: PropTypes.func.isRequired,
 };
+
+const MemoizedStockTable = memo(StockTable);
+
+export default MemoizedStockTable;

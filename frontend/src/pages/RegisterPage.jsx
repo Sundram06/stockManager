@@ -69,8 +69,6 @@ const RegistrationForm = () => {
 						elevation={3}
 						sx={{
 							p: 4,
-							borderRadius: 3,
-							backgroundColor: "#ffffff",
 						}}
 					>
 						<Typography
@@ -121,11 +119,9 @@ const RegistrationForm = () => {
 							<Button
 								type="submit"
 								variant="contained"
+								color="primary"
 								fullWidth
-								sx={{
-									mt: 3,
-									backgroundColor: "#1976d2",
-								}}
+								sx={{ mt: 3 }}
 							>
 								Register
 							</Button>
@@ -134,8 +130,9 @@ const RegistrationForm = () => {
 									to="/"
 									style={{
 										textDecoration: "underline",
-										color: "#1976d2",
+										color: "inherit",
 										fontSize: "0.9rem",
+										opacity: 0.8,
 									}}
 								>
 									Already have an account? Login

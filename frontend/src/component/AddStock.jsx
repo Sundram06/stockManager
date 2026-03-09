@@ -14,7 +14,12 @@ import {
 	Typography,
 	Divider,
 } from "@mui/material";
-import instruments from "../../../backend/assets/instruments.json";
+import { useTheme } from "@mui/material/styles";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
+import { API_URL } from "../util/http.mjs";
 
 export default function AddStock({
 	open,
@@ -25,14 +30,44 @@ export default function AddStock({
 	maxSellQuantity = Infinity,
 	stockName = "",
 }) {
+	const theme = useTheme();
 	const [query, setQuery] = useState("");
 	const [suggestions, setSuggestions] = useState([]);
 	const [errors, setErrors] = useState({});
+	const [purchaseDate, setPurchaseDate] = useState(null);
 	const debounceTimeout = useRef();
+	const [instruments, setInstruments] = useState([]);
+	const [instrumentsLoading, setInstrumentsLoading] = useState(false);
+	const instrumentsEndpoint = API_URL
+		? `${API_URL}/api/instruments`
+		: "/api/instruments";
+
+	// Fetch instruments on component mount or when dialog opens
+	useEffect(() => {
+		if (open && instruments.length === 0 && !instrumentsLoading) {
+			setInstrumentsLoading(true);
+			fetch(instrumentsEndpoint)
+				.then((res) => {
+					if (!res.ok) {
+						throw new Error("Failed to fetch instruments");
+					}
+					return res.json();
+				})
+				.then((data) => {
+					setInstruments(data);
+					setInstrumentsLoading(false);
+				})
+				.catch((err) => {
+					console.error("Error fetching instruments:", err);
+					setInstrumentsLoading(false);
+				});
+		}
+	}, [open, instruments.length, instrumentsLoading, instrumentsEndpoint]);
 
 	const handleClickClose = () => {
 		setQuery("");
 		setErrors({});
+		setPurchaseDate(null);
 		handleClickCloseDialog();
 	};
 
@@ -40,13 +75,13 @@ export default function AddStock({
 		if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 		if (query) {
 			debounceTimeout.current = setTimeout(() => {
+				const normalizedQuery = query.toLowerCase();
 				const filteredStocks = instruments.filter((stock) => {
 					const nameMatch =
-						stock.name &&
-						stock.name.toLowerCase().includes(query.toLowerCase());
+						stock.name && stock.name.toLowerCase().includes(normalizedQuery);
 					const tradingSymbolMatch =
 						stock.trading_symbol &&
-						stock.trading_symbol.toLowerCase().includes(query.toLowerCase());
+						stock.trading_symbol.toLowerCase().includes(normalizedQuery);
 					return nameMatch || tradingSymbolMatch;
 				});
 
@@ -56,7 +91,7 @@ export default function AddStock({
 			setSuggestions([]);
 		}
 		return () => clearTimeout(debounceTimeout.current);
-	}, [query]);
+	}, [query, instruments]);
 
 	const validate = (data) => {
 		const newErrors = {};
@@ -82,6 +117,7 @@ export default function AddStock({
 		event.preventDefault();
 		const formData = new FormData(event.target);
 		const data = Object.fromEntries(formData);
+		data.date = purchaseDate ? dayjs(purchaseDate).format("YYYY-MM-DD") : "";
 		data.stockName ? (data.stockName = data.stockName.toUpperCase()) : null;
 		data.avgPrice = parseFloat(data.avgPrice);
 		const validationErrors = validate(data);
@@ -92,6 +128,7 @@ export default function AddStock({
 		mutateCall(data);
 		event.target.reset();
 		setQuery("");
+		setPurchaseDate(null);
 		setSuggestions([]);
 		handleClickClose();
 	};
@@ -111,18 +148,17 @@ export default function AddStock({
 				sx: {
 					p: 0,
 					overflow: "hidden",
-					borderRadius: "8px",
-					boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+					borderRadius: "0.5rem",
 				},
 			}}
 		>
-			<Box sx={{ backgroundColor: "#1976d2", color: "#fff", px: 2, py: 1.5 }}>
+			<Box sx={{ backgroundColor: "primary.main", color: "primary.contrastText", px: 2, py: 1.5 }}>
 				<Typography variant="h6" fontWeight="bold">
 					{buttonLabel === "Add"
 						? `Add${stockName ? ` ${stockName}` : " Stock"}`
 						: buttonLabel === "Sell"
-						? `Sell${stockName ? ` ${stockName}` : " Stock"}`
-						: "Stock Details"}
+							? `Sell${stockName ? ` ${stockName}` : " Stock"}`
+							: "Stock Details"}
 				</Typography>
 			</Box>
 			<Divider />
@@ -150,11 +186,23 @@ export default function AddStock({
 										top: "100%",
 										left: 0,
 										right: 0,
-										zIndex: 10,
-										backgroundColor: "white",
-										boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)",
+										zIndex: 20,
+										mt: 0.5,
+										p: 0,
+										borderRadius: "0.5rem",
+										backgroundColor: "background.paper",
+										border: "1px solid",
+										borderColor: "divider",
+										boxShadow: (theme) => theme.shadows[8],
 										maxHeight: "200px",
 										overflowY: "auto",
+										"&::-webkit-scrollbar": {
+											width: 8,
+										},
+										"&::-webkit-scrollbar-thumb": {
+											backgroundColor: "text.disabled",
+											borderRadius: 8,
+										},
 									}}
 								>
 									{suggestions.map((stock, index) => (
@@ -162,6 +210,18 @@ export default function AddStock({
 											button
 											key={index}
 											onMouseDown={() => handleSelect(stock)}
+											sx={{
+												py: 0.9,
+												px: 1.25,
+												borderBottom: "1px solid",
+												borderColor: "divider",
+												"&:last-of-type": {
+													borderBottom: "none",
+												},
+												"&:hover": {
+													backgroundColor: "action.hover",
+												},
+											}}
 										>
 											<ListItemText
 												primary={`${stock.name} ${
@@ -169,6 +229,14 @@ export default function AddStock({
 														? `(${stock.trading_symbol})`
 														: ""
 												}`}
+												primaryTypographyProps={{
+													variant: "body2",
+													sx: {
+														color: "text.primary",
+														fontWeight: 500,
+														lineHeight: 1.35,
+													},
+												}}
 											/>
 										</ListItem>
 									))}
@@ -205,17 +273,41 @@ export default function AddStock({
 						error={!!errors.avgPrice}
 						helperText={errors.avgPrice}
 					/>
-					<TextField
-						name="date"
-						type="date"
-						label="Date Purchased"
-						placeholder="Date Purchased"
-						fullWidth
-						margin="normal"
-						InputLabelProps={{ shrink: true }}
-						error={!!errors.date}
-						helperText={errors.date}
-					/>
+					<LocalizationProvider dateAdapter={AdapterDayjs}>
+						<DatePicker
+							label="Date Purchased"
+							value={purchaseDate}
+							onChange={(newValue) => {
+								setPurchaseDate(newValue);
+								if (errors.date) {
+									setErrors((prev) => ({ ...prev, date: undefined }));
+								}
+							}}
+							slotProps={{
+								textField: {
+									name: "date",
+									fullWidth: true,
+									margin: "normal",
+									error: !!errors.date,
+									helperText: errors.date,
+								},
+								desktopPaper: {
+									sx: {
+										backgroundColor: theme.palette.background.paper,
+										color: theme.palette.text.primary,
+										border: `1px solid ${theme.palette.divider}`,
+									},
+								},
+								mobilePaper: {
+									sx: {
+										backgroundColor: theme.palette.background.paper,
+										color: theme.palette.text.primary,
+										border: `1px solid ${theme.palette.divider}`,
+									},
+								},
+							}}
+						/>
+					</LocalizationProvider>
 
 					<DialogActions sx={{ mt: 2, justifyContent: "flex-end", gap: 1.5 }}>
 						<Button
@@ -224,12 +316,6 @@ export default function AddStock({
 							onClick={handleClickClose}
 							sx={{
 								minWidth: 80,
-								borderColor: "#1976d2",
-								color: "#1976d2",
-								"&:hover": {
-									backgroundColor: "#f0f0f0",
-									borderColor: "#1976d2",
-								},
 							}}
 						>
 							Cancel
