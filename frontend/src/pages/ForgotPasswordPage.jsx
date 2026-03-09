@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
 		<Box>
 			<Paper
 				elevation={3}
-				sx={{ p: 4, mt: 6, borderRadius: 3, backgroundColor: "#fff" }}
+				sx={{ p: 4, mt: 6, borderRadius: 3 }}
 			>
 				<Typography
 					variant="h5"
@@ -80,8 +80,9 @@ export default function ForgotPasswordPage() {
 						<Button
 							type="submit"
 							variant="contained"
+							color="primary"
 							fullWidth
-							sx={{ mt: 2, backgroundColor: "#1976d2" }}
+							sx={{ mt: 2 }}
 						>
 							Send Reset Link
 						</Button>

@@ -69,8 +69,6 @@ export default function LoginPage() {
 					sx={{
 						p: 4,
 						mt: 6,
-						borderRadius: 3,
-						backgroundColor: "#ffffff",
 					}}
 				>
 					{logoutMessage && (
@@ -85,7 +83,7 @@ export default function LoginPage() {
 						</Typography>
 					)}
 					<Box display="flex" justifyContent="center" mb={2}>
-						<Avatar sx={{ bgcolor: "#1976d2" }}>
+						<Avatar sx={{ bgcolor: 'primary.main' }}>
 							<LockOutlinedIcon />
 						</Avatar>
 					</Box>
@@ -127,7 +125,8 @@ export default function LoginPage() {
 							type="submit"
 							fullWidth
 							variant="contained"
-							sx={{ mt: 3, backgroundColor: "#1976d2" }}
+							color="primary"
+							sx={{ mt: 3 }}
 						>
 							Sign In
 						</Button>
@@ -138,7 +137,6 @@ export default function LoginPage() {
 								fullWidth
 								variant="outlined"
 								color="primary"
-								sx={{ textTransform: "none" }}
 								onClick={() => {
 									window.location.href = `${API_URL}/api/auth/google`;
 								}}
@@ -148,8 +146,7 @@ export default function LoginPage() {
 							<Button
 								fullWidth
 								variant="outlined"
-								color="success"
-								sx={{ textTransform: "none" }}
+								color="secondary"
 								onClick={() => {
 									window.location.href = `${API_URL}/api/upstox/login`;
 								}}
@@ -167,9 +164,10 @@ export default function LoginPage() {
 										: "/forgot-password"
 								}
 								style={{
+									color: 'inherit',
 									textDecoration: "underline",
-									color: "#1976d2",
 									fontSize: "0.9rem",
+									opacity: 0.8,
 								}}
 							>
 								Forgot password?
@@ -177,9 +175,10 @@ export default function LoginPage() {
 							<Link
 								to="/register"
 								style={{
+									color: 'inherit',
 									textDecoration: "underline",
-									color: "#1976d2",
 									fontSize: "0.9rem",
+									opacity: 0.8,
 								}}
 							>
 								Don&apos;t have an account? Sign Up

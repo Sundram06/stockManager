@@ -7,6 +7,61 @@ export const queryClient = new QueryClient();
 // Get API base URL from env (Vite will replace this at build time)
 export const API_URL = import.meta.env.VITE_API_URL;
 
+let tokenExpiryTimerId = null;
+let scheduledToken = null;
+
+const expireSession = () => {
+	localStorage.removeItem("token");
+	sessionStorage.setItem("sessionExpired", "1");
+	store.dispatch(
+		logout({
+			message: "Session expired. Please login again.",
+			sessionActive: "expired",
+		}),
+	);
+};
+
+export const clearTokenExpiryTimer = () => {
+	if (tokenExpiryTimerId) {
+		clearTimeout(tokenExpiryTimerId);
+		tokenExpiryTimerId = null;
+	}
+	scheduledToken = null;
+};
+
+export const scheduleTokenExpiryTimer = (token) => {
+	if (!token) {
+		clearTokenExpiryTimer();
+		return false;
+	}
+
+	if (scheduledToken === token && tokenExpiryTimerId) {
+		return true;
+	}
+
+	const isTokenValid = checkTokenExpiry(token);
+	if (!isTokenValid) {
+		clearTokenExpiryTimer();
+		return false;
+	}
+
+	const { exp } = jwtDecode(token);
+	const currentTime = Math.floor(Date.now() / 1000);
+	const timeUntillExpiry = exp - currentTime;
+
+	clearTokenExpiryTimer();
+	scheduledToken = token;
+	tokenExpiryTimerId = setTimeout(
+		() => {
+			expireSession();
+			clearTokenExpiryTimer();
+		},
+		Math.max(0, timeUntillExpiry * 1000),
+	);
+
+	return true;
+};
+
 export async function createStock(stockData) {
 	const token = localStorage.getItem("token");
 	checkTokenExpiry(token);
@@ -32,33 +87,31 @@ export const checkTokenExpiry = (token) => {
 			logout({
 				message: "Session expired. Please login again.",
 				sessionActive: "notLoggedIn",
-			})
+			}),
 		);
 		return false;
 	}
-	const { exp } = jwtDecode(token);
-	const currentTime = Math.floor(Date.now() / 1000);
-	const timeUntillExpiry = exp - currentTime;
-	if (timeUntillExpiry <= 0) {
+
+	try {
+		const { exp } = jwtDecode(token);
+		const currentTime = Math.floor(Date.now() / 1000);
+		const timeUntillExpiry = exp - currentTime;
+
+		if (timeUntillExpiry <= 0) {
+			expireSession();
+			return false;
+		}
+
+		return true;
+	} catch {
 		localStorage.removeItem("token");
-		sessionStorage.setItem("sessionExpired", "1");
 		store.dispatch(
 			logout({
-				message: "Session expired. Please login again.",
+				message: "Invalid session. Please login again.",
 				sessionActive: "expired",
-			})
+			}),
 		);
-	} else {
-		setTimeout(() => {
-			localStorage.removeItem("token");
-			sessionStorage.setItem("sessionExpired", "1");
-			store.dispatch(
-				logout({
-					message: "Session expired. Please login again.",
-					sessionActive: "expired",
-				})
-			);
-		}, timeUntillExpiry * 1000);
+		return false;
 	}
 };
 
@@ -178,4 +231,5 @@ export async function handleSellStockRowInHistory(stockData) {
 
 export async function logoutUser() {
 	localStorage.removeItem("token");
+	clearTokenExpiryTimer();
 }
