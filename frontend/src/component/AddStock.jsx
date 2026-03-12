@@ -266,12 +266,14 @@ export default function AddStock({
 					)}
 					<TextField
 						name="avgPrice"
+						type="number"
 						label="Average Price"
 						placeholder="Buy Price"
 						fullWidth
 						margin="normal"
 						error={!!errors.avgPrice}
 						helperText={errors.avgPrice}
+						InputProps={{ inputProps: { min: 0.01, step: "any" } }}
 					/>
 					<LocalizationProvider dateAdapter={AdapterDayjs}>
 						<DatePicker
