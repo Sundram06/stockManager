@@ -102,7 +102,6 @@ function PortfolioMobileCard({
 	const metrics = activeStockMetrics[stock._id];
 	const totalInvested = metrics ? metrics.totalInvested : 0;
 	const avgPrice = metrics ? metrics.avgPrice : stock.avgPrice;
-	const currVal = stock.quantity > 0 && stock.ltp ? stock.quantity * stock.ltp : 0;
 	const pnl =
 		stock.pnl !== undefined ? stock.pnl : (stock.ltp - avgPrice) * stock.quantity;
 	const pnlColor = pnl > 0 ? "#1a882c" : pnl < 0 ? "#c91b24" : "#1d1d1d";
@@ -116,8 +115,8 @@ function PortfolioMobileCard({
 				<MetricItem label="Quantity" value={`${stock.quantity}`} />
 				<MetricItem label="Avg Buy" value={rupee(avgPrice)} />
 				<MetricItem label="Invested" value={rupee(totalInvested)} />
-				<MetricItem label="LTP" value={rupee(stock.ltp)} />
-				<MetricItem label="Current Value" value={rupee(currVal)} />
+				<MetricItem label="LTP" value={rupee(stock.ltp)} /> 
+				<MetricItem label="Current Value" value="—" />
 				<MetricItem label="P&L" value={rupee(pnl)} emphasize color={pnlColor} />
 			</Stack>
 			<Divider sx={{ my: 1.5 }} />

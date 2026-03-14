@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchStocks, fetchStockHistoryById } from "../util/http.mjs";
+import { fetchStocks } from "../util/api/stocks.mjs";
+import { fetchStockHistoryById } from "../util/api/history.mjs";
 import {
 	groupHistoryByStockId,
 	computeActiveStockMetrics,
