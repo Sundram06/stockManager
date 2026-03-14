@@ -1,5 +1,6 @@
-// Backward-compatible barrel while API layer is being migrated.
-// Prefer importing from util/api/* modules directly.
+// Legacy barrel — migration to util/api/* modules is complete.
+// All app code now imports from domain modules directly. This file
+// is kept only for external consumers and can be removed safely once confirmed.
 
 export { API_URL } from "./api/config.mjs";
 export { queryClient } from "./api/queryClient.mjs";
@@ -8,12 +9,7 @@ export {
 	scheduleTokenExpiryTimer,
 	clearTokenExpiryTimer,
 } from "./api/session.mjs";
-export {
-	createStock,
-	fetchStocks,
-	deleteAllStocks,
-	fetchUpstoxData,
-} from "./api/stocks.mjs";
+export { createStock, fetchStocks } from "./api/stocks.mjs";
 export {
 	fetchStockHistoryById,
 	handleAddStockRowInHistory,

@@ -45,7 +45,6 @@ export default function LoginPage() {
 		onSuccess: (data) => {
 			localStorage.setItem("token", data.token);
 			localStorage.setItem("sessionActive", true);
-			console.log(data.user);
 			dispatch(login(data.user));
 			navigate("/dashboard");
 		},
