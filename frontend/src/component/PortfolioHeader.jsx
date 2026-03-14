@@ -3,6 +3,7 @@ import {
 	Box,
 	Typography,
 	Button,
+	IconButton,
 	Tabs,
 	Tab,
 	TextField,
@@ -28,7 +29,7 @@ export default function PortfolioHeader({
 					justifyContent: "space-between",
 					gap: 1,
 					mb: 2,
-					flexWrap: { xs: "wrap", sm: "nowrap" },
+					minHeight: { xs: 44, sm: "auto" },
 				}}
 			>
 				<Typography
@@ -36,25 +37,40 @@ export default function PortfolioHeader({
 					fontWeight="bold"
 					sx={{
 						fontSize: { xs: "1.5rem", sm: "2.125rem" },
-						flex: { xs: "1 1 100%", sm: "auto" },
+						lineHeight: 1.15,
 					}}
 				>
 					My Portfolio
 				</Typography>
+				<IconButton
+					aria-label="add stock"
+					onClick={onAddStock}
+					sx={{
+						display: { xs: "inline-flex", sm: "none" },
+						width: 44,
+						height: 44,
+						borderRadius: 1.5,
+						backgroundColor: "primary.main",
+						color: "primary.contrastText",
+						"&:hover": { backgroundColor: "primary.dark" },
+					}}
+				>
+					<AddIcon />
+				</IconButton>
 				<Button
 					variant="contained"
 					color="primary"
 					onClick={onAddStock}
 					startIcon={<AddIcon />}
 					sx={{
-						px: { xs: 1, sm: 3 },
-						py: { xs: 0.75, sm: 1 },
-						fontSize: { xs: "0.75rem", sm: "1rem" },
-						minWidth: { xs: "44px", sm: "auto" },
+						display: { xs: "none", sm: "inline-flex" },
+						px: 3,
+						py: 1,
+						fontSize: "1rem",
 						whiteSpace: "nowrap",
 					}}
 				>
-					<Box sx={{ display: { xs: "none", sm: "block" } }}>Add Stock</Box>
+					Add Stock
 				</Button>
 			</Box>
 

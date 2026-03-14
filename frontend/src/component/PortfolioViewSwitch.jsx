@@ -1,14 +1,15 @@
 import { useMediaQuery, useTheme } from "@mui/material";
 import PropTypes from "prop-types";
 import StockTable from "./StockTable";
+import PortfolioMobileList from "./PortfolioMobileList";
 
 export default function PortfolioViewSwitch(props) {
 	const theme = useTheme();
 	const isMobileOrTablet = useMediaQuery(theme.breakpoints.down("md"));
 
-	// Keep both paths behavior-identical for now; Phase 3 only splits render routes.
+	// Route to dedicated mobile/tablet layout while preserving all data/actions.
 	if (isMobileOrTablet) {
-		return <StockTable {...props} />;
+		return <PortfolioMobileList {...props} />;
 	}
 
 	return <StockTable {...props} />;
