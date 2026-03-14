@@ -1,13 +1,13 @@
 import { useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
+import { API_URL } from "../util/api/config.mjs";
+import { queryClient } from "../util/api/queryClient.mjs";
+import { createStock } from "../util/api/stocks.mjs";
 import {
-	createStock,
 	handleAddStockRowInHistory,
 	handleSellStockRowInHistory,
-	queryClient,
-	API_URL,
-} from "../util/http.mjs";
+} from "../util/api/history.mjs";
 import { addStockToPortfolio } from "../store/stocks-slice";
 
 export default function usePortfolioActions({ setAddOpen, setDeleteModalOpen }) {

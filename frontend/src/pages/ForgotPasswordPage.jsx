@@ -7,7 +7,7 @@ import {
 	Paper,
 	Alert,
 } from "@mui/material";
-import { API_URL } from "../util/http.mjs";
+import { API_URL } from "../util/api/config.mjs";
 
 export default function ForgotPasswordPage() {
 	const [email, setEmail] = useState("");
