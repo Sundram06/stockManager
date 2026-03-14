@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Typography } from "@mui/material";
-import StockTable from "./StockTable";
+import PortfolioViewSwitch from "./PortfolioViewSwitch";
 import AddStock from "./AddStock";
 import StockHistoryModal from "./StockHistoryModal";
 import DeleteStockModal from "./DeleteStockModal";
@@ -126,7 +126,7 @@ export default function PortfolioTable({
 				maxSellQuantity={actionType === "sell" ? maxSellQuantity : undefined}
 				stockName={stockName}
 			/>
-			<StockTable
+			<PortfolioViewSwitch
 				stocks={filteredStocks}
 				activeTab={activeTab}
 				historyByStockId={historyByStockId}
