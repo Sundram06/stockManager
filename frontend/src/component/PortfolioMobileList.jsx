@@ -1,50 +1,307 @@
-import { memo, useCallback } from "react";
+/* eslint-disable react/prop-types */
+import { memo, useCallback, useState, Fragment } from "react";
 import {
 	Box,
 	Paper,
 	Typography,
-	Stack,
 	Divider,
+	SwipeableDrawer,
+	Button,
+	useTheme,
 } from "@mui/material";
-import PropTypes from "prop-types";
-import StockActions from "./StockActions";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import { computeDormantMetrics } from "../util/portfolioMetrics.mjs";
 
-const rupee = (num) =>
+const rupee = (num, decimals = 2) =>
 	typeof num === "number" && !isNaN(num)
-		? `₹${num.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
+		? `₹${num.toLocaleString("en-IN", { maximumFractionDigits: decimals })}`
 		: "—";
 
-function MetricItem({ label, value, emphasize, color }) {
+const pct = (num) =>
+	typeof num === "number" && !isNaN(num)
+		? `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`
+		: null;
+
+// ─── Single stock row (Zerodha-style 3-line layout) ──────────────────────────
+
+function ActiveStockRow({ stock, activeStockMetrics, ltpMap, onTap }) {
+	const theme = useTheme();
+	const green = theme.palette.success.main;
+	const red = theme.palette.error.main;
+
+	const metrics = activeStockMetrics[stock._id];
+	const totalInvested = metrics?.totalInvested ?? 0;
+	const avgPrice = metrics?.avgPrice ?? stock.avgPrice;
+	const live = ltpMap[stock.stockName];
+	const ltp = live?.ltp ?? null;
+	const cp = live?.cp ?? null;
+
+	const pnl = ltp !== null ? (ltp - avgPrice) * stock.quantity : null;
+	const pnlPct = ltp !== null && avgPrice > 0
+		? ((ltp - avgPrice) / avgPrice) * 100
+		: null;
+	const dayChangePct = ltp !== null && cp != null && cp > 0
+		? ((ltp - cp) / cp) * 100
+		: null;
+
+	const pnlColor = pnl === null ? "text.secondary" : pnl > 0 ? green : pnl < 0 ? red : "text.secondary";
+
 	return (
-		<Box>
-			<Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-				{label}
-			</Typography>
-			<Typography
-				variant="body2"
-				sx={{ fontWeight: emphasize ? 700 : 500, color: color || "text.primary" }}
-			>
-				{value}
-			</Typography>
+		<Box
+			onClick={onTap}
+			sx={{
+				px: 2,
+				py: 1.5,
+				cursor: "pointer",
+				userSelect: "none",
+				"&:active": { bgcolor: "action.hover" },
+				transition: "background-color 0.1s",
+			}}
+		>
+			{/* Line 1: qty + avg  |  P&L % */}
+			<Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}>
+				<Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+					Qty. {stock.quantity}&nbsp;&nbsp;•&nbsp;&nbsp;Avg. {rupee(avgPrice)}
+				</Typography>
+				<Typography sx={{ fontSize: "0.72rem", fontWeight: 500, color: pnlColor }}>
+					{pct(pnlPct) ?? "—"}
+				</Typography>
+			</Box>
+
+			{/* Line 2: stock name  |  P&L absolute */}
+			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.25 }}>
+				<Typography sx={{ fontSize: "0.98rem", fontWeight: 600, letterSpacing: "-0.01em" }}>
+					{stock.stockName}
+				</Typography>
+				<Typography sx={{ fontSize: "0.95rem", fontWeight: 600, color: pnlColor }}>
+					{pnl !== null ? rupee(pnl) : "—"}
+				</Typography>
+			</Box>
+
+			{/* Line 3: invested  |  LTP + day% */}
+			<Box sx={{ display: "flex", justifyContent: "space-between" }}>
+				<Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+					Invested {rupee(totalInvested, 0)}
+				</Typography>
+				<Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+					LTP {ltp !== null ? rupee(ltp) : "—"}
+					{dayChangePct !== null && (
+						<Box
+							component="span"
+							sx={{ color: dayChangePct >= 0 ? green : red, ml: 0.5 }}
+						>
+							({pct(dayChangePct)})
+						</Box>
+					)}
+				</Typography>
+			</Box>
 		</Box>
 	);
 }
 
-MetricItem.propTypes = {
-	label: PropTypes.string.isRequired,
-	value: PropTypes.string.isRequired,
-	emphasize: PropTypes.bool,
-	color: PropTypes.string,
-};
+function DormantStockRow({ stock, historyByStockId, onTap }) {
+	const theme = useTheme();
+	const green = theme.palette.success.main;
+	const red = theme.palette.error.main;
 
-MetricItem.defaultProps = {
-	emphasize: false,
-	color: "",
-};
+	const d = computeDormantMetrics(historyByStockId[stock._id] || []);
+	const pnlColor = d.totalPnl > 0 ? green : d.totalPnl < 0 ? red : "text.secondary";
+	const pnlPct =
+		d.avgBuyPrice > 0
+			? ((d.avgSellPrice - d.avgBuyPrice) / d.avgBuyPrice) * 100
+			: null;
 
-function PortfolioMobileCard({
+	return (
+		<Box
+			onClick={onTap}
+			sx={{
+				px: 2,
+				py: 1.5,
+				cursor: "pointer",
+				userSelect: "none",
+				"&:active": { bgcolor: "action.hover" },
+				transition: "background-color 0.1s",
+			}}
+		>
+			{/* Line 1: qty + avg buy  |  P&L % */}
+			<Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}>
+				<Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+					Qty. {d.totalSoldQty}&nbsp;&nbsp;•&nbsp;&nbsp;Avg. {rupee(d.avgBuyPrice)}
+				</Typography>
+				<Typography sx={{ fontSize: "0.72rem", fontWeight: 500, color: pnlColor }}>
+					{pct(pnlPct) ?? "—"}
+				</Typography>
+			</Box>
+
+			{/* Line 2: stock name  |  P&L absolute */}
+			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.25 }}>
+				<Typography sx={{ fontSize: "0.98rem", fontWeight: 600, letterSpacing: "-0.01em" }}>
+					{stock.stockName}
+				</Typography>
+				<Typography sx={{ fontSize: "0.95rem", fontWeight: 600, color: pnlColor }}>
+					{rupee(d.totalPnl)}
+				</Typography>
+			</Box>
+
+			{/* Line 3: invested  |  sold at */}
+			<Box sx={{ display: "flex", justifyContent: "space-between" }}>
+				<Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+					Invested {rupee(d.totalSoldCost, 0)}
+				</Typography>
+				<Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
+					Sold at {rupee(d.avgSellPrice)}
+				</Typography>
+			</Box>
+		</Box>
+	);
+}
+
+// ─── Bottom action sheet ──────────────────────────────────────────────────────
+
+function ActionSheet({
 	stock,
+	activeTab,
+	activeStockMetrics,
+	ltpMap,
+	onClose,
+	onAdd,
+	onSell,
+	onViewHistory,
+	onDelete,
+}) {
+	const theme = useTheme();
+	const green = theme.palette.success.main;
+	const red = theme.palette.error.main;
+
+	const isActive = activeTab === 0;
+	const live = stock ? ltpMap[stock?.stockName] : null;
+	const ltp = live?.ltp ?? null;
+	const cp = live?.cp ?? null;
+	const dayChange = ltp !== null && cp !== null ? ltp - cp : null;
+	const dayChangePct = dayChange !== null && cp > 0 ? (dayChange / cp) * 100 : null;
+	const dayColor = dayChange === null ? "text.secondary" : dayChange >= 0 ? green : red;
+
+	const handleAdd = useCallback(() => { onClose(); onAdd(stock); }, [onClose, onAdd, stock]);
+	const handleSell = useCallback(() => { onClose(); onSell(stock._id); }, [onClose, onSell, stock]);
+	const handleHistory = useCallback(() => { onClose(); onViewHistory(stock); }, [onClose, onViewHistory, stock]);
+	const handleDelete = useCallback(() => { onClose(); onDelete(stock); }, [onClose, onDelete, stock]);
+
+	return (
+		<SwipeableDrawer
+			anchor="bottom"
+			open={!!stock}
+			onClose={onClose}
+			onOpen={() => {}}
+			disableSwipeToOpen
+			PaperProps={{
+				sx: {
+					borderRadius: "16px 16px 0 0",
+					px: 2,
+					pt: 1,
+					pb: 3,
+					maxWidth: 600,
+					mx: "auto",
+					left: 0,
+					right: 0,
+				},
+			}}
+		>
+			{/* Drag handle */}
+			<Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+				<Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: "divider" }} />
+			</Box>
+
+			{/* Stock info */}
+			<Box sx={{ mb: 2 }}>
+				<Typography variant="h6" fontWeight={700} letterSpacing="-0.01em">
+					{stock?.stockName}
+				</Typography>
+				{isActive && ltp !== null && (
+					<Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.25 }}>
+						<Typography variant="body2" color="text.secondary">NSE</Typography>
+						<Typography variant="body2" fontWeight={600} sx={{ color: dayColor }}>
+							{rupee(ltp)}
+						</Typography>
+						{dayChange !== null && (
+							<Typography variant="body2" sx={{ color: dayColor }}>
+								{dayChange >= 0 ? "+" : ""}{rupee(dayChange)} ({pct(dayChangePct)})
+							</Typography>
+						)}
+					</Box>
+				)}
+				{isActive && ltp === null && (
+					<Typography variant="body2" color="text.secondary">NSE · price unavailable</Typography>
+				)}
+			</Box>
+
+			<Divider sx={{ mb: 2 }} />
+
+			{/* Primary actions */}
+			<Box sx={{ display: "flex", gap: 1.5, mb: 1.5 }}>
+				<Button
+					fullWidth
+					variant="contained"
+					color="secondary"
+					size="large"
+					startIcon={<AddIcon />}
+					onClick={handleAdd}
+					sx={{ borderRadius: 2, py: 1.25, fontWeight: 700 }}
+				>
+					Add
+				</Button>
+				{isActive && (
+					<Button
+						fullWidth
+						variant="contained"
+						color="primary"
+						size="large"
+						startIcon={<RemoveIcon />}
+						onClick={handleSell}
+						sx={{ borderRadius: 2, py: 1.25, fontWeight: 700 }}
+					>
+						Sell
+					</Button>
+				)}
+			</Box>
+
+			{/* Secondary actions */}
+			<Box sx={{ display: "flex", gap: 1.5 }}>
+				<Button
+					fullWidth
+					variant="outlined"
+					color="secondary"
+					size="large"
+					startIcon={<BarChartIcon />}
+					onClick={handleHistory}
+					sx={{ borderRadius: 2, py: 1.25 }}
+				>
+					History
+				</Button>
+				<Button
+					fullWidth
+					variant="outlined"
+					color="error"
+					size="large"
+					startIcon={<DeleteOutlineIcon />}
+					onClick={handleDelete}
+					sx={{ borderRadius: 2, py: 1.25 }}
+				>
+					Delete
+				</Button>
+			</Box>
+		</SwipeableDrawer>
+	);
+}
+
+// ─── Main list ────────────────────────────────────────────────────────────────
+
+function PortfolioMobileList({
+	stocks,
 	activeTab,
 	historyByStockId,
 	activeStockMetrics,
@@ -54,130 +311,15 @@ function PortfolioMobileCard({
 	onViewHistory,
 	onDelete,
 }) {
-	const handleAdd = useCallback(() => onAdd(stock), [onAdd, stock]);
-	const handleSell = useCallback(() => onSell(stock._id), [onSell, stock._id]);
-	const handleViewHistory = useCallback(() => onViewHistory(stock), [onViewHistory, stock]);
-	const handleDelete = useCallback(() => onDelete(stock), [onDelete, stock]);
-
-	if (activeTab === 1) {
-		const dormant = computeDormantMetrics(historyByStockId[stock._id] || []);
-		const pnlColor =
-			dormant.totalPnl > 0
-				? "#1a882c"
-				: dormant.totalPnl < 0
-					? "#c91b24"
-					: "#1d1d1d";
-
-		return (
-			<Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-				<Typography variant="h6" sx={{ mb: 1.5, fontSize: "1.1rem", fontWeight: 700 }}>
-					{stock.stockName}
-				</Typography>
-				<Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
-					<MetricItem label="Sold Qty" value={`${dormant.totalSoldQty}`} />
-					<MetricItem label="Avg Buy" value={rupee(dormant.avgBuyPrice)} />
-					<MetricItem label="Avg Sell" value={rupee(dormant.avgSellPrice)} />
-					<MetricItem label="Sold Cost" value={rupee(dormant.totalSoldCost)} />
-					<MetricItem label="Sell Value" value={rupee(dormant.totalSellValue)} />
-					<MetricItem
-						label="Realized P&L"
-						value={rupee(dormant.totalPnl)}
-						emphasize
-						color={pnlColor}
-					/>
-				</Stack>
-				<Divider sx={{ my: 1.5 }} />
-				<Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-					<StockActions
-						onAdd={handleAdd}
-						onSell={null}
-						onViewHistory={handleViewHistory}
-						onDelete={handleDelete}
-						canSell={false}
-					/>
-				</Box>
-			</Paper>
-		);
-	}
-
-	const metrics = activeStockMetrics[stock._id];
-	const totalInvested = metrics ? metrics.totalInvested : 0;
-	const avgPrice = metrics ? metrics.avgPrice : stock.avgPrice;
-	const ltp = ltpMap[stock.stockName]?.ltp ?? null;
-	const currVal = ltp !== null && stock.quantity > 0
-		? parseFloat((stock.quantity * ltp).toFixed(2))
-		: null;
-	const pnl = ltp !== null
-		? parseFloat(((ltp - avgPrice) * stock.quantity).toFixed(2))
-		: null;
-	const pnlColor = pnl > 0 ? "#1a882c" : pnl < 0 ? "#c91b24" : "#1d1d1d";
-
-	return (
-		<Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-			<Typography variant="h6" sx={{ mb: 1.5, fontSize: "1.1rem", fontWeight: 700 }}>
-				{stock.stockName}
-			</Typography>
-			<Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
-				<MetricItem label="Quantity" value={`${stock.quantity}`} />
-				<MetricItem label="Avg Buy" value={rupee(avgPrice)} />
-				<MetricItem label="Invested" value={rupee(totalInvested)} />
-				<MetricItem label="LTP" value={ltp !== null ? rupee(ltp) : "—"} />
-				<MetricItem label="Current Value" value={currVal !== null ? rupee(currVal) : "—"} />
-				<MetricItem label="P&L" value={pnl !== null ? rupee(pnl) : "—"} emphasize color={pnl !== null ? pnlColor : ""} />
-			</Stack>
-			<Divider sx={{ my: 1.5 }} />
-			<Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-				<StockActions
-					onAdd={handleAdd}
-					onSell={handleSell}
-					onViewHistory={handleViewHistory}
-					onDelete={handleDelete}
-					canSell={stock.quantity > 0}
-				/>
-			</Box>
-		</Paper>
-	);
-}
-
-PortfolioMobileCard.propTypes = {
-	stock: PropTypes.shape({
-		_id: PropTypes.string.isRequired,
-		stockName: PropTypes.string.isRequired,
-		quantity: PropTypes.number.isRequired,
-		avgPrice: PropTypes.number.isRequired,
-	}).isRequired,
-	activeTab: PropTypes.number.isRequired,
-	historyByStockId: PropTypes.object.isRequired,
-	activeStockMetrics: PropTypes.object.isRequired,
-	ltpMap: PropTypes.object.isRequired,
-	onAdd: PropTypes.func.isRequired,
-	onSell: PropTypes.func.isRequired,
-	onViewHistory: PropTypes.func.isRequired,
-	onDelete: PropTypes.func.isRequired,
-};
-
-function PortfolioMobileList(props) {
-	const {
-		stocks,
-		activeTab,
-		historyByStockId,
-		activeStockMetrics,
-		ltpMap,
-		onAdd,
-		onSell,
-		onViewHistory,
-		onDelete,
-	} = props;
+	const [selectedStock, setSelectedStock] = useState(null);
 
 	if (stocks.length === 0) {
 		return (
-			<Paper elevation={2} sx={{ mb: 4, p: 3, textAlign: "center", borderRadius: 2 }}>
+			<Paper elevation={1} sx={{ mb: 4, p: 3, textAlign: "center", borderRadius: 2 }}>
 				<Typography variant="h6" color="text.secondary" gutterBottom>
-					{activeTab === 0
-						? "No active stocks in your portfolio"
-						: "No dormant stocks"}
+					{activeTab === 0 ? "No active stocks in your portfolio" : "No dormant stocks"}
 				</Typography>
-				<Typography variant="body2" color="text.tertiary">
+				<Typography variant="body2" color="text.secondary">
 					{activeTab === 0
 						? "Start by adding a stock to track your investments"
 						: "Stocks become dormant when you sell all shares"}
@@ -187,36 +329,43 @@ function PortfolioMobileList(props) {
 	}
 
 	return (
-		<Stack spacing={1.5} sx={{ mb: 4 }}>
-			{stocks.map((stock) => (
-				<PortfolioMobileCard
-					key={stock._id}
-					stock={stock}
-					activeTab={activeTab}
-					historyByStockId={historyByStockId}
-					activeStockMetrics={activeStockMetrics}
-					ltpMap={ltpMap}
-					onAdd={onAdd}
-					onSell={onSell}
-					onViewHistory={onViewHistory}
-					onDelete={onDelete}
-				/>
-			))}
-		</Stack>
+		<>
+			<Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 4 }}>
+				{stocks.map((stock, i) => (
+					<Fragment key={stock._id}>
+						{activeTab === 0 ? (
+							<ActiveStockRow
+								stock={stock}
+								activeStockMetrics={activeStockMetrics}
+								ltpMap={ltpMap}
+								onTap={() => setSelectedStock(stock)}
+							/>
+						) : (
+							<DormantStockRow
+								stock={stock}
+								historyByStockId={historyByStockId}
+								onTap={() => setSelectedStock(stock)}
+							/>
+						)}
+						{i < stocks.length - 1 && <Divider />}
+					</Fragment>
+				))}
+			</Paper>
+
+			<ActionSheet
+				stock={selectedStock}
+				activeTab={activeTab}
+				activeStockMetrics={activeStockMetrics}
+				ltpMap={ltpMap}
+				onClose={() => setSelectedStock(null)}
+				onAdd={onAdd}
+				onSell={onSell}
+				onViewHistory={onViewHistory}
+				onDelete={onDelete}
+			/>
+		</>
 	);
 }
-
-PortfolioMobileList.propTypes = {
-	stocks: PropTypes.arrayOf(PropTypes.object).isRequired,
-	activeTab: PropTypes.number.isRequired,
-	historyByStockId: PropTypes.object.isRequired,
-	activeStockMetrics: PropTypes.object.isRequired,
-	ltpMap: PropTypes.object.isRequired,
-	onAdd: PropTypes.func.isRequired,
-	onSell: PropTypes.func.isRequired,
-	onViewHistory: PropTypes.func.isRequired,
-	onDelete: PropTypes.func.isRequired,
-};
 
 const MemoizedPortfolioMobileList = memo(PortfolioMobileList);
 export default MemoizedPortfolioMobileList;
