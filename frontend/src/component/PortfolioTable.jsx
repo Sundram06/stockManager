@@ -7,6 +7,7 @@ import DeleteStockModal from "./DeleteStockModal";
 import PropTypes from "prop-types";
 import usePortfolioData from "../hooks/usePortfolioData";
 import usePortfolioActions from "../hooks/usePortfolioActions";
+import useMarketData from "../hooks/useMarketData";
 
 export default function PortfolioTable({
 	activeTab,
@@ -35,6 +36,8 @@ export default function PortfolioTable({
 		setAddOpen,
 		setDeleteModalOpen,
 	});
+
+	const { ltpMap, isConnected } = useMarketData();
 
 	// Initialize actionType when dialog opens from top "Add Stock" button
 	useEffect(() => {
@@ -131,6 +134,8 @@ export default function PortfolioTable({
 				activeTab={activeTab}
 				historyByStockId={historyByStockId}
 				activeStockMetrics={activeStockMetrics}
+				ltpMap={ltpMap}
+				isConnected={isConnected}
 				onAdd={handleAddStock}
 				onSell={handleSellStock}
 				onViewHistory={handleViewHistory}

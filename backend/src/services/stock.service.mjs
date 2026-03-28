@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { History, Stock } from "../models/index.mjs";
+import { subscriptionService } from "./subscription.service.mjs";
 
 export const createStockForUser = async (userId, stockInput) => {
 	const newStock = { ...stockInput, userId };
@@ -13,6 +14,7 @@ export const createStockForUser = async (userId, stockInput) => {
 	const history = new History(historyPayload);
 	await stock.save();
 	await history.save();
+	subscriptionService.addSymbol(stockInput.stockName, stockInput.instrumentKey);
 	return historyPayload;
 };
 
@@ -51,11 +53,6 @@ export const listStocksForUser = async (userId) => {
 			quantity,
 			avgPrice,
 			totalCostOfStock,
-			ltp: 20,
-			currVal,
-			pnl: 20,
-			netChange: 20,
-			dayChange: 20,
 		});
 	}
 
