@@ -3,11 +3,11 @@ import {
 	checkTokenExpiry,
 	scheduleTokenExpiryTimer,
 	clearTokenExpiryTimer,
-} from "./util/http.mjs";
+} from "./util/api/session.mjs";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import RootLayout from "./pages/Root";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "./util/http.mjs";
+import { queryClient } from "./util/api/queryClient.mjs";
 import { useEffect, lazy, Suspense } from "react";
 
 // Add these:

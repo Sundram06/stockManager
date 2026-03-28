@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { login, setAuthLoading } from "../store/auth-slice";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import { API_URL } from "../util/http.mjs";
+import { API_URL } from "../util/api/config.mjs";
 
 export default function OAuthSuccessPage() {
 	const dispatch = useDispatch();

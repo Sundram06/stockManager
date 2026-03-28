@@ -13,7 +13,7 @@ import { Link, useNavigate } from "react-router-dom";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { login, clearLogoutMessage } from "../store/auth-slice";
 import { useMutation } from "@tanstack/react-query";
-import { loginUser } from "../util/http.mjs";
+import { loginUser } from "../util/api/auth.mjs";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -45,7 +45,6 @@ export default function LoginPage() {
 		onSuccess: (data) => {
 			localStorage.setItem("token", data.token);
 			localStorage.setItem("sessionActive", true);
-			console.log(data.user);
 			dispatch(login(data.user));
 			navigate("/dashboard");
 		},
