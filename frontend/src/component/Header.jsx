@@ -13,7 +13,7 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { logout } from "../store/auth-slice";
-import { logoutUser } from "../util/http.mjs";
+import { logoutUser } from "../util/api/auth.mjs";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../theme/useTheme";
 

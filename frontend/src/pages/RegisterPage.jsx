@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { addUser } from "../util/http.mjs";
+import { addUser } from "../util/api/auth.mjs";
 
 const RegistrationForm = () => {
 	const [error, setError] = useState("");
