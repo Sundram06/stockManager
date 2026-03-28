@@ -20,6 +20,8 @@ PortfolioViewSwitch.propTypes = {
 	activeTab: PropTypes.number.isRequired,
 	historyByStockId: PropTypes.object.isRequired,
 	activeStockMetrics: PropTypes.object.isRequired,
+	ltpMap: PropTypes.object.isRequired,
+	isConnected: PropTypes.bool.isRequired,
 	onAdd: PropTypes.func.isRequired,
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,

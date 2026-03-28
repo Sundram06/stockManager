@@ -48,6 +48,7 @@ function PortfolioMobileCard({
 	activeTab,
 	historyByStockId,
 	activeStockMetrics,
+	ltpMap,
 	onAdd,
 	onSell,
 	onViewHistory,
@@ -102,8 +103,13 @@ function PortfolioMobileCard({
 	const metrics = activeStockMetrics[stock._id];
 	const totalInvested = metrics ? metrics.totalInvested : 0;
 	const avgPrice = metrics ? metrics.avgPrice : stock.avgPrice;
-	const pnl =
-		stock.pnl !== undefined ? stock.pnl : (stock.ltp - avgPrice) * stock.quantity;
+	const ltp = ltpMap[stock.stockName]?.ltp ?? null;
+	const currVal = ltp !== null && stock.quantity > 0
+		? parseFloat((stock.quantity * ltp).toFixed(2))
+		: null;
+	const pnl = ltp !== null
+		? parseFloat(((ltp - avgPrice) * stock.quantity).toFixed(2))
+		: null;
 	const pnlColor = pnl > 0 ? "#1a882c" : pnl < 0 ? "#c91b24" : "#1d1d1d";
 
 	return (
@@ -115,9 +121,9 @@ function PortfolioMobileCard({
 				<MetricItem label="Quantity" value={`${stock.quantity}`} />
 				<MetricItem label="Avg Buy" value={rupee(avgPrice)} />
 				<MetricItem label="Invested" value={rupee(totalInvested)} />
-				<MetricItem label="LTP" value={rupee(stock.ltp)} /> 
-				<MetricItem label="Current Value" value="—" />
-				<MetricItem label="P&L" value={rupee(pnl)} emphasize color={pnlColor} />
+				<MetricItem label="LTP" value={ltp !== null ? rupee(ltp) : "—"} />
+				<MetricItem label="Current Value" value={currVal !== null ? rupee(currVal) : "—"} />
+				<MetricItem label="P&L" value={pnl !== null ? rupee(pnl) : "—"} emphasize color={pnl !== null ? pnlColor : ""} />
 			</Stack>
 			<Divider sx={{ my: 1.5 }} />
 			<Box sx={{ display: "flex", justifyContent: "flex-end" }}>
@@ -139,12 +145,11 @@ PortfolioMobileCard.propTypes = {
 		stockName: PropTypes.string.isRequired,
 		quantity: PropTypes.number.isRequired,
 		avgPrice: PropTypes.number.isRequired,
-		ltp: PropTypes.number,
-		pnl: PropTypes.number,
 	}).isRequired,
 	activeTab: PropTypes.number.isRequired,
 	historyByStockId: PropTypes.object.isRequired,
 	activeStockMetrics: PropTypes.object.isRequired,
+	ltpMap: PropTypes.object.isRequired,
 	onAdd: PropTypes.func.isRequired,
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,
@@ -157,6 +162,7 @@ function PortfolioMobileList(props) {
 		activeTab,
 		historyByStockId,
 		activeStockMetrics,
+		ltpMap,
 		onAdd,
 		onSell,
 		onViewHistory,
@@ -189,6 +195,7 @@ function PortfolioMobileList(props) {
 					activeTab={activeTab}
 					historyByStockId={historyByStockId}
 					activeStockMetrics={activeStockMetrics}
+					ltpMap={ltpMap}
 					onAdd={onAdd}
 					onSell={onSell}
 					onViewHistory={onViewHistory}
@@ -204,6 +211,7 @@ PortfolioMobileList.propTypes = {
 	activeTab: PropTypes.number.isRequired,
 	historyByStockId: PropTypes.object.isRequired,
 	activeStockMetrics: PropTypes.object.isRequired,
+	ltpMap: PropTypes.object.isRequired,
 	onAdd: PropTypes.func.isRequired,
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,

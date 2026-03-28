@@ -18,6 +18,7 @@ function StockTable({
 	activeTab,
 	historyByStockId,
 	activeStockMetrics,
+	ltpMap,
 	onAdd,
 	onSell,
 	onViewHistory,
@@ -84,6 +85,7 @@ function StockTable({
 								activeTab={activeTab}
 								historyByStockId={historyByStockId}
 								activeStockMetrics={activeStockMetrics}
+								liveData={ltpMap[stock.stockName] ?? null}
 								onAdd={onAdd}
 								onSell={onSell}
 								onViewHistory={onViewHistory}
@@ -102,6 +104,7 @@ StockTable.propTypes = {
 	activeTab: PropTypes.number.isRequired,
 	historyByStockId: PropTypes.object.isRequired,
 	activeStockMetrics: PropTypes.object.isRequired,
+	ltpMap: PropTypes.object.isRequired,
 	onAdd: PropTypes.func.isRequired,
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,
