@@ -5,7 +5,10 @@
 	"scripts": {
 		"dev": "cross-env NODE_ENV=development node --env-file=.env.development --watch server.mjs",
 		"start": "node server.mjs",
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"extract:instruments": "node scripts/extract-instruments.mjs",
+		"env:check": "node scripts/validate-env.mjs",
+		"smoke": "npm test",
+		"test": "vitest run"
 	},
 	"author": "",
 	"license": "ISC",
@@ -23,9 +26,12 @@
 		"node-fetch": "^3.3.2",
 		"passport": "^0.7.0",
 		"passport-google-oauth20": "^2.0.0",
-		"upstox-js-sdk": "^2.8.0"
+		"upstox-js-sdk": "^2.8.0",
+		"zod": "^3.24.1"
 	},
 	"devDependencies": {
-		"cross-env": "^7.0.3"
+		"cross-env": "^7.0.3",
+		"supertest": "^7.1.0",
+		"vitest": "^2.1.8"
 	}
 }
