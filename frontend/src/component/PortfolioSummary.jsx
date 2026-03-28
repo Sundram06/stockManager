@@ -32,11 +32,11 @@ function ValueCard({ label, value, prefix, accent, isPnl }) {
 				bgcolor: "background.paper",
 				borderLeft: `3px solid ${accent}`,
 				borderRadius: "0 8px 8px 0",
-				px: { xs: 1.5, sm: 2 },
-				py: { xs: 1.25, sm: 1.5 },
+				px: { xs: 1, sm: 2 },
+				py: { xs: 0.75, sm: 1.5 },
 				display: "flex",
 				flexDirection: "column",
-				gap: 0.6,
+				gap: { xs: 0.35, sm: 0.6 },
 				boxShadow: 1,
 				...(isPnl && {
 					background: `linear-gradient(135deg, ${accent}0d 0%, transparent 55%)`,
@@ -72,7 +72,7 @@ function ValueCard({ label, value, prefix, accent, isPnl }) {
 				)}
 				<Typography
 					sx={{
-						fontSize: { xs: "0.95rem", sm: "1.05rem" },
+						fontSize: { xs: "0.82rem", sm: "1.05rem" },
 						fontWeight: 700,
 						color: isPnl ? accent : "text.primary",
 						lineHeight: 1.2,
@@ -96,11 +96,11 @@ function StockCard({ label, stock, accent, isBest }) {
 				bgcolor: "background.paper",
 				borderLeft: `3px solid ${accent}`,
 				borderRadius: "0 8px 8px 0",
-				px: { xs: 1.5, sm: 2 },
-				py: { xs: 1.25, sm: 1.5 },
+				px: { xs: 1, sm: 2 },
+				py: { xs: 0.75, sm: 1.5 },
 				display: "flex",
 				flexDirection: "column",
-				gap: 0.6,
+				gap: { xs: 0.35, sm: 0.6 },
 				boxShadow: 1,
 				background: `linear-gradient(135deg, ${accent}0d 0%, transparent 55%)`,
 				transition: "box-shadow 0.2s",
@@ -125,7 +125,7 @@ function StockCard({ label, stock, accent, isBest }) {
 						<Icon sx={{ fontSize: "0.9rem", color: accent, flexShrink: 0 }} />
 						<Typography
 							sx={{
-								fontSize: { xs: "0.85rem", sm: "0.95rem" },
+								fontSize: { xs: "0.76rem", sm: "0.95rem" },
 								fontWeight: 700,
 								color: "text.primary",
 								lineHeight: 1.2,
@@ -250,8 +250,8 @@ export default function PortfolioSummary({ ltpMap }) {
 					sm: "repeat(3, 1fr)",
 					lg: "repeat(6, 1fr)",
 				},
-				gap: 1.5,
-				mb: 2.5,
+				gap: { xs: 0.75, sm: 1.5 },
+				mb: { xs: 1.5, sm: 2.5 },
 			}}
 		>
 			<ValueCard
