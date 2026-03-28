@@ -9,6 +9,7 @@ function StockTableRow({
 	activeTab,
 	historyByStockId,
 	activeStockMetrics,
+	liveData,
 	onAdd,
 	onSell,
 	onViewHistory,
@@ -40,16 +41,15 @@ function StockTableRow({
 		const metrics = activeStockMetrics[stock._id];
 		const totalInvested = metrics ? metrics.totalInvested : 0;
 		const avgPrice = metrics ? metrics.avgPrice : stock.avgPrice;
-		const currVal =
-			stock.quantity > 0 && stock.ltp
-				? (stock.quantity * stock.ltp).toFixed(2)
-				: 0;
-		const pnl =
-			stock.pnl !== undefined
-				? stock.pnl
-				: (stock.ltp - avgPrice) * stock.quantity;
-		return { totalInvested, currVal, pnl, avgPrice };
-	}, [activeTab, stock, activeStockMetrics]);
+		const ltp = liveData?.ltp ?? null;
+		const currVal = ltp !== null && stock.quantity > 0
+			? parseFloat((stock.quantity * ltp).toFixed(2))
+			: null;
+		const pnl = ltp !== null
+			? parseFloat(((ltp - avgPrice) * stock.quantity).toFixed(2))
+			: null;
+		return { totalInvested, currVal, pnl, avgPrice, ltp };
+	}, [activeTab, stock, activeStockMetrics, liveData]);
 
 	if (activeTab === 1 && dormantMetrics) {
 		const {
@@ -92,7 +92,7 @@ function StockTableRow({
 		);
 	}
 
-	const { totalInvested, currVal, pnl, avgPrice } = activeMetrics;
+	const { totalInvested, currVal, pnl, avgPrice, ltp } = activeMetrics;
 
 	return (
 		<TableRow hover>
@@ -100,8 +100,8 @@ function StockTableRow({
 			<TableCell align="right">{stock.quantity}</TableCell>
 			<TableCell align="right">{rupee(avgPrice)}</TableCell>
 			<TableCell align="right">{rupee(totalInvested)}</TableCell>
-			<TableCell align="right">{rupee(stock.ltp)}</TableCell>
-			<TableCell align="right">{rupee(currVal)}</TableCell>
+			<TableCell align="right">{ltp !== null ? rupee(ltp) : "—"}</TableCell>
+			<TableCell align="right">{currVal !== null ? rupee(currVal) : "—"}</TableCell>
 			<TableCell
 				align="right"
 				style={{
@@ -130,12 +130,11 @@ StockTableRow.propTypes = {
 		stockName: PropTypes.string.isRequired,
 		quantity: PropTypes.number.isRequired,
 		avgPrice: PropTypes.number.isRequired,
-		ltp: PropTypes.number,
-		pnl: PropTypes.number,
 	}).isRequired,
 	activeTab: PropTypes.number.isRequired,
 	historyByStockId: PropTypes.object.isRequired,
 	activeStockMetrics: PropTypes.object.isRequired,
+	liveData: PropTypes.shape({ ltp: PropTypes.number, cp: PropTypes.number }),
 	onAdd: PropTypes.func.isRequired,
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,

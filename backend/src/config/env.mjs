@@ -25,6 +25,7 @@ export const env = {
 	GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
 	GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",
 	GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || "",
+	UPSTOX_ANALYTICS_TOKEN: process.env.UPSTOX_ANALYTICS_TOKEN || "",
 };
 
 export const isProduction = env.NODE_ENV === "production";

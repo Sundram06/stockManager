@@ -1,13 +1,18 @@
 import { env } from "../config/env.mjs";
-import { listInstruments } from "../services/instrument.service.mjs";
+import { searchInstruments } from "../services/instrument.service.mjs";
+import { AppError } from "../errors/app-error.mjs";
 import {
 	exchangeUpstoxToken,
 	getUpstoxLoginUrl,
 } from "../providers/upstox.provider.mjs";
 
-export const getInstruments = async (req, res) => {
-	const instruments = await listInstruments();
-	return res.json(instruments);
+export const getInstrumentSearch = async (req, res) => {
+	const q = req.query.q?.trim();
+	if (!q || q.length < 2) {
+		throw new AppError("Query param 'q' must be at least 2 characters", 400);
+	}
+	const results = await searchInstruments(q);
+	return res.json(results);
 };
 
 export const getUpstoxLogin = async (req, res) => {
