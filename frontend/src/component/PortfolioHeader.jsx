@@ -18,6 +18,7 @@ export default function PortfolioHeader({
 	tab,
 	onTabChange,
 	onAddStock,
+	children,
 }) {
 	return (
 		<>
@@ -73,6 +74,8 @@ export default function PortfolioHeader({
 					Add Stock
 				</Button>
 			</Box>
+
+			{children}
 
 			{/* Search */}
 			<TextField
