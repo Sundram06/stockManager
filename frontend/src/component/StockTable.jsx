@@ -5,13 +5,45 @@ import {
 	TableContainer,
 	TableHead,
 	TableRow,
+	TableSortLabel,
 	Paper,
 	Typography,
 	Box,
 } from "@mui/material";
-import { memo } from "react";
+import { memo, useMemo, useState } from "react";
 import StockTableRow from "./StockTableRow";
 import PropTypes from "prop-types";
+import { computeDormantMetrics } from "../util/portfolioMetrics.mjs";
+
+// ─── Column definitions per tab ─────────────────────────────────────────────
+
+const ACTIVE_COLS = [
+	{ id: "name",     label: "Stock",         align: "left"   },
+	{ id: "qty",      label: "Quantity",       align: "right"  },
+	{ id: "avgPrice", label: "Avg. Buy Price", align: "right"  },
+	{ id: "invested", label: "Total Invested", align: "right"  },
+	{ id: "ltp",      label: "LTP",            align: "right"  },
+	{ id: "currVal",  label: "Current Value",  align: "right"  },
+	{ id: "pnl",      label: "P&L",            align: "right"  },
+];
+
+const DORMANT_COLS = [
+	{ id: "name",      label: "Stock",           align: "left"  },
+	{ id: "qty",       label: "Qty Sold",         align: "right" },
+	{ id: "avgPrice",  label: "Avg. Buy Price",   align: "right" },
+	{ id: "invested",  label: "Total Invested",   align: "right" },
+	{ id: "sellPrice", label: "Avg. Sell Price",  align: "right" },
+	{ id: "sellVal",   label: "Sell Value",       align: "right" },
+	{ id: "pnl",       label: "P&L",              align: "right" },
+];
+
+// Null values always sort to the bottom regardless of direction
+const nullLast = (val, dir) =>
+	val === null || val === undefined
+		? dir === "asc" ? Infinity : -Infinity
+		: val;
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 function StockTable({
 	stocks,
@@ -24,45 +56,110 @@ function StockTable({
 	onViewHistory,
 	onDelete,
 }) {
+	// Per-tab sort state: { [tab]: { col, dir } }
+	const [sortByTab, setSortByTab] = useState({
+		0: { col: "name", dir: "asc" },
+		1: { col: "name", dir: "asc" },
+	});
+
+	const { col, dir } = sortByTab[activeTab] ?? { col: "name", dir: "asc" };
+
+	const handleSort = (newCol) => {
+		setSortByTab((prev) => {
+			const current = prev[activeTab];
+			const newDir =
+				current.col === newCol && current.dir === "asc" ? "desc" : "asc";
+			return { ...prev, [activeTab]: { col: newCol, dir: newDir } };
+		});
+	};
+
+	// Pre-compute dormant metrics for all stocks when on dormant tab
+	const dormantMetricsMap = useMemo(() => {
+		if (activeTab !== 1) return {};
+		const map = {};
+		for (const stock of stocks) {
+			map[stock._id] = computeDormantMetrics(historyByStockId[stock._id] || []);
+		}
+		return map;
+	}, [activeTab, stocks, historyByStockId]);
+
+	const getSortValue = (stock, colId) => {
+		if (activeTab === 0) {
+			const metrics = activeStockMetrics[stock._id];
+			const live = ltpMap[stock.stockName];
+			const avgPrice = metrics?.avgPrice ?? stock.avgPrice;
+			const ltp = live?.ltp ?? null;
+			switch (colId) {
+				case "name":     return stock.stockName;
+				case "qty":      return stock.quantity;
+				case "avgPrice": return avgPrice;
+				case "invested": return metrics?.totalInvested ?? 0;
+				case "ltp":      return nullLast(ltp, dir);
+				case "currVal":  return nullLast(ltp !== null ? ltp * stock.quantity : null, dir);
+				case "pnl":      return nullLast(ltp !== null ? (ltp - avgPrice) * stock.quantity : null, dir);
+				default:         return stock.stockName;
+			}
+		} else {
+			const d = dormantMetricsMap[stock._id] ?? {};
+			switch (colId) {
+				case "name":      return stock.stockName;
+				case "qty":       return d.totalSoldQty ?? 0;
+				case "avgPrice":  return d.avgBuyPrice ?? 0;
+				case "invested":  return d.totalSoldCost ?? 0;
+				case "sellPrice": return d.avgSellPrice ?? 0;
+				case "sellVal":   return d.totalSellValue ?? 0;
+				case "pnl":       return d.totalPnl ?? 0;
+				default:          return stock.stockName;
+			}
+		}
+	};
+
+	const sortedStocks = useMemo(() => {
+		return [...stocks].sort((a, b) => {
+			const aVal = getSortValue(a, col);
+			const bVal = getSortValue(b, col);
+			if (typeof aVal === "string") {
+				return dir === "asc"
+					? aVal.localeCompare(bVal)
+					: bVal.localeCompare(aVal);
+			}
+			return dir === "asc" ? aVal - bVal : bVal - aVal;
+		});
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [stocks, col, dir, activeTab, activeStockMetrics, ltpMap, dormantMetricsMap]);
+
+	const cols = activeTab === 0 ? ACTIVE_COLS : DORMANT_COLS;
+
 	return (
-		<TableContainer
-			component={Paper}
-			elevation={2}
-			sx={{
-				mb: 4,
-			}}
-		>
+		<TableContainer component={Paper} elevation={2} sx={{ mb: 4 }}>
 			<Table>
 				<TableHead>
 					<TableRow>
-						<TableCell sx={{ fontWeight: "bold" }}>Stock</TableCell>
-						<TableCell align="right" sx={{ fontWeight: "bold" }}>
-							Quantity
-						</TableCell>
-						<TableCell align="right" sx={{ fontWeight: "bold" }}>
-							Avg. Buy Price
-						</TableCell>
-						<TableCell align="right" sx={{ fontWeight: "bold" }}>
-							Total Invested
-						</TableCell>
-						<TableCell align="right" sx={{ fontWeight: "bold" }}>
-							LTP
-						</TableCell>
-						<TableCell align="right" sx={{ fontWeight: "bold" }}>
-							Current Value
-						</TableCell>
-						<TableCell align="right" sx={{ fontWeight: "bold" }}>
-							P&amp;L
-						</TableCell>
+						{cols.map((c) => (
+							<TableCell
+								key={c.id}
+								align={c.align}
+								sortDirection={col === c.id ? dir : false}
+								sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}
+							>
+								<TableSortLabel
+									active={col === c.id}
+									direction={col === c.id ? dir : "asc"}
+									onClick={() => handleSort(c.id)}
+								>
+									{c.label}
+								</TableSortLabel>
+							</TableCell>
+						))}
 						<TableCell align="center" sx={{ fontWeight: "bold" }}>
 							Actions
 						</TableCell>
 					</TableRow>
 				</TableHead>
 				<TableBody>
-					{stocks.length === 0 ? (
+					{sortedStocks.length === 0 ? (
 						<TableRow>
-							<TableCell colSpan={8} align="center">
+							<TableCell colSpan={cols.length + 1} align="center">
 								<Box sx={{ py: 4, textAlign: "center" }}>
 									<Typography variant="h6" color="text.secondary" gutterBottom>
 										{activeTab === 0
@@ -78,7 +175,7 @@ function StockTable({
 							</TableCell>
 						</TableRow>
 					) : (
-						stocks.map((stock) => (
+						sortedStocks.map((stock) => (
 							<StockTableRow
 								key={stock._id}
 								stock={stock}
@@ -112,5 +209,4 @@ StockTable.propTypes = {
 };
 
 const MemoizedStockTable = memo(StockTable);
-
 export default MemoizedStockTable;
