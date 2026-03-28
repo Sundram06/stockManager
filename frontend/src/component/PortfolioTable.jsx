@@ -7,13 +7,14 @@ import DeleteStockModal from "./DeleteStockModal";
 import PropTypes from "prop-types";
 import usePortfolioData from "../hooks/usePortfolioData";
 import usePortfolioActions from "../hooks/usePortfolioActions";
-import useMarketData from "../hooks/useMarketData";
 
 export default function PortfolioTable({
 	activeTab,
 	search,
 	addOpen,
 	setAddOpen,
+	ltpMap,
+	isConnected,
 }) {
 	const [selectedStock, setSelectedStock] = useState(null);
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -36,8 +37,6 @@ export default function PortfolioTable({
 		setAddOpen,
 		setDeleteModalOpen,
 	});
-
-	const { ltpMap, isConnected } = useMarketData();
 
 	// Initialize actionType when dialog opens from top "Add Stock" button
 	useEffect(() => {
@@ -166,4 +165,6 @@ PortfolioTable.propTypes = {
 	search: PropTypes.string.isRequired,
 	addOpen: PropTypes.bool.isRequired,
 	setAddOpen: PropTypes.func.isRequired,
+	ltpMap: PropTypes.object.isRequired,
+	isConnected: PropTypes.bool.isRequired,
 };
