@@ -35,68 +35,48 @@ export default function AddStock({
 	const [suggestions, setSuggestions] = useState([]);
 	const [errors, setErrors] = useState({});
 	const [purchaseDate, setPurchaseDate] = useState(null);
+	const [selectedInstrumentKey, setSelectedInstrumentKey] = useState("");
 	const debounceTimeout = useRef();
-	const [instruments, setInstruments] = useState([]);
-	const [instrumentsLoading, setInstrumentsLoading] = useState(false);
-	const instrumentsEndpoint = API_URL
-		? `${API_URL}/api/instruments`
-		: "/api/instruments";
-
-	// Fetch instruments on component mount or when dialog opens
-	useEffect(() => {
-		if (open && instruments.length === 0 && !instrumentsLoading) {
-			setInstrumentsLoading(true);
-			fetch(instrumentsEndpoint)
-				.then((res) => {
-					if (!res.ok) {
-						throw new Error("Failed to fetch instruments");
-					}
-					return res.json();
-				})
-				.then((data) => {
-					setInstruments(data);
-					setInstrumentsLoading(false);
-				})
-				.catch((err) => {
-					console.error("Error fetching instruments:", err);
-					setInstrumentsLoading(false);
-				});
-		}
-	}, [open, instruments.length, instrumentsLoading, instrumentsEndpoint]);
+	const justSelected = useRef(false);
+	const searchEndpoint = API_URL
+		? `${API_URL}/api/instruments/search`
+		: "/api/instruments/search";
 
 	const handleClickClose = () => {
 		setQuery("");
 		setErrors({});
 		setPurchaseDate(null);
+		setSelectedInstrumentKey("");
+		setSuggestions([]);
 		handleClickCloseDialog();
 	};
 
 	useEffect(() => {
+		if (justSelected.current) {
+			justSelected.current = false;
+			return;
+		}
 		if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-		if (query) {
+		if (query && query.length >= 2) {
 			debounceTimeout.current = setTimeout(() => {
-				const normalizedQuery = query.toLowerCase();
-				const filteredStocks = instruments.filter((stock) => {
-					const nameMatch =
-						stock.name && stock.name.toLowerCase().includes(normalizedQuery);
-					const tradingSymbolMatch =
-						stock.trading_symbol &&
-						stock.trading_symbol.toLowerCase().includes(normalizedQuery);
-					return nameMatch || tradingSymbolMatch;
-				});
-
-				setSuggestions(filteredStocks);
-			}, 300); // 300ms debounce
+				fetch(`${searchEndpoint}?q=${encodeURIComponent(query)}`)
+					.then((res) => res.ok ? res.json() : [])
+					.then((data) => setSuggestions(Array.isArray(data) ? data : []))
+					.catch(() => setSuggestions([]));
+			}, 300);
 		} else {
 			setSuggestions([]);
 		}
 		return () => clearTimeout(debounceTimeout.current);
-	}, [query, instruments]);
+	}, [query, searchEndpoint]);
 
 	const validate = (data) => {
 		const newErrors = {};
 		if (nameInputField && (!data.stockName || data.stockName.trim() === "")) {
 			newErrors.stockName = "Stock Name is required";
+		}
+		if (nameInputField && data.stockName && !selectedInstrumentKey) {
+			newErrors.stockName = "Please select a stock from the suggestions";
 		}
 		if (!data.quantity || isNaN(data.quantity) || Number(data.quantity) <= 0) {
 			newErrors.quantity = "Quantity must be greater than 0";
@@ -120,6 +100,7 @@ export default function AddStock({
 		data.date = purchaseDate ? dayjs(purchaseDate).format("YYYY-MM-DD") : "";
 		data.stockName ? (data.stockName = data.stockName.toUpperCase()) : null;
 		data.avgPrice = parseFloat(data.avgPrice);
+		if (selectedInstrumentKey) data.instrumentKey = selectedInstrumentKey;
 		const validationErrors = validate(data);
 		if (Object.keys(validationErrors).length > 0) {
 			setErrors(validationErrors);
@@ -128,13 +109,16 @@ export default function AddStock({
 		mutateCall(data);
 		event.target.reset();
 		setQuery("");
+		setSelectedInstrumentKey("");
 		setPurchaseDate(null);
 		setSuggestions([]);
 		handleClickClose();
 	};
 
 	const handleSelect = (stock) => {
+		justSelected.current = true;
 		setQuery(stock.trading_symbol);
+		setSelectedInstrumentKey(stock.instrument_key || "");
 		setSuggestions([]);
 		const inputElement = document.querySelector("input[name='quantity']");
 		if (inputElement) inputElement.focus();
@@ -171,7 +155,10 @@ export default function AddStock({
 								label="Stock Name"
 								placeholder="Stock Name"
 								value={query}
-								onChange={(e) => setQuery(e.target.value)}
+								onChange={(e) => {
+									setQuery(e.target.value);
+									setSelectedInstrumentKey(""); // reset if user edits manually after a selection
+								}}
 								autoComplete="off"
 								fullWidth
 								margin="normal"

@@ -26,7 +26,9 @@
 		"node-fetch": "^3.3.2",
 		"passport": "^0.7.0",
 		"passport-google-oauth20": "^2.0.0",
+		"protobufjs": "^7.2.5",
 		"upstox-js-sdk": "^2.8.0",
+		"ws": "^8.18.0",
 		"zod": "^3.24.1"
 	},
 	"devDependencies": {
