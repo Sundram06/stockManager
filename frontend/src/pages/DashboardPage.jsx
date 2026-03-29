@@ -3,6 +3,8 @@ import { useDeferredValue, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PortfolioTable from "../component/PortfolioTable";
 import PortfolioHeader from "../component/PortfolioHeader";
+import PortfolioSummary from "../component/PortfolioSummary";
+import useMarketData from "../hooks/useMarketData";
 import { Box, Typography, CircularProgress } from "@mui/material";
 
 export default function DashboardPage() {
@@ -14,6 +16,7 @@ export default function DashboardPage() {
 	const [search, setSearch] = useState("");
 	const deferredSearch = useDeferredValue(search);
 	const [addOpen, setAddOpen] = useState(false);
+	const { ltpMap, isConnected } = useMarketData();
 
 	useEffect(() => {
 		if (!isAuthLoading && !user) {
@@ -75,12 +78,16 @@ export default function DashboardPage() {
 				tab={tab}
 				onTabChange={setTab}
 				onAddStock={handleAddStock}
-			/>
+			>
+				<PortfolioSummary ltpMap={ltpMap} />
+			</PortfolioHeader>
 			<PortfolioTable
 				activeTab={tab}
 				search={deferredSearch}
 				addOpen={addOpen}
 				setAddOpen={setAddOpen}
+				ltpMap={ltpMap}
+				isConnected={isConnected}
 			/>
 		</Box>
 	);
