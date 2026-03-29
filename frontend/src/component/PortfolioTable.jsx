@@ -140,14 +140,12 @@ export default function PortfolioTable({
 				onViewHistory={handleViewHistory}
 				onDelete={handleDeleteStock}
 			/>
-			{selectedStock && (
-				<StockHistoryModal
-					open={!!selectedStock}
-					onClose={handleCloseHistoryModal}
-					stockName={selectedStock.stockName}
-					history={selectedStock.history}
-				/>
-			)}
+			<StockHistoryModal
+				open={!!selectedStock}
+				onClose={handleCloseHistoryModal}
+				stockName={selectedStock?.stockName ?? ""}
+				history={selectedStock?.history ?? []}
+			/>
 			{deleteModalOpen && stockToDelete && (
 				<DeleteStockModal
 					open={deleteModalOpen}

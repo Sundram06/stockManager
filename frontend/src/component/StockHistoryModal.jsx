@@ -453,7 +453,7 @@ export default function StockHistoryModal({ open, onClose, stockName, history })
 							</Typography>
 						</Box>
 					) : (
-						sortedHistory.map((lot, i) => (
+						[...sortedHistory].reverse().map((lot, i) => (
 							<Box key={lot._id}>
 								<LotCard lot={lot} index={i} />
 								{i < sortedHistory.length - 1 && <Divider />}
