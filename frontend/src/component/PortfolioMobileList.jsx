@@ -13,8 +13,6 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import { computeDormantMetrics } from "../util/portfolioMetrics.mjs";
 
 const rupee = (num, decimals = 2) =>
@@ -166,7 +164,6 @@ function DormantStockRow({ stock, historyByStockId, onTap }) {
 function ActionSheet({
 	stock,
 	activeTab,
-	activeStockMetrics,
 	ltpMap,
 	onClose,
 	onAdd,
