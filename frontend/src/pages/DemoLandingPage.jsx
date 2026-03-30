@@ -1,226 +1,143 @@
-import {
-	Box,
-	Typography,
-	Button,
-	Container,
-	Grid,
-	Paper,
-	Chip,
-	Stack,
-	Divider,
-} from "@mui/material";
-import { alpha } from "@mui/material/styles";
-import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
-import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
-import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
-import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
-import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, CheckCircle, Wallet, LineChart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+
+const productPillars = [
+  {
+    title: "Position Intelligence",
+    description: "Track quantity, average buy price, LTP, current value, and realized or unrealized P&L in one focused workspace.",
+    icon: <BarChart2Icon />,
+  },
+  {
+    title: "Action-Oriented Workflow",
+    description: "Add, sell, inspect history, and clean up positions with minimal friction and clear operational guardrails.",
+    icon: <ZapIcon />,
+  },
+  {
+    title: "Secure Session Layer",
+    description: "Role-aware auth flow, session hydration, and protected navigation paths designed for dependable daily usage.",
+    icon: <ShieldIcon />,
+  },
+];
+
+const workflow = [
+  "Onboard with email or OAuth and land directly in your portfolio control center.",
+  "Capture buys and sells with date and price metadata for clean historical continuity.",
+  "Review active versus dormant positions and evaluate outcomes from one data surface.",
+];
+
+// Local icon wrappers to avoid unused import warnings
+function BarChart2Icon() { return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>; }
+function ZapIcon() { return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>; }
+function ShieldIcon() { return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>; }
 
 export default function DemoLandingPage() {
-	const navigate = useNavigate();
+  const navigate = useNavigate();
 
-	const productPillars = [
-		{
-			title: "Position Intelligence",
-			description:
-				"Track quantity, average buy price, LTP, current value, and realized or unrealized P&L in one focused workspace.",
-			icon: <InsightsOutlinedIcon fontSize="small" />,
-		},
-		{
-			title: "Action-Oriented Workflow",
-			description:
-				"Add, sell, inspect history, and clean up positions with minimal friction and clear operational guardrails.",
-			icon: <BoltOutlinedIcon fontSize="small" />,
-		},
-		{
-			title: "Secure Session Layer",
-			description:
-				"Role-aware auth flow, session hydration, and protected navigation paths designed for dependable daily usage.",
-			icon: <SecurityOutlinedIcon fontSize="small" />,
-		},
-	];
+  return (
+    <div className="flex flex-col min-h-[calc(100vh-64px)] bg-background relative overflow-hidden">
+      {/* Subtle background gradient blobs */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full bg-primary/8 blur-3xl" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-secondary/20 blur-3xl" />
+      </div>
 
-	const workflow = [
-		"Onboard with email or OAuth and land directly in your portfolio control center.",
-		"Capture buys and sells with date and price metadata for clean historical continuity.",
-		"Review active versus dormant positions and evaluate outcomes from one data surface.",
-	];
+      <div className="relative z-10 max-w-6xl mx-auto w-full px-4 py-8 md:py-12 flex-1">
+        <div className="bg-card border border-border rounded-2xl shadow-md p-5 sm:p-8 md:p-10">
+          <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-start">
 
-	return (
-		<Box
-			sx={{
-				display: "flex",
-				flexDirection: "column",
-				minHeight: "calc(100vh - 64px)",
-				bgcolor: "background.default",
-				position: "relative",
-				overflow: "hidden",
-				"&::before": {
-					content: '""',
-					position: "absolute",
-					inset: 0,
-					pointerEvents: "none",
-					background: (theme) =>
-						theme.palette.mode === "dark"
-							? `radial-gradient(circle at 15% 10%, ${alpha(theme.palette.primary.main, 0.12)} 0%, transparent 34%), radial-gradient(circle at 85% 90%, ${alpha(theme.palette.secondary.main, 0.12)} 0%, transparent 34%)`
-							: `radial-gradient(circle at 15% 10%, ${alpha(theme.palette.primary.main, 0.08)} 0%, transparent 34%), radial-gradient(circle at 85% 90%, ${alpha(theme.palette.secondary.main, 0.08)} 0%, transparent 34%)`,
-				},
-			}}
-		>
-			<Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 }, flex: 1, position: "relative", zIndex: 1 }}>
-				<Paper
-					elevation={2}
-					sx={{
-						p: { xs: 2.5, sm: 3.5, md: 4 },
-						borderRadius: "0.5rem",
-						border: (theme) => `1px solid ${alpha(theme.palette.divider, 0.9)}`,
-						background: (theme) =>
-							theme.palette.mode === "dark"
-								? `linear-gradient(160deg, ${alpha(theme.palette.background.paper, 0.98)} 0%, ${alpha(theme.palette.background.elevated, 0.85)} 100%)`
-							: `linear-gradient(160deg, ${alpha(theme.palette.background.paper, 1)} 0%, ${alpha(theme.palette.background.elevated, 0.82)} 100%)`,
-					}}
-				>
-					<Grid container spacing={{ xs: 2.5, md: 4 }} alignItems="stretch">
-						<Grid item xs={12} md={7}>
-							<Stack direction="row" spacing={1} sx={{ mb: 1.4, flexWrap: "wrap", rowGap: 1 }}>
-								<Chip label="Portfolio OS" color="primary" size="small" />
-								<Chip label="Real-time Ready" size="small" variant="outlined" />
-								<Chip label="Auth Secured" size="small" variant="outlined" />
-							</Stack>
+            {/* Left column */}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge>Portfolio OS</Badge>
+                <Badge variant="outline">Real-time Ready</Badge>
+                <Badge variant="outline">Auth Secured</Badge>
+              </div>
 
-							<Typography variant="h2" fontWeight={700} sx={{ fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" }, mb: 1.4 }}>
-								Run Your Portfolio Like a Desk.
-							</Typography>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-4">
+                Run Your Portfolio Like a Desk.
+              </h2>
 
-							<Typography variant="h6" color="text.secondary" sx={{ maxWidth: "62ch", lineHeight: 1.55, mb: 2.4 }}>
-								VittNest gives you a streamlined operating layer for modern equity management: add and sell execution, clean historical context, and a focused dashboard for decision velocity.
-							</Typography>
+              <p className="text-base text-muted-foreground leading-relaxed mb-6 max-w-prose">
+                VittNest gives you a streamlined operating layer for modern equity management:
+                add and sell execution, clean historical context, and a focused dashboard for
+                decision velocity.
+              </p>
 
-							<Stack direction={{ xs: "column", sm: "row" }} spacing={1.2} sx={{ mb: 2.5 }}>
-								<Button
-									variant="contained"
-									color="primary"
-									size="large"
-									onClick={() => navigate("/login")}
-									endIcon={<ArrowForwardIcon />}
-								>
-									Launch Workspace
-								</Button>
-								<Button
-									variant="outlined"
-									color="primary"
-									size="large"
-									onClick={() => navigate("/register")}
-								>
-									Create Account
-								</Button>
-							</Stack>
+              <div className="flex flex-col sm:flex-row gap-3 mb-7">
+                <Button size="lg" onClick={() => navigate("/login")} className="gap-2">
+                  Launch Workspace <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button size="lg" variant="outline" onClick={() => navigate("/register")}>
+                  Create Account
+                </Button>
+              </div>
 
-							<Stack spacing={0.9}>
-								{workflow.map((step) => (
-									<Stack key={step} direction="row" spacing={1} alignItems="flex-start">
-										<CheckCircleOutlineIcon sx={{ fontSize: "1rem", mt: "2px", color: "primary.main" }} />
-										<Typography variant="body2" color="text.secondary">{step}</Typography>
-									</Stack>
-								))}
-							</Stack>
-						</Grid>
+              <div className="flex flex-col gap-2.5">
+                {workflow.map((step) => (
+                  <div key={step} className="flex items-start gap-2.5">
+                    <CheckCircle className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                    <p className="text-sm text-muted-foreground leading-relaxed">{step}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-						<Grid item xs={12} md={5}>
-							<Paper
-								variant="outlined"
-								sx={{
-									p: 2,
-									height: "100%",
-									borderRadius: "0.9rem",
-									borderColor: (theme) => alpha(theme.palette.divider, 0.95),
-									backgroundColor: (theme) =>
-										theme.palette.mode === "dark"
-											? alpha(theme.palette.background.default, 0.45)
-											: alpha(theme.palette.background.default, 0.82),
-								}}
-							>
-								<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.2 }}>
-									<AccountBalanceWalletOutlinedIcon color="primary" fontSize="small" />
-									<Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 700 }}>
-										Product Highlights
-									</Typography>
-								</Stack>
+            {/* Right panel */}
+            <div className="w-full md:w-[42%] shrink-0">
+              <div className="rounded-xl border border-border bg-background/60 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Wallet className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-bold text-muted-foreground">Product Highlights</span>
+                </div>
 
-								<Stack spacing={1.3}>
-									<Box>
-										<Typography variant="h5" sx={{ fontWeight: 700 }}>Unified Stock Ledger</Typography>
-										<Typography variant="body2" color="text.secondary">
-											Single-source clarity across active and exited positions.
-										</Typography>
-									</Box>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <p className="text-xl font-bold mb-0.5">Unified Stock Ledger</p>
+                    <p className="text-sm text-muted-foreground">Single-source clarity across active and exited positions.</p>
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="text-xl font-bold mb-0.5">Execution History Panel</p>
+                    <p className="text-sm text-muted-foreground">Inspect transactions, sold quantities, and historical P&L context.</p>
+                  </div>
+                  <Separator />
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <LineChart className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-bold">Built for Daily Review</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Fast, table-driven workflow for investors who need disciplined execution loops.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-									<Divider />
+          {/* Pillars */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {productPillars.map((pillar) => (
+              <div
+                key={pillar.title}
+                className="rounded-xl border border-border bg-background/60 p-5"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-primary">{pillar.icon}</span>
+                  <p className="text-sm font-bold">{pillar.title}</p>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{pillar.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
-									<Box>
-										<Typography variant="h5" sx={{ fontWeight: 700 }}>Execution History Panel</Typography>
-										<Typography variant="body2" color="text.secondary">
-											Inspect transactions, sold quantities, and historical P&L context.
-										</Typography>
-									</Box>
-
-									<Divider />
-
-									<Box>
-										<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.25 }}>
-											<TimelineOutlinedIcon color="primary" fontSize="small" />
-											<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Built for Daily Review</Typography>
-										</Stack>
-										<Typography variant="body2" color="text.secondary">
-											Fast, table-driven workflow for investors who need disciplined execution loops.
-										</Typography>
-									</Box>
-								</Stack>
-							</Paper>
-						</Grid>
-					</Grid>
-
-					<Box sx={{ mt: 3.2 }}>
-						<Grid container spacing={1.5}>
-							{productPillars.map((pillar) => (
-								<Grid item xs={12} md={4} key={pillar.title}>
-									<Paper
-										variant="outlined"
-										sx={{
-											p: 1.7,
-											height: "100%",
-											borderRadius: "0.9rem",
-											borderColor: (theme) => alpha(theme.palette.divider, 0.95),
-											backgroundColor: (theme) =>
-												theme.palette.mode === "dark"
-													? alpha(theme.palette.background.default, 0.45)
-													: alpha(theme.palette.background.default, 0.86),
-										}}
-									>
-										<Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.6 }}>
-											<Box sx={{ color: "primary.main", display: "flex", alignItems: "center" }}>{pillar.icon}</Box>
-											<Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{pillar.title}</Typography>
-										</Stack>
-										<Typography variant="body2" color="text.secondary">
-											{pillar.description}
-										</Typography>
-									</Paper>
-								</Grid>
-							))}
-						</Grid>
-					</Box>
-				</Paper>
-			</Container>
-			<Box sx={{ mt: "auto", py: 3, bgcolor: "primary.main" }}>
-				<Container maxWidth="lg">
-					<Typography color="white" align="center" fontSize={16}>
-						&copy; {new Date().getFullYear()} VittNest. All rights reserved.
-					</Typography>
-				</Container>
-			</Box>
-		</Box>
-	);
+      {/* Footer */}
+      <footer className="relative z-10 mt-auto py-5 bg-primary text-primary-foreground text-center text-sm">
+        &copy; {new Date().getFullYear()} VittNest. All rights reserved.
+      </footer>
+    </div>
+  );
 }

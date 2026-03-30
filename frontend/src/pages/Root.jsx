@@ -2,52 +2,27 @@ import Header from "../component/Header";
 import { Outlet, useLocation } from "react-router-dom";
 import useHydrateAuth from "../hooks/useHydrateAuth";
 import { useSelector } from "react-redux";
-import { Box, CircularProgress } from "@mui/material";
 
 export default function RootLayout() {
-	useHydrateAuth();
-	const isAuthLoading = useSelector((s) => s.auth.isAuthLoading);
-	const location = useLocation();
-	const isLoginOrRegister = [
-		"/login",
-		"/register",
-		"/forgot-password",
-	].includes(location.pathname);
+  useHydrateAuth();
+  const isAuthLoading = useSelector((s) => s.auth.isAuthLoading);
+  const location = useLocation();
+  const isLoginOrRegister = ["/login", "/register", "/forgot-password"].includes(
+    location.pathname
+  );
 
-	return (
-		<Box
-			sx={{
-				minHeight: "100vh",
-				display: "flex",
-				flexDirection: "column",
-				backgroundColor: "background.default",
-			}}
-		>
-			<Header />
-			<Box
-				component="main"
-				sx={{
-					flex: 1,
-					backgroundColor: "background.default",
-					display: "flex",
-					flexDirection: "column",
-				}}
-			>
-				{isAuthLoading && !isLoginOrRegister ? (
-					<Box
-						sx={{
-							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-							flex: 1,
-						}}
-					>
-						<CircularProgress />
-					</Box>
-				) : (
-					<Outlet />
-				)}
-			</Box>
-		</Box>
-	);
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
+      <main className="flex-1 flex flex-col bg-background">
+        {isAuthLoading && !isLoginOrRegister ? (
+          <div className="flex flex-1 items-center justify-center">
+            <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+        ) : (
+          <Outlet />
+        )}
+      </main>
+    </div>
+  );
 }

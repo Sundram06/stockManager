@@ -5,143 +5,102 @@ import PortfolioTable from "../component/PortfolioTable";
 import PortfolioHeader from "../component/PortfolioHeader";
 import PortfolioSummary from "../component/PortfolioSummary";
 import useMarketData from "../hooks/useMarketData";
-import { Box, Typography, CircularProgress, Fab, useTheme, useMediaQuery, useScrollTrigger } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useScrollTrigger } from "../hooks/useScrollTrigger";
+import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
-	const user = useSelector((s) => s.auth.user);
-	const isAuthLoading = useSelector((s) => s.auth.isAuthLoading);
-	const navigate = useNavigate();
+  const user = useSelector((s) => s.auth.user);
+  const isAuthLoading = useSelector((s) => s.auth.isAuthLoading);
+  const navigate = useNavigate();
 
-	const [tab, setTab] = useState(0);
-	const [search, setSearch] = useState("");
-	const deferredSearch = useDeferredValue(search);
-	const [addOpen, setAddOpen] = useState(false);
-	const { ltpMap, isConnected } = useMarketData();
-	const theme = useTheme();
-	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-	const scrolled = useScrollTrigger({ disableHysteresis: true, threshold: 60 });
+  const [tab, setTab] = useState(0);
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const [addOpen, setAddOpen] = useState(false);
+  const { ltpMap, isConnected } = useMarketData();
 
-	useEffect(() => {
-		if (!isAuthLoading && !user) {
-			navigate("/login", { replace: true });
-		}
-	}, [user, isAuthLoading, navigate]);
+  const isMobile = useMediaQuery("(max-width: 599px)");
+  const scrolled = useScrollTrigger(60);
 
-	if (isAuthLoading) {
-		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "100vh",
-					flexDirection: "column",
-					gap: 2,
-				}}
-			>
-				<CircularProgress />
-				<Typography variant="h6" color="text.secondary">
-					Loading your portfolio...
-				</Typography>
-			</Box>
-		);
-	}
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      navigate("/login", { replace: true });
+    }
+  }, [user, isAuthLoading, navigate]);
 
-	if (!user) {
-		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "100vh",
-				}}
-			>
-				<CircularProgress />
-			</Box>
-		);
-	}
+  if (isAuthLoading) {
+    return (
+      <div className="flex flex-1 justify-center items-center h-screen flex-col gap-3">
+        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <p className="text-base text-muted-foreground">Loading your portfolio...</p>
+      </div>
+    );
+  }
 
-	const handleAddStock = () => {
-		setAddOpen(true);
-	};
+  if (!user) {
+    return (
+      <div className="flex flex-1 justify-center items-center h-screen">
+        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
-	return (
-		<Box
-			sx={{
-				mx: "auto",
-				py: { xs: 2, sm: 4 },
-				px: { xs: 1.5, sm: 2 },
-				width: "100%",
-			}}
-		>
-			<PortfolioHeader
-				search={search}
-				onSearchChange={setSearch}
-				tab={tab}
-				onTabChange={setTab}
-				onAddStock={handleAddStock}
-				username={user?.name?.split(" ")[0]}
-			>
-				<PortfolioSummary ltpMap={ltpMap} />
-			</PortfolioHeader>
-			<PortfolioTable
-				activeTab={tab}
-				search={deferredSearch}
-				addOpen={addOpen}
-				setAddOpen={setAddOpen}
-				ltpMap={ltpMap}
-				isConnected={isConnected}
-			/>
+  const handleAddStock = () => setAddOpen(true);
 
-			{isMobile && (
-				<Fab
-					color="primary"
-					aria-label="add stock"
-					onClick={handleAddStock}
-					variant="extended"
-					sx={{
-						position: "fixed",
-						bottom: 24,
-						right: 20,
-						boxShadow: 6,
-						fontWeight: 700,
-						fontSize: "0.875rem",
-						zIndex: 1200,
-						minWidth: "unset",
-						width: scrolled ? 56 : "auto",
-						height: 56,
-						borderRadius: scrolled ? "50%" : "28px",
-						px: scrolled ? 0 : 2,
-						transition: [
-							"width 0.4s cubic-bezier(0.4,0,0.2,1)",
-							"border-radius 0.4s cubic-bezier(0.4,0,0.2,1)",
-							"padding 0.4s cubic-bezier(0.4,0,0.2,1)",
-						].join(", "),
-						overflow: "hidden",
-					}}
-				>
-					<AddIcon sx={{ fontSize: "1.1rem", flexShrink: 0 }} />
-					<Box
-						component="span"
-						sx={{
-							maxWidth: scrolled ? 0 : 100,
-							opacity: scrolled ? 0 : 1,
-							overflow: "hidden",
-							whiteSpace: "nowrap",
-							ml: scrolled ? 0 : 0.75,
-							transition: [
-								"max-width 0.4s cubic-bezier(0.4,0,0.2,1)",
-								"opacity 0.25s ease",
-								"margin 0.4s cubic-bezier(0.4,0,0.2,1)",
-							].join(", "),
-						}}
-					>
-						Add Stock
-					</Box>
-				</Fab>
-			)}
-		</Box>
-	);
+  return (
+    <div className="mx-auto py-4 sm:py-8 px-3 sm:px-4 w-full">
+      <PortfolioHeader
+        search={search}
+        onSearchChange={setSearch}
+        tab={tab}
+        onTabChange={setTab}
+        onAddStock={handleAddStock}
+        username={user?.name?.split(" ")[0]}
+      >
+        <PortfolioSummary ltpMap={ltpMap} />
+      </PortfolioHeader>
+      <PortfolioTable
+        activeTab={tab}
+        search={deferredSearch}
+        addOpen={addOpen}
+        setAddOpen={setAddOpen}
+        ltpMap={ltpMap}
+        isConnected={isConnected}
+      />
+
+      {/* Mobile FAB */}
+      {isMobile && (
+        <button
+          onClick={handleAddStock}
+          aria-label="Add stock"
+          className={cn(
+            "fixed bottom-6 right-5 z-[1200] flex items-center justify-center",
+            "bg-primary text-primary-foreground shadow-xl font-bold text-sm",
+            "transition-[width,border-radius,padding] duration-400 ease-[cubic-bezier(0.4,0,0.2,1)]",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            scrolled
+              ? "h-14 w-14 rounded-full px-0"
+              : "h-14 rounded-full px-5 w-auto"
+          )}
+          style={{ transitionProperty: "width, border-radius, padding" }}
+        >
+          <Plus
+            className="shrink-0"
+            style={{ width: "1.1rem", height: "1.1rem" }}
+          />
+          <span
+            className={cn(
+              "overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin]",
+              "duration-400 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              scrolled ? "max-w-0 opacity-0 ml-0" : "max-w-[100px] opacity-100 ml-2"
+            )}
+          >
+            Add Stock
+          </span>
+        </button>
+      )}
+    </div>
+  );
 }

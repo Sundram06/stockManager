@@ -1,137 +1,77 @@
-import {
-	AppBar,
-	Toolbar,
-	Typography,
-	Box,
-	IconButton,
-	Tooltip,
-} from "@mui/material";
-import AssessmentIcon from "@mui/icons-material/Assessment";
-import LogoutIcon from "@mui/icons-material/Logout";
-import LightModeIcon from "@mui/icons-material/LightMode";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import { useSelector } from "react-redux";
-import { useDispatch } from "react-redux";
+import { BarChart2, LogOut, Sun, Moon } from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { logout } from "../store/auth-slice";
 import { logoutUser } from "../util/api/auth.mjs";
-import { useNavigate } from "react-router-dom";
 import { useTheme } from "../theme/useTheme";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+function getFirstName(userInfo) {
+  if (!userInfo) return "User";
+  if (userInfo.name?.trim()) return userInfo.name.trim().split(/\s+/)[0];
+  if (userInfo.email?.includes("@")) return userInfo.email.split("@")[0];
+  return "User";
+}
 
 export default function Header() {
-	const user = useSelector((s) => s.auth.user);
-	const dispatch = useDispatch();
-	const navigate = useNavigate();
-	const { mode, toggleTheme, theme } = useTheme();
+  const user = useSelector((s) => s.auth.user);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { mode, toggleTheme } = useTheme();
 
-	const getFirstName = (userInfo) => {
-		if (!userInfo) return "User";
-		if (userInfo.name && userInfo.name.trim()) {
-			return userInfo.name.trim().split(/\s+/)[0];
-		}
-		if (userInfo.email && userInfo.email.includes("@")) {
-			return userInfo.email.split("@")[0];
-		}
-		return "User";
-	};
+  const handleLogout = () => {
+    logoutUser();
+    dispatch(logout({ sessionActive: "loggedout" }));
+    navigate("/login");
+  };
 
-	const handleLogout = () => {
-		logoutUser();
-		dispatch(logout({ sessionActive: "loggedout" }));
-		navigate("/login");
-	};
+  return (
+    <header className="w-full border-b border-border bg-sidebar shadow-sm">
+      <div className="flex items-center justify-between px-3 sm:px-5 py-3">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <BarChart2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+          <span className="font-bold text-base sm:text-lg tracking-tight text-foreground">
+            VittNest
+          </span>
+        </div>
 
-	return (
-		<AppBar
-			position="static" 
-			elevation={1}
-			sx={{
-				background: 'var(--secondary)',
-				color: 'var(--secondary-foreground)',
-				boxShadow: theme.shadows[2],
-				borderRadius: 0,
-			}}
-		>
-			<Toolbar
-				sx={{
-					justifyContent: "space-between",
-					py: 1,
-					px: { xs: 1, sm: 2 },
-				}}
-			>
-				<Box
-					sx={{
-						display: "flex",
-						alignItems: "center",
-						gap: { xs: 0.5, sm: 1 },
-					}}
-				>
-					<AssessmentIcon
-						sx={{ fontSize: { xs: "1.4rem", sm: "1.8rem" } }}
-					/>
-					<Typography
-						variant="h6"
-						noWrap
-						component="div"
-						sx={{
-							fontWeight: "bold",
-							fontSize: { xs: "1rem", sm: "1.25rem" },
-						}}
-					>
-						VittNest
-					</Typography>
-				</Box>
-				<Box
-					sx={{
-						display: "flex",
-						alignItems: "center",
-						gap: { xs: 0.5, sm: 1.5 },
-					}}
-				>
-					{user && (
-						<Typography
-							variant="body2"
-							sx={{
-								display: { xs: "none", sm: "block" },
-								fontSize: { sm: "0.875rem" },
-							}}
-						>
-							Welcome, {getFirstName(user) || "User"}!
-						</Typography>
-					)}
-					<Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'}>
-						<IconButton
-							onClick={toggleTheme}
-							sx={{
-								size: "small",
-								"&:hover": {
-									backgroundColor: "rgba(255, 255, 255, 0.15)",
-								},
-							}}
-						>
-							{mode === 'dark' ? (
-								<LightModeIcon sx={{ fontSize: { xs: "1.2rem", sm: "1.5rem" } }} />
-							) : (
-								<DarkModeIcon sx={{ fontSize: { xs: "1.2rem", sm: "1.5rem" } }} />
-							)}
-						</IconButton>
-					</Tooltip>
-					{user && (
-						<Tooltip title="Logout">
-							<IconButton
-								onClick={handleLogout}
-								sx={{
-									size: "small",
-									"&:hover": {
-										backgroundColor: "rgba(255, 255, 255, 0.1)",
-									},
-								}}
-							>
-								<LogoutIcon sx={{ fontSize: { xs: "1.2rem", sm: "1.5rem" } }} />
-							</IconButton>
-						</Tooltip>
-					)}
-				</Box>
-			</Toolbar>
-		</AppBar>
-	);
+        {/* Right side */}
+        <div className="flex items-center gap-1 sm:gap-3">
+          {user && (
+            <span className="hidden sm:block text-sm text-muted-foreground">
+              Welcome, {getFirstName(user)}!
+            </span>
+          )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className={cn("h-8 w-8 sm:h-9 sm:w-9")}
+          >
+            {mode === "dark" ? (
+              <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
+            ) : (
+              <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
+            )}
+          </Button>
+
+          {user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              title="Logout"
+              className="h-8 w-8 sm:h-9 sm:w-9"
+            >
+              <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </header>
+  );
 }

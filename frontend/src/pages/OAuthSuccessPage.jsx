@@ -36,7 +36,6 @@ export default function OAuthSuccessPage() {
 		} else {
 			navigate("/login");
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [dispatch, token, navigate]);
 
 	useEffect(() => {

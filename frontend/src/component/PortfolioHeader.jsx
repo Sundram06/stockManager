@@ -1,111 +1,66 @@
 /* eslint-disable react/prop-types */
-import {
-	Box,
-	Typography,
-	Button,
-	Tabs,
-	Tab,
-	TextField,
-	InputAdornment,
-	Divider,
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
+import { Plus, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function PortfolioHeader({
-	search,
-	onSearchChange,
-	tab,
-	onTabChange,
-	onAddStock,
-	username,
-	children,
+  search,
+  onSearchChange,
+  tab,
+  onTabChange,
+  onAddStock,
+  username,
+  children,
 }) {
-	return (
-		<>
-			{/* Title + Add Stock button */}
-			<Box
-				sx={{
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "space-between",
-					gap: 1,
-					mb: 1.5,
-					minHeight: { xs: 44, sm: "auto" },
-				}}
-			>
-				<Typography
-					variant="h4"
-					fontWeight="bold"
-					sx={{
-						fontSize: { xs: "1.2rem", sm: "1.6rem" },
-						lineHeight: 1.15,
-					}}
-				>
-					{username ? `${username}'s Portfolio` : "My Portfolio"}
-				</Typography>
-				<Button
-					variant="contained"
-					color="primary"
-					onClick={onAddStock}
-					startIcon={<AddIcon />}
-					sx={{
-						display: { xs: "none", sm: "inline-flex" },
-						px: 2,
-						py: 0.6,
-						fontSize: "0.875rem",
-						whiteSpace: "nowrap",
-					}}
-				>
-					Add Stock
-				</Button>
-			</Box>
+  return (
+    <>
+      {/* Title + Add Stock button */}
+      <div className="flex items-center justify-between gap-2 mb-3 min-h-[44px] sm:min-h-auto">
+        <h1 className="font-bold leading-tight text-[1.2rem] sm:text-[1.6rem] tracking-tight text-foreground">
+          {username ? `${username}'s Portfolio` : "My Portfolio"}
+        </h1>
+        <Button
+          onClick={onAddStock}
+          className="hidden sm:inline-flex gap-1.5 px-3 py-1.5 text-sm"
+          size="sm"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add Stock
+        </Button>
+      </div>
 
-			<Divider sx={{ mb: 2 }} />
+      <Separator className="mb-4" />
 
-			{children}
+      {children}
 
-			{/* Search */}
-			<TextField
-				fullWidth
-				size="small"
-				variant="outlined"
-				placeholder="Search for a stock"
-				value={search}
-				onChange={(e) => onSearchChange(e.target.value)}
-				InputProps={{
-					startAdornment: (
-						<InputAdornment position="start">
-							<SearchIcon sx={{ fontSize: { xs: "1.2rem", sm: "1.5rem" } }} />
-						</InputAdornment>
-					),
-				}}
-				sx={{
-					mb: 2.5,
-					"& .MuiOutlinedInput-root": {
-						fontSize: { xs: "0.875rem", sm: "1rem" },
-						backgroundColor: (theme) => theme.palette.background.elevated,
-					},
-				}}
-			/>
+      {/* Search */}
+      <div className="relative mb-5">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search for a stock"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="pl-9 bg-card text-sm sm:text-base"
+        />
+      </div>
 
-			{/* Tabs */}
-			<Tabs
-				value={tab}
-				onChange={(_, v) => onTabChange(v)}
-				sx={{
-					mb: 2,
-					minHeight: { xs: "40px", sm: "48px" },
-					"& .MuiTab-root": {
-						fontSize: { xs: "0.8rem", sm: "1rem" },
-						px: { xs: 1, sm: 2 },
-						minHeight: { xs: "40px", sm: "48px" },
-					},
-				}}
-			>
-				<Tab label="Active Stocks" />
-				<Tab label="Dormant Stocks" />
-			</Tabs>
-		</>
-	);
+      {/* Tabs */}
+      <Tabs
+        value={String(tab)}
+        onValueChange={(v) => onTabChange(Number(v))}
+        className="mb-4"
+      >
+        <TabsList className="h-9 sm:h-11">
+          <TabsTrigger value="0" className="text-xs sm:text-sm px-3 sm:px-5">
+            Active Stocks
+          </TabsTrigger>
+          <TabsTrigger value="1" className="text-xs sm:text-sm px-3 sm:px-5">
+            Dormant Stocks
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+    </>
+  );
 }

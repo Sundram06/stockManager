@@ -1,58 +1,29 @@
 /* eslint-disable react/prop-types */
-import { IconButton } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
-import DeleteIcon from "@mui/icons-material/Delete";
-import BarChartIcon from "@mui/icons-material/BarChart";
+import { Plus, Minus, BarChart2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-/**
- * Shared stock action buttons used across desktop table rows, and
- * ready to be reused in future mobile/tablet action sheets.
- *
- * Props:
- *   onAdd         - handler called when Add is clicked
- *   onSell        - handler called when Sell is clicked
- *   onViewHistory - handler called when History is clicked
- *   onDelete      - handler called when Delete is clicked
- *   canSell       - whether the Sell button is enabled
- */
-export default function StockActions({
-	onAdd,
-	onSell,
-	onViewHistory,
-	onDelete,
-	canSell,
-}) {
-	return (
-		<>
-			<IconButton color="primary" onClick={onAdd} title="Add">
-				<AddIcon />
-			</IconButton>
-			<IconButton
-				color="warning"
-				onClick={canSell ? onSell : undefined}
-				title="Sell"
-				disabled={!canSell}
-				sx={{ ml: 0.5, ...(!canSell && { opacity: 0.7 }) }}
-			>
-				<RemoveIcon />
-			</IconButton>
-			<IconButton
-				color="info"
-				onClick={onViewHistory}
-				title="History"
-				sx={{ ml: 0.5 }}
-			>
-				<BarChartIcon />
-			</IconButton>
-			<IconButton
-				color="error"
-				onClick={onDelete}
-				title="Delete"
-				sx={{ ml: 0.5 }}
-			>
-				<DeleteIcon />
-			</IconButton>
-		</>
-	);
+export default function StockActions({ onAdd, onSell, onViewHistory, onDelete, canSell }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      <Button variant="ghost" size="icon" onClick={onAdd} title="Add" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10">
+        <Plus className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={canSell ? onSell : undefined}
+        title="Sell"
+        disabled={!canSell}
+        className="h-8 w-8 text-[var(--chart-3)] hover:text-[var(--chart-3)] hover:bg-[var(--chart-3)]/10"
+      >
+        <Minus className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="icon" onClick={onViewHistory} title="History" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+        <BarChart2 className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="icon" onClick={onDelete} title="Delete" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10">
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
 }

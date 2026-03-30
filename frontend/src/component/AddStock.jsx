@@ -1,325 +1,249 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useRef } from "react";
-import classes from "./AddStock.module.css";
 import {
-	Dialog,
-	DialogContent,
-	DialogActions,
-	Button,
-	TextField,
-	List,
-	ListItem,
-	ListItemText,
-	Box,
-	Typography,
-	Divider,
-} from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { API_URL } from "../util/api/config.mjs";
 
 export default function AddStock({
-	open,
-	mutateCall,
-	handleClickCloseDialog,
-	nameInputField,
-	buttonLabel = "Add",
-	maxSellQuantity = Infinity,
-	stockName = "",
+  open,
+  mutateCall,
+  handleClickCloseDialog,
+  nameInputField,
+  buttonLabel = "Add",
+  maxSellQuantity = Infinity,
+  stockName = "",
 }) {
-	const theme = useTheme();
-	const [query, setQuery] = useState("");
-	const [suggestions, setSuggestions] = useState([]);
-	const [errors, setErrors] = useState({});
-	const [purchaseDate, setPurchaseDate] = useState(null);
-	const [selectedInstrumentKey, setSelectedInstrumentKey] = useState("");
-	const debounceTimeout = useRef();
-	const justSelected = useRef(false);
-	const searchEndpoint = API_URL
-		? `${API_URL}/api/instruments/search`
-		: "/api/instruments/search";
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [purchaseDate, setPurchaseDate] = useState("");
+  const [selectedInstrumentKey, setSelectedInstrumentKey] = useState("");
+  const debounceTimeout = useRef();
+  const justSelected = useRef(false);
 
-	const handleClickClose = () => {
-		setQuery("");
-		setErrors({});
-		setPurchaseDate(null);
-		setSelectedInstrumentKey("");
-		setSuggestions([]);
-		handleClickCloseDialog();
-	};
+  const searchEndpoint = API_URL
+    ? `${API_URL}/api/instruments/search`
+    : "/api/instruments/search";
 
-	useEffect(() => {
-		if (justSelected.current) {
-			justSelected.current = false;
-			return;
-		}
-		if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-		if (query && query.length >= 2) {
-			debounceTimeout.current = setTimeout(() => {
-				fetch(`${searchEndpoint}?q=${encodeURIComponent(query)}`)
-					.then((res) => res.ok ? res.json() : [])
-					.then((data) => setSuggestions(Array.isArray(data) ? data : []))
-					.catch(() => setSuggestions([]));
-			}, 300);
-		} else {
-			setSuggestions([]);
-		}
-		return () => clearTimeout(debounceTimeout.current);
-	}, [query, searchEndpoint]);
+  const handleClickClose = () => {
+    setQuery("");
+    setErrors({});
+    setPurchaseDate("");
+    setSelectedInstrumentKey("");
+    setSuggestions([]);
+    handleClickCloseDialog();
+  };
 
-	const validate = (data) => {
-		const newErrors = {};
-		if (nameInputField && (!data.stockName || data.stockName.trim() === "")) {
-			newErrors.stockName = "Stock Name is required";
-		}
-		if (nameInputField && data.stockName && !selectedInstrumentKey) {
-			newErrors.stockName = "Please select a stock from the suggestions";
-		}
-		if (!data.quantity || isNaN(data.quantity) || Number(data.quantity) <= 0) {
-			newErrors.quantity = "Quantity must be greater than 0";
-		}
-		if (!data.avgPrice || isNaN(data.avgPrice) || Number(data.avgPrice) <= 0) {
-			newErrors.avgPrice = "Average Price must be greater than 0";
-		}
-		if (!data.date) {
-			newErrors.date = "Date Purchased is required";
-		}
-		if (buttonLabel === "Sell" && Number(data.quantity) > maxSellQuantity) {
-			newErrors.quantity = `Cannot sell more than available (${maxSellQuantity})`;
-		}
-		return newErrors;
-	};
+  useEffect(() => {
+    if (justSelected.current) { justSelected.current = false; return; }
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    if (query && query.length >= 2) {
+      debounceTimeout.current = setTimeout(() => {
+        fetch(`${searchEndpoint}?q=${encodeURIComponent(query)}`)
+          .then((res) => res.ok ? res.json() : [])
+          .then((data) => setSuggestions(Array.isArray(data) ? data : []))
+          .catch(() => setSuggestions([]));
+      }, 300);
+    } else {
+      setSuggestions([]);
+    }
+    return () => clearTimeout(debounceTimeout.current);
+  }, [query, searchEndpoint]);
 
-	const handleSubmit = (event) => {
-		event.preventDefault();
-		const formData = new FormData(event.target);
-		const data = Object.fromEntries(formData);
-		data.date = purchaseDate ? dayjs(purchaseDate).format("YYYY-MM-DD") : "";
-		data.stockName ? (data.stockName = data.stockName.toUpperCase()) : null;
-		data.avgPrice = parseFloat(data.avgPrice);
-		if (selectedInstrumentKey) data.instrumentKey = selectedInstrumentKey;
-		const validationErrors = validate(data);
-		if (Object.keys(validationErrors).length > 0) {
-			setErrors(validationErrors);
-			return;
-		}
-		mutateCall(data);
-		event.target.reset();
-		setQuery("");
-		setSelectedInstrumentKey("");
-		setPurchaseDate(null);
-		setSuggestions([]);
-		handleClickClose();
-	};
+  const validate = (data) => {
+    const newErrors = {};
+    if (nameInputField && (!data.stockName || data.stockName.trim() === "")) {
+      newErrors.stockName = "Stock Name is required";
+    }
+    if (nameInputField && data.stockName && !selectedInstrumentKey) {
+      newErrors.stockName = "Please select a stock from the suggestions";
+    }
+    if (!data.quantity || isNaN(data.quantity) || Number(data.quantity) <= 0) {
+      newErrors.quantity = "Quantity must be greater than 0";
+    }
+    if (!data.avgPrice || isNaN(data.avgPrice) || Number(data.avgPrice) <= 0) {
+      newErrors.avgPrice = "Average Price must be greater than 0";
+    }
+    if (!data.date) {
+      newErrors.date = "Date Purchased is required";
+    }
+    if (buttonLabel === "Sell" && Number(data.quantity) > maxSellQuantity) {
+      newErrors.quantity = `Cannot sell more than available (${maxSellQuantity})`;
+    }
+    return newErrors;
+  };
 
-	const handleSelect = (stock) => {
-		justSelected.current = true;
-		setQuery(stock.trading_symbol);
-		setSelectedInstrumentKey(stock.instrument_key || "");
-		setSuggestions([]);
-		const inputElement = document.querySelector("input[name='quantity']");
-		if (inputElement) inputElement.focus();
-	};
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const data = Object.fromEntries(formData);
+    data.date = purchaseDate || "";
+    if (data.stockName) data.stockName = data.stockName.toUpperCase();
+    data.avgPrice = parseFloat(data.avgPrice);
+    if (selectedInstrumentKey) data.instrumentKey = selectedInstrumentKey;
 
-	return (
-		<Dialog
-			open={open}
-			onClose={handleClickClose}
-			PaperProps={{
-				sx: {
-					p: 0,
-					overflow: "hidden",
-					borderRadius: "0.5rem",
-				},
-			}}
-		>
-			<Box sx={{ backgroundColor: "primary.main", color: "primary.contrastText", px: 2, py: 1.5 }}>
-				<Typography variant="h6" fontWeight="bold">
-					{buttonLabel === "Add"
-						? `Add${stockName ? ` ${stockName}` : " Stock"}`
-						: buttonLabel === "Sell"
-							? `Sell${stockName ? ` ${stockName}` : " Stock"}`
-							: "Stock Details"}
-				</Typography>
-			</Box>
-			<Divider />
-			<DialogContent sx={{ p: 3 }}>
-				<form onSubmit={handleSubmit}>
-					{nameInputField && (
-						<Box position="relative" width="100%">
-							<TextField
-								name="stockName"
-								label="Stock Name"
-								placeholder="Stock Name"
-								value={query}
-								onChange={(e) => {
-									setQuery(e.target.value);
-									setSelectedInstrumentKey(""); // reset if user edits manually after a selection
-								}}
-								autoComplete="off"
-								fullWidth
-								margin="normal"
-								error={!!errors.stockName}
-								helperText={errors.stockName}
-							/>
-							{suggestions.length > 0 && (
-								<List
-									className={classes.suggestionsList}
-									sx={{
-										position: "absolute",
-										top: "100%",
-										left: 0,
-										right: 0,
-										zIndex: 20,
-										mt: 0.5,
-										p: 0,
-										borderRadius: "0.5rem",
-										backgroundColor: "background.paper",
-										border: "1px solid",
-										borderColor: "divider",
-										boxShadow: (theme) => theme.shadows[8],
-										maxHeight: "200px",
-										overflowY: "auto",
-										"&::-webkit-scrollbar": {
-											width: 8,
-										},
-										"&::-webkit-scrollbar-thumb": {
-											backgroundColor: "text.disabled",
-											borderRadius: 8,
-										},
-									}}
-								>
-									{suggestions.map((stock, index) => (
-										<ListItem
-											button
-											key={index}
-											onMouseDown={() => handleSelect(stock)}
-											sx={{
-												py: 0.9,
-												px: 1.25,
-												borderBottom: "1px solid",
-												borderColor: "divider",
-												"&:last-of-type": {
-													borderBottom: "none",
-												},
-												"&:hover": {
-													backgroundColor: "action.hover",
-												},
-											}}
-										>
-											<ListItemText
-												primary={`${stock.name} ${
-													stock.trading_symbol
-														? `(${stock.trading_symbol})`
-														: ""
-												}`}
-												primaryTypographyProps={{
-													variant: "body2",
-													sx: {
-														color: "text.primary",
-														fontWeight: 500,
-														lineHeight: 1.35,
-													},
-												}}
-											/>
-										</ListItem>
-									))}
-								</List>
-							)}
-						</Box>
-					)}
-					<TextField
-						name="quantity"
-						type="number"
-						label="Quantity"
-						placeholder="Quantity"
-						fullWidth
-						margin="normal"
-						error={!!errors.quantity}
-						helperText={errors.quantity}
-						InputProps={
-							buttonLabel === "Sell"
-								? { inputProps: { min: 1, max: maxSellQuantity } }
-								: undefined
-						}
-					/>
-					{buttonLabel === "Sell" && (
-						<Typography variant="caption" color="textSecondary" sx={{ mb: 1 }}>
-							Unsold shares available: <strong>{maxSellQuantity}</strong>
-						</Typography>
-					)}
-					<TextField
-						name="avgPrice"
-						type="number"
-						label="Average Price"
-						placeholder="Buy Price"
-						fullWidth
-						margin="normal"
-						error={!!errors.avgPrice}
-						helperText={errors.avgPrice}
-						InputProps={{ inputProps: { min: 0.01, step: "any" } }}
-					/>
-					<LocalizationProvider dateAdapter={AdapterDayjs}>
-						<DatePicker
-							label="Date Purchased"
-							value={purchaseDate}
-							onChange={(newValue) => {
-								setPurchaseDate(newValue);
-								if (errors.date) {
-									setErrors((prev) => ({ ...prev, date: undefined }));
-								}
-							}}
-							slotProps={{
-								textField: {
-									name: "date",
-									fullWidth: true,
-									margin: "normal",
-									error: !!errors.date,
-									helperText: errors.date,
-								},
-								desktopPaper: {
-									sx: {
-										backgroundColor: theme.palette.background.paper,
-										color: theme.palette.text.primary,
-										border: `1px solid ${theme.palette.divider}`,
-									},
-								},
-								mobilePaper: {
-									sx: {
-										backgroundColor: theme.palette.background.paper,
-										color: theme.palette.text.primary,
-										border: `1px solid ${theme.palette.divider}`,
-									},
-								},
-							}}
-						/>
-					</LocalizationProvider>
+    const validationErrors = validate(data);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    mutateCall(data);
+    event.target.reset();
+    setQuery("");
+    setSelectedInstrumentKey("");
+    setPurchaseDate("");
+    setSuggestions([]);
+    handleClickClose();
+  };
 
-					<DialogActions sx={{ mt: 2, justifyContent: "flex-end", gap: 1.5 }}>
-						<Button
-							variant="outlined"
-							color="primary"
-							onClick={handleClickClose}
-							sx={{
-								minWidth: 80,
-							}}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="contained"
-							type="submit"
-							color={buttonLabel === "Sell" ? "warning" : "primary"}
-							sx={{ minWidth: 80 }}
-						>
-							{buttonLabel}
-						</Button>
-					</DialogActions>
-				</form>
-			</DialogContent>
-		</Dialog>
-	);
+  const handleSelect = (stock) => {
+    justSelected.current = true;
+    setQuery(stock.trading_symbol);
+    setSelectedInstrumentKey(stock.instrument_key || "");
+    setSuggestions([]);
+    document.querySelector("input[name='quantity']")?.focus();
+  };
+
+  const isSell = buttonLabel === "Sell";
+  const dialogTitle = isSell
+    ? `Sell${stockName ? ` ${stockName}` : " Stock"}`
+    : `Add${stockName ? ` ${stockName}` : " Stock"}`;
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && handleClickClose()}>
+      <DialogContent className="p-0 overflow-visible max-w-md">
+        {/* Colored header */}
+        <div className="bg-primary text-primary-foreground px-4 py-3">
+          <DialogTitle className="text-base font-bold">{dialogTitle}</DialogTitle>
+        </div>
+
+        <Separator />
+
+        <div className="p-5">
+          <form id="addstock-form" onSubmit={handleSubmit} className="flex flex-col gap-3">
+            {/* Stock name with autocomplete */}
+            {nameInputField && (
+              <div className="relative">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Stock Name</label>
+                <Input
+                  name="stockName"
+                  placeholder="Search and select a stock"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setSelectedInstrumentKey("");
+                  }}
+                  autoComplete="off"
+                  className={cn(errors.stockName && "border-destructive focus-visible:ring-destructive")}
+                />
+                {errors.stockName && (
+                  <p className="text-xs text-destructive mt-0.5">{errors.stockName}</p>
+                )}
+                {suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-xl border border-border bg-popover shadow-lg max-h-52 overflow-y-auto">
+                    {suggestions.map((stock, i) => (
+                      <button
+                        type="button"
+                        key={i}
+                        onMouseDown={() => handleSelect(stock)}
+                        className="w-full text-left px-3 py-2.5 text-sm hover:bg-accent border-b border-border last:border-b-0 transition-colors"
+                      >
+                        <span className="font-medium">{stock.name}</span>
+                        {stock.trading_symbol && (
+                          <span className="text-muted-foreground ml-1">({stock.trading_symbol})</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Quantity */}
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">Quantity</label>
+              <Input
+                name="quantity"
+                type="number"
+                placeholder="Quantity"
+                min={1}
+                max={isSell ? maxSellQuantity : undefined}
+                className={cn(errors.quantity && "border-destructive focus-visible:ring-destructive")}
+              />
+              {errors.quantity && <p className="text-xs text-destructive mt-0.5">{errors.quantity}</p>}
+              {isSell && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Unsold shares available: <strong>{maxSellQuantity}</strong>
+                </p>
+              )}
+            </div>
+
+            {/* Average Price */}
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                {isSell ? "Selling Price" : "Average Price"}
+              </label>
+              <Input
+                name="avgPrice"
+                type="number"
+                placeholder={isSell ? "Selling price per share" : "Buy price per share"}
+                min={0.01}
+                step="any"
+                className={cn(errors.avgPrice && "border-destructive focus-visible:ring-destructive")}
+              />
+              {errors.avgPrice && <p className="text-xs text-destructive mt-0.5">{errors.avgPrice}</p>}
+            </div>
+
+            {/* Date */}
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                {isSell ? "Date Sold" : "Date Purchased"}
+              </label>
+              <input
+                type="date"
+                name="date"
+                value={purchaseDate}
+                onChange={(e) => {
+                  setPurchaseDate(e.target.value);
+                  if (errors.date) setErrors((prev) => ({ ...prev, date: undefined }));
+                }}
+                className={cn(
+                  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "text-foreground [color-scheme:light] dark:[color-scheme:dark]",
+                  errors.date && "border-destructive focus-visible:ring-destructive"
+                )}
+              />
+              {errors.date && <p className="text-xs text-destructive mt-0.5">{errors.date}</p>}
+            </div>
+          </form>
+        </div>
+
+        <DialogFooter className="px-5 pb-4 gap-2">
+          <Button variant="outline" type="button" onClick={handleClickClose} className="min-w-[80px]">
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="addstock-form"
+            variant={isSell ? "default" : "default"}
+            className={cn(
+              "min-w-[80px]",
+              isSell && "bg-[var(--chart-3)] hover:bg-[var(--chart-3)]/90 text-white"
+            )}
+          >
+            {buttonLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }

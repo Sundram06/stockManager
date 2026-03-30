@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { Typography } from "@mui/material";
 import PortfolioViewSwitch from "./PortfolioViewSwitch";
 import AddStock from "./AddStock";
 import StockHistoryModal from "./StockHistoryModal";
@@ -114,8 +113,8 @@ export default function PortfolioTable({
 		setDeleteModalOpen(false);
 	}, []);
 
-	if (isLoading) return <Typography>Loading...</Typography>;
-	if (error) return <Typography>Error loading stocks.</Typography>;
+	if (isLoading) return <p className="p-4 text-muted-foreground">Loading...</p>;
+	if (error) return <p className="p-4 text-destructive">Error loading stocks.</p>;
 
 	return (
 		<>
