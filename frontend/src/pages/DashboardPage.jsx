@@ -5,7 +5,8 @@ import PortfolioTable from "../component/PortfolioTable";
 import PortfolioHeader from "../component/PortfolioHeader";
 import PortfolioSummary from "../component/PortfolioSummary";
 import useMarketData from "../hooks/useMarketData";
-import { Box, Typography, CircularProgress } from "@mui/material";
+import { Box, Typography, CircularProgress, Fab, useTheme, useMediaQuery, useScrollTrigger } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 
 export default function DashboardPage() {
 	const user = useSelector((s) => s.auth.user);
@@ -17,6 +18,9 @@ export default function DashboardPage() {
 	const deferredSearch = useDeferredValue(search);
 	const [addOpen, setAddOpen] = useState(false);
 	const { ltpMap, isConnected } = useMarketData();
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+	const scrolled = useScrollTrigger({ disableHysteresis: true, threshold: 60 });
 
 	useEffect(() => {
 		if (!isAuthLoading && !user) {
@@ -78,6 +82,7 @@ export default function DashboardPage() {
 				tab={tab}
 				onTabChange={setTab}
 				onAddStock={handleAddStock}
+				username={user?.name?.split(" ")[0]}
 			>
 				<PortfolioSummary ltpMap={ltpMap} />
 			</PortfolioHeader>
@@ -89,6 +94,54 @@ export default function DashboardPage() {
 				ltpMap={ltpMap}
 				isConnected={isConnected}
 			/>
+
+			{isMobile && (
+				<Fab
+					color="primary"
+					aria-label="add stock"
+					onClick={handleAddStock}
+					variant="extended"
+					sx={{
+						position: "fixed",
+						bottom: 24,
+						right: 20,
+						boxShadow: 6,
+						fontWeight: 700,
+						fontSize: "0.875rem",
+						zIndex: 1200,
+						minWidth: "unset",
+						width: scrolled ? 56 : "auto",
+						height: 56,
+						borderRadius: scrolled ? "50%" : "28px",
+						px: scrolled ? 0 : 2,
+						transition: [
+							"width 0.4s cubic-bezier(0.4,0,0.2,1)",
+							"border-radius 0.4s cubic-bezier(0.4,0,0.2,1)",
+							"padding 0.4s cubic-bezier(0.4,0,0.2,1)",
+						].join(", "),
+						overflow: "hidden",
+					}}
+				>
+					<AddIcon sx={{ fontSize: "1.1rem", flexShrink: 0 }} />
+					<Box
+						component="span"
+						sx={{
+							maxWidth: scrolled ? 0 : 100,
+							opacity: scrolled ? 0 : 1,
+							overflow: "hidden",
+							whiteSpace: "nowrap",
+							ml: scrolled ? 0 : 0.75,
+							transition: [
+								"max-width 0.4s cubic-bezier(0.4,0,0.2,1)",
+								"opacity 0.25s ease",
+								"margin 0.4s cubic-bezier(0.4,0,0.2,1)",
+							].join(", "),
+						}}
+					>
+						Add Stock
+					</Box>
+				</Fab>
+			)}
 		</Box>
 	);
 }

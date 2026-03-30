@@ -3,11 +3,11 @@ import {
 	Box,
 	Typography,
 	Button,
-	IconButton,
 	Tabs,
 	Tab,
 	TextField,
 	InputAdornment,
+	Divider,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
@@ -18,6 +18,7 @@ export default function PortfolioHeader({
 	tab,
 	onTabChange,
 	onAddStock,
+	username,
 	children,
 }) {
 	return (
@@ -29,7 +30,7 @@ export default function PortfolioHeader({
 					alignItems: "center",
 					justifyContent: "space-between",
 					gap: 1,
-					mb: 2,
+					mb: 1.5,
 					minHeight: { xs: 44, sm: "auto" },
 				}}
 			>
@@ -37,27 +38,12 @@ export default function PortfolioHeader({
 					variant="h4"
 					fontWeight="bold"
 					sx={{
-						fontSize: { xs: "1.5rem", sm: "2.125rem" },
+						fontSize: { xs: "1.2rem", sm: "1.6rem" },
 						lineHeight: 1.15,
 					}}
 				>
-					My Portfolio
+					{username ? `${username}'s Portfolio` : "My Portfolio"}
 				</Typography>
-				<IconButton
-					aria-label="add stock"
-					onClick={onAddStock}
-					sx={{
-						display: { xs: "inline-flex", sm: "none" },
-						width: 44,
-						height: 44,
-						borderRadius: 1.5,
-						backgroundColor: "primary.main",
-						color: "primary.contrastText",
-						"&:hover": { backgroundColor: "primary.dark" },
-					}}
-				>
-					<AddIcon />
-				</IconButton>
 				<Button
 					variant="contained"
 					color="primary"
@@ -65,15 +51,17 @@ export default function PortfolioHeader({
 					startIcon={<AddIcon />}
 					sx={{
 						display: { xs: "none", sm: "inline-flex" },
-						px: 3,
-						py: 1,
-						fontSize: "1rem",
+						px: 2,
+						py: 0.6,
+						fontSize: "0.875rem",
 						whiteSpace: "nowrap",
 					}}
 				>
 					Add Stock
 				</Button>
 			</Box>
+
+			<Divider sx={{ mb: 2 }} />
 
 			{children}
 
