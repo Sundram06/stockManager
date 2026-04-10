@@ -1,16 +1,33 @@
 import { z } from "zod";
 
+const emailField = z.string().trim().email("Enter a valid email address");
+
 export const registerSchema = z.object({
 	name: z.string().trim().min(1, "Name is required"),
-	email: z.string().trim().min(1, "Email is required"),
-	password: z.string().trim().min(1, "Password is required"),
+	email: emailField,
+	password: z.string().trim().min(6, "Password must be at least 6 characters"),
 });
 
 export const loginSchema = z.object({
-	email: z.string().trim().min(1, "Email is required"),
+	email: emailField,
 	password: z.string().trim().min(1, "Password is required"),
 });
 
 export const forgotPasswordSchema = z.object({
-	email: z.string().trim().min(1, "Email is required"),
+	email: emailField,
+});
+
+export const resetPasswordSchema = z.object({
+	email: emailField,
+	token: z.string().trim().min(1, "Token is required"),
+	newPassword: z.string().trim().min(6, "Password must be at least 6 characters"),
+});
+
+export const verifyEmailSchema = z.object({
+	email: emailField,
+	token: z.string().trim().min(1, "Token is required"),
+});
+
+export const resendVerificationSchema = z.object({
+	email: emailField,
 });

@@ -35,9 +35,13 @@ export default function ForgotPasswordPage() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ email }),
 			});
-			if (!res.ok) throw new Error("Failed to send reset email");
+			const data = await res.json();
+			if (!res.ok) {
+				setError(data.message || "Failed to send reset email. Please try again later.");
+				return;
+			}
 			setSubmitted(true);
-		} catch (err) {
+		} catch {
 			setError("Failed to send reset email. Please try again later.");
 		}
 	};

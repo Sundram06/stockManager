@@ -26,6 +26,9 @@ export const env = {
 	GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",
 	GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || "",
 	UPSTOX_ANALYTICS_TOKEN: process.env.UPSTOX_ANALYTICS_TOKEN || "",
+	GMAIL_USER: process.env.GMAIL_USER || "",
+	GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD || "",
+	APP_URL: process.env.APP_URL || "http://localhost:5173",
 };
 
 export const isProduction = env.NODE_ENV === "production";

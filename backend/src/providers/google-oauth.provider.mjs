@@ -31,10 +31,12 @@ export const configureGooglePassport = (passport) => {
 							name: profile.displayName,
 							email,
 							provider: "google",
+							isEmailVerified: true,
 						});
 					} else if (!user.googleId) {
 						user.googleId = profile.id;
 						user.provider = "google";
+						user.isEmailVerified = true;
 						await user.save();
 					}
 
