@@ -365,6 +365,18 @@ export default function StockHistoryModal({ open, onClose, stockName, history })
 
 	const totals = useMemo(() => computeHistoryTotals(sortedHistory), [sortedHistory]);
 
+	const hasSameDateLots = useMemo(() => {
+		const seen = new Set();
+		for (const row of history) {
+			const d = row.date ? new Date(row.date).toISOString().split("T")[0] : null;
+			if (d) {
+				if (seen.has(d)) return true;
+				seen.add(d);
+			}
+		}
+		return false;
+	}, [history]);
+
 	const soldSummaryBg = (t) => {
 		if (totals.totalSoldPL > 0)
 			return t.palette.mode === "dark" ? "rgba(16, 185, 129, 0.16)" : "rgba(16, 185, 129, 0.10)";
@@ -444,6 +456,14 @@ export default function StockHistoryModal({ open, onClose, stockName, history })
 
 				<Divider sx={{ flexShrink: 0 }} />
 
+				{hasSameDateLots && (
+					<Box sx={{ px: 2, py: 0.75, bgcolor: "action.hover", flexShrink: 0 }}>
+						<Typography sx={{ fontSize: "0.65rem", color: "text.secondary", lineHeight: 1.4 }}>
+							Multiple lots purchased on the same day — shares are distributed proportionally across those lots during a sell.
+						</Typography>
+					</Box>
+				)}
+
 				{/* Lot cards — scrollable */}
 				<Box sx={{ flex: 1, overflowY: "auto" }}>
 					{sortedHistory.length === 0 ? (
@@ -491,6 +511,24 @@ export default function StockHistoryModal({ open, onClose, stockName, history })
 						<CloseIcon />
 					</IconButton>
 				</Box>
+
+				{hasSameDateLots && (
+					<Box
+						sx={{
+							mb: 1.5,
+							px: 1.5,
+							py: 0.75,
+							borderRadius: 1,
+							bgcolor: (t) => t.palette.mode === "dark" ? "rgba(148,163,184,0.10)" : "rgba(148,163,184,0.12)",
+							border: (t) => `1px solid ${t.palette.divider}`,
+							flexShrink: 0,
+						}}
+					>
+						<Typography variant="caption" color="text.secondary">
+							Multiple lots purchased on the same day — shares are distributed proportionally across those lots during a sell.
+						</Typography>
+					</Box>
+				)}
 
 				{/* Table */}
 				<TableContainer

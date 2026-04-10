@@ -23,6 +23,7 @@ export default function PortfolioTable({
 	const [stockId, setStockId] = useState("");
 	const [maxSellQuantity, setMaxSellQuantity] = useState(0);
 	const [stockName, setStockName] = useState("");
+	const [sellHistory, setSellHistory] = useState([]);
 
 	const {
 		stocks,
@@ -52,12 +53,13 @@ export default function PortfolioTable({
 			setStockId("");
 			setStockName("");
 			setMaxSellQuantity(0);
+			setSellHistory([]);
 		}
 	}, [addOpen]);
 
 	const handleMutate = useCallback(
 		(data) => {
-			submitStockAction({ actionType, stockId, data });
+			return submitStockAction({ actionType, stockId, data });
 		},
 		[actionType, stockId, submitStockAction],
 	);
@@ -81,8 +83,9 @@ export default function PortfolioTable({
 			setActionType("sell");
 			setMaxSellQuantity(stock.quantity);
 			setStockName(stock.stockName || "");
+			setSellHistory(historyByStockId[id] || []);
 		},
-		[stocks, setAddOpen],
+		[stocks, historyByStockId, setAddOpen],
 	);
 
 	const handleViewHistory = useCallback(
@@ -127,6 +130,7 @@ export default function PortfolioTable({
 				buttonLabel={actionType === "sell" ? "Sell" : "Add"}
 				maxSellQuantity={actionType === "sell" ? maxSellQuantity : undefined}
 				stockName={stockName}
+				lotHistory={actionType === "sell" ? sellHistory : []}
 			/>
 			<PortfolioViewSwitch
 				stocks={filteredStocks}
