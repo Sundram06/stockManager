@@ -8,6 +8,9 @@ import {
 export const createStock = async (req, res) => {
 	const payload = req.validated || req.body;
 	const stock = await createStockForUser(req.userId, payload);
+	if (stock?.error) {
+		return res.status(stock.statusCode).json({ message: stock.error });
+	}
 	return res.json(stock);
 };
 

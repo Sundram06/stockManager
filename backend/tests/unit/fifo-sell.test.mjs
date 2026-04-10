@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { applyFifoSell } from "../../src/utils/fifo-sell.mjs";
 
-const makeRow = ({ quantity, avgPrice, quantitySold = 0, sellingPrice = 0, pnl = 0 }) => {
+const makeRow = ({ quantity, avgPrice, date, quantitySold = 0, sellingPrice = 0, pnl = 0 }) => {
 	return {
 		quantity,
 		avgPrice,
+		date: date ? new Date(date) : undefined,
 		quantitySold,
 		sellingPrice,
 		pnl,
@@ -15,8 +16,8 @@ const makeRow = ({ quantity, avgPrice, quantitySold = 0, sellingPrice = 0, pnl =
 
 describe("applyFifoSell", () => {
 	it("sells quantity in FIFO order and computes pnl", async () => {
-		const row1 = makeRow({ quantity: 10, avgPrice: 100 });
-		const row2 = makeRow({ quantity: 5, avgPrice: 120 });
+		const row1 = makeRow({ quantity: 10, avgPrice: 100, date: "2025-01-01" });
+		const row2 = makeRow({ quantity: 5, avgPrice: 120, date: "2025-02-01" });
 
 		const result = await applyFifoSell({
 			fifoRows: [row1, row2],
@@ -33,7 +34,7 @@ describe("applyFifoSell", () => {
 	});
 
 	it("returns error when sell quantity exceeds available stock", async () => {
-		const row = makeRow({ quantity: 3, avgPrice: 100 });
+		const row = makeRow({ quantity: 3, avgPrice: 100, date: "2025-01-01" });
 
 		const result = await applyFifoSell({
 			fifoRows: [row],

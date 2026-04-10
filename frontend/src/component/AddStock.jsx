@@ -21,6 +21,20 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import { API_URL } from "../util/api/config.mjs";
 
+// Computes how many unsold shares were available as of a given date string "YYYY-MM-DD".
+function computeAvailableQty(lotHistory, dateStr) {
+	if (!dateStr || !lotHistory?.length) return 0;
+	const cutoff = new Date(dateStr);
+	cutoff.setHours(23, 59, 59, 999);
+	return lotHistory.reduce((sum, row) => {
+		const lotDate = new Date(row.date);
+		if (lotDate <= cutoff) {
+			sum += (row.quantity || 0) - (row.quantitySold || 0);
+		}
+		return sum;
+	}, 0);
+}
+
 export default function AddStock({
 	open,
 	mutateCall,
@@ -29,13 +43,20 @@ export default function AddStock({
 	buttonLabel = "Add",
 	maxSellQuantity = Infinity,
 	stockName = "",
+	lotHistory = [],
 }) {
 	const theme = useTheme();
+	const isSell = buttonLabel === "Sell";
 	const [query, setQuery] = useState("");
 	const [suggestions, setSuggestions] = useState([]);
 	const [errors, setErrors] = useState({});
 	const [purchaseDate, setPurchaseDate] = useState(null);
 	const [selectedInstrumentKey, setSelectedInstrumentKey] = useState("");
+
+	// For sell mode: effective max qty based on selected sell date
+	const effectiveMaxQty = isSell && purchaseDate && lotHistory.length
+		? computeAvailableQty(lotHistory, dayjs(purchaseDate).format("YYYY-MM-DD"))
+		: maxSellQuantity;
 	const debounceTimeout = useRef();
 	const justSelected = useRef(false);
 	const searchEndpoint = API_URL
@@ -78,22 +99,25 @@ export default function AddStock({
 		if (nameInputField && data.stockName && !selectedInstrumentKey) {
 			newErrors.stockName = "Please select a stock from the suggestions";
 		}
+		if (!data.date) {
+			newErrors.date = isSell ? "Sell date is required" : "Date Purchased is required";
+		}
 		if (!data.quantity || isNaN(data.quantity) || Number(data.quantity) <= 0) {
 			newErrors.quantity = "Quantity must be greater than 0";
 		}
 		if (!data.avgPrice || isNaN(data.avgPrice) || Number(data.avgPrice) <= 0) {
 			newErrors.avgPrice = "Average Price must be greater than 0";
 		}
-		if (!data.date) {
-			newErrors.date = "Date Purchased is required";
+		if (isSell && data.date && Number(data.quantity) > effectiveMaxQty) {
+			newErrors.quantity = `Only ${effectiveMaxQty} shares available to sell as of this date`;
 		}
-		if (buttonLabel === "Sell" && Number(data.quantity) > maxSellQuantity) {
-			newErrors.quantity = `Cannot sell more than available (${maxSellQuantity})`;
+		if (isSell && data.date && effectiveMaxQty <= 0) {
+			newErrors.date = "No shares available to sell on or before this date";
 		}
 		return newErrors;
 	};
 
-	const handleSubmit = (event) => {
+	const handleSubmit = async (event) => {
 		event.preventDefault();
 		const formData = new FormData(event.target);
 		const data = Object.fromEntries(formData);
@@ -106,13 +130,18 @@ export default function AddStock({
 			setErrors(validationErrors);
 			return;
 		}
-		mutateCall(data);
-		event.target.reset();
-		setQuery("");
-		setSelectedInstrumentKey("");
-		setPurchaseDate(null);
-		setSuggestions([]);
-		handleClickClose();
+		try {
+			await mutateCall(data);
+			event.target.reset();
+			setQuery("");
+			setSelectedInstrumentKey("");
+			setPurchaseDate(null);
+			setSuggestions([]);
+			setErrors({});
+			handleClickClose();
+		} catch (err) {
+			setErrors({ api: err?.message || "Something went wrong. Please try again." });
+		}
 	};
 
 	const handleSelect = (stock) => {
@@ -157,7 +186,7 @@ export default function AddStock({
 								value={query}
 								onChange={(e) => {
 									setQuery(e.target.value);
-									setSelectedInstrumentKey(""); // reset if user edits manually after a selection
+									setSelectedInstrumentKey("");
 								}}
 								autoComplete="off"
 								fullWidth
@@ -183,9 +212,7 @@ export default function AddStock({
 										boxShadow: (theme) => theme.shadows[8],
 										maxHeight: "200px",
 										overflowY: "auto",
-										"&::-webkit-scrollbar": {
-											width: 8,
-										},
+										"&::-webkit-scrollbar": { width: 8 },
 										"&::-webkit-scrollbar-thumb": {
 											backgroundColor: "text.disabled",
 											borderRadius: 8,
@@ -202,27 +229,15 @@ export default function AddStock({
 												px: 1.25,
 												borderBottom: "1px solid",
 												borderColor: "divider",
-												"&:last-of-type": {
-													borderBottom: "none",
-												},
-												"&:hover": {
-													backgroundColor: "action.hover",
-												},
+												"&:last-of-type": { borderBottom: "none" },
+												"&:hover": { backgroundColor: "action.hover" },
 											}}
 										>
 											<ListItemText
-												primary={`${stock.name} ${
-													stock.trading_symbol
-														? `(${stock.trading_symbol})`
-														: ""
-												}`}
+												primary={`${stock.name} ${stock.trading_symbol ? `(${stock.trading_symbol})` : ""}`}
 												primaryTypographyProps={{
 													variant: "body2",
-													sx: {
-														color: "text.primary",
-														fontWeight: 500,
-														lineHeight: 1.35,
-													},
+													sx: { color: "text.primary", fontWeight: 500, lineHeight: 1.35 },
 												}}
 											/>
 										</ListItem>
@@ -231,46 +246,15 @@ export default function AddStock({
 							)}
 						</Box>
 					)}
-					<TextField
-						name="quantity"
-						type="number"
-						label="Quantity"
-						placeholder="Quantity"
-						fullWidth
-						margin="normal"
-						error={!!errors.quantity}
-						helperText={errors.quantity}
-						InputProps={
-							buttonLabel === "Sell"
-								? { inputProps: { min: 1, max: maxSellQuantity } }
-								: undefined
-						}
-					/>
-					{buttonLabel === "Sell" && (
-						<Typography variant="caption" color="textSecondary" sx={{ mb: 1 }}>
-							Unsold shares available: <strong>{maxSellQuantity}</strong>
-						</Typography>
-					)}
-					<TextField
-						name="avgPrice"
-						type="number"
-						label="Average Price"
-						placeholder="Buy Price"
-						fullWidth
-						margin="normal"
-						error={!!errors.avgPrice}
-						helperText={errors.avgPrice}
-						InputProps={{ inputProps: { min: 0.01, step: "any" } }}
-					/>
+
+					{/* In sell mode: date comes first so available qty can be computed */}
 					<LocalizationProvider dateAdapter={AdapterDayjs}>
 						<DatePicker
-							label="Date Purchased"
+							label={isSell ? "Sell Date" : "Date Purchased"}
 							value={purchaseDate}
 							onChange={(newValue) => {
 								setPurchaseDate(newValue);
-								if (errors.date) {
-									setErrors((prev) => ({ ...prev, date: undefined }));
-								}
+								setErrors((prev) => ({ ...prev, date: undefined, quantity: undefined }));
 							}}
 							slotProps={{
 								textField: {
@@ -297,6 +281,52 @@ export default function AddStock({
 							}}
 						/>
 					</LocalizationProvider>
+
+					<TextField
+						name="quantity"
+						type="number"
+						label="Quantity"
+						placeholder="Quantity"
+						fullWidth
+						margin="normal"
+						error={!!errors.quantity}
+						helperText={errors.quantity}
+						InputProps={
+							isSell
+								? { inputProps: { min: 1, max: effectiveMaxQty } }
+								: undefined
+						}
+					/>
+					{isSell && (
+						<Typography variant="caption" color="textSecondary" sx={{ mb: 1 }}>
+							{purchaseDate
+								? `Available to sell as of this date: `
+								: `Total unsold shares: `}
+							<strong>
+								{purchaseDate ? effectiveMaxQty : maxSellQuantity}
+							</strong>
+						</Typography>
+					)}
+
+					<TextField
+						name="avgPrice"
+						type="number"
+						label={isSell ? "Sell Price" : "Average Price"}
+						placeholder={isSell ? "Sell Price" : "Buy Price"}
+						fullWidth
+						margin="normal"
+						error={!!errors.avgPrice}
+						helperText={errors.avgPrice}
+						InputProps={{ inputProps: { min: 0.01, step: "any" } }}
+					/>
+
+					{errors.api && (
+						<Box sx={{ mt: 2, px: 0.5 }}>
+							<Typography variant="body2" color="error" sx={{ fontWeight: 500 }}>
+								{errors.api}
+							</Typography>
+						</Box>
+					)}
 
 					<DialogActions sx={{ mt: 2, justifyContent: "flex-end", gap: 1.5 }}>
 						<Button
