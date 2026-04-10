@@ -10,6 +10,11 @@ const userSchema = new Schema({
 	password: String,
 	googleId: String,
 	provider: { type: String, default: "local" },
+	resetPasswordToken: String,
+	resetPasswordExpires: Date,
+	isEmailVerified: { type: Boolean },  // undefined = existing user (treated as verified), false = new unverified
+	emailVerificationToken: String,
+	emailVerificationExpires: Date,
 });
 
 userSchema.pre("save", async function userPreSave(next) {

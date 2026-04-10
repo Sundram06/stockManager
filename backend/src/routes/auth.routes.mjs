@@ -6,6 +6,9 @@ import {
 	forgotPasswordSchema,
 	loginSchema,
 	registerSchema,
+	resendVerificationSchema,
+	resetPasswordSchema,
+	verifyEmailSchema,
 } from "../validators/auth.schema.mjs";
 import {
 	forgotPasswordHandler,
@@ -14,6 +17,9 @@ import {
 	logout,
 	me,
 	register,
+	resendVerificationHandler,
+	resetPasswordHandler,
+	verifyEmailHandler,
 } from "../controllers/auth.controller.mjs";
 import { authenticateJWT } from "../middlewares/authenticate-jwt.mjs";
 import { env } from "../config/env.mjs";
@@ -31,6 +37,21 @@ router.post(
 	"/api/forgot-password",
 	validateRequest(forgotPasswordSchema),
 	asyncHandler(forgotPasswordHandler),
+);
+router.post(
+	"/api/reset-password",
+	validateRequest(resetPasswordSchema),
+	asyncHandler(resetPasswordHandler),
+);
+router.post(
+	"/api/verify-email",
+	validateRequest(verifyEmailSchema),
+	asyncHandler(verifyEmailHandler),
+);
+router.post(
+	"/api/resend-verification",
+	validateRequest(resendVerificationSchema),
+	asyncHandler(resendVerificationHandler),
 );
 
 if (googleAuthEnabled) {
