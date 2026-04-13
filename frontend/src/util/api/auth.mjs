@@ -4,7 +4,9 @@ import { clearTokenExpiryTimer } from "./session.mjs";
 const parseJsonOrThrow = async (response, fallbackMessage) => {
 	const data = await response.json().catch(() => ({}));
 	if (!response.ok) {
-		throw new Error(data?.message || fallbackMessage);
+		const err = new Error(data?.message || fallbackMessage);
+		err.code = data?.code;
+		throw err;
 	}
 	return data;
 };

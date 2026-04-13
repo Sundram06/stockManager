@@ -1,101 +1,97 @@
 import { createTheme } from '@mui/material/styles';
 
+// ─── Design Tokens ─────────────────────────────────────────────────────────
+// Single source of truth. See DESIGN_SYSTEM.md for full rationale.
 const modeTokens = {
   light: {
     background: {
-      default: '#e8ebed',
-      paper: '#ffffff',
-      elevated: '#f9fafb',
+      default: '#F9F9FB',
+      paper: '#FFFFFF',
+      elevated: '#F0F0F5',
     },
     text: {
-      primary: '#333333',
-      secondary: '#6b7280',
+      primary: '#1A1A1C',
+      secondary: '#64748B',
     },
     primary: {
-      main: '#df6035',
-      contrastText: '#ffffff',
+      main: '#0A7B7B',
+      contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#2f4b79',
-      contrastText: '#ffffff',
+      main: '#0A7B7B',
+      contrastText: '#FFFFFF',
     },
-    accent: {
-      main: '#d6e4f0',
-      contrastText: '#1e3a8a',
-    },
-    border: '#cccccc',
-    input: '#f4f5f7',
-    muted: '#f9fafb',
-    ring: '#e05d38',
+    border: '#E2E8F0',
+    input: '#F8FAFC',
+    muted: '#F1F5F9',
+    ring: '#0A7B7B',
     destructive: '#ef4444',
-    popover: '#ffffff',
-    popoverForeground: '#333333',
+    popover: '#FFFFFF',
+    popoverForeground: '#1A1A1C',
+    gain: '#16a34a',
+    loss: '#dc2626',
     chart: {
-      1: '#7399bf',
-      2: '#e16f41',
-      3: '#d54450',
-      4: '#e2b146',
-      5: '#3c4c76',
+      1: '#0A7B7B',
+      2: '#16a34a',
+      3: '#dc2626',
+      4: '#f59e0b',
+      5: '#3b82f6',
     },
   },
   dark: {
     background: {
-      default: '#1a1a1a',
-      paper: '#202020',
-      elevated: '#2a2a2a',
+      default: '#0a0a0a',
+      paper: '#111111',
+      elevated: '#1a1a1a',
     },
     text: {
-      primary: '#e5e5e5',
-      secondary: '#808080',
+      primary: '#EDEDED',
+      secondary: '#888888',
     },
     primary: {
-      main: '#df6035',
-      contrastText: '#ffffff',
+      main: '#0fb3af',
+      contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#284167',
-      contrastText: '#e5e5e5',
+      main: '#0fb3af',
+      contrastText: '#FFFFFF',
     },
-    accent: {
-      main: '#2a3656',
-      contrastText: '#bfdbfe',
-    },
-    border: '#353535',
-    input: '#303030',
-    muted: '#2a2a2a',
-    ring: '#e05d38',
+    border: '#262626',
+    input: '#161616',
+    muted: '#111111',
+    ring: '#0fb3af',
     destructive: '#ef4444',
-    popover: '#202020',
-    popoverForeground: '#e5e5e5',
+    popover: '#1a1f2e',
+    popoverForeground: '#E0E6EB',
+    gain: '#22c55e',
+    loss: '#ef4444',
     chart: {
-      1: '#85a6c7',
-      2: '#e16f41',
-      3: '#d54450',
-      4: '#e2b146',
-      5: '#3c4c76',
+      1: '#0fb3af',
+      2: '#22c55e',
+      3: '#ef4444',
+      4: '#f59e0b',
+      5: '#60a5fa',
     },
   },
 };
 
 const getShadows = (mode) => {
   const shadows = createTheme().shadows;
-
   if (mode === 'light') {
-    shadows[1] = '0px 1px 3px 0px rgba(26, 26, 26, 0.05)';
-    shadows[2] = '0px 1px 3px 0px rgba(26, 26, 26, 0.10), 0px 1px 2px -1px rgba(26, 26, 26, 0.10)';
-    shadows[3] = '0px 1px 3px 0px rgba(26, 26, 26, 0.10), 0px 2px 4px -1px rgba(26, 26, 26, 0.10)';
-    shadows[4] = '0px 1px 3px 0px rgba(26, 26, 26, 0.10), 0px 4px 6px -1px rgba(26, 26, 26, 0.10)';
-    shadows[8] = '0px 1px 3px 0px rgba(26, 26, 26, 0.10), 0px 8px 10px -1px rgba(26, 26, 26, 0.10)';
-    shadows[16] = '0px 1px 3px 0px rgba(26, 26, 26, 0.25)';
+    shadows[1] = '0px 1px 3px 0px rgba(26,26,28,0.05)';
+    shadows[2] = '0px 1px 3px 0px rgba(26,26,28,0.08), 0px 1px 2px -1px rgba(26,26,28,0.08)';
+    shadows[3] = '0px 1px 3px 0px rgba(26,26,28,0.08), 0px 2px 4px -1px rgba(26,26,28,0.08)';
+    shadows[4] = '0px 1px 3px 0px rgba(26,26,28,0.08), 0px 4px 6px -1px rgba(26,26,28,0.08)';
+    shadows[8] = '0px 1px 3px 0px rgba(26,26,28,0.10), 0px 8px 16px -4px rgba(26,26,28,0.10)';
+    shadows[16] = '0px 4px 24px rgba(26,26,28,0.14)';
   } else {
-    shadows[1] = '0px 1px 3px 0px rgba(0, 0, 0, 0.15)';
-    shadows[2] = '0px 1px 3px 0px rgba(0, 0, 0, 0.20), 0px 1px 2px -1px rgba(0, 0, 0, 0.20)';
-    shadows[3] = '0px 1px 3px 0px rgba(0, 0, 0, 0.20), 0px 2px 4px -1px rgba(0, 0, 0, 0.20)';
-    shadows[4] = '0px 1px 3px 0px rgba(0, 0, 0, 0.20), 0px 4px 6px -1px rgba(0, 0, 0, 0.20)';
-    shadows[8] = '0px 1px 3px 0px rgba(0, 0, 0, 0.20), 0px 8px 10px -1px rgba(0, 0, 0, 0.20)';
-    shadows[16] = '0px 1px 3px 0px rgba(0, 0, 0, 0.35)';
+    shadows[1] = '0px 1px 3px 0px rgba(0,0,0,0.40)';
+    shadows[2] = '0px 1px 3px 0px rgba(0,0,0,0.45), 0px 1px 2px -1px rgba(0,0,0,0.45)';
+    shadows[3] = '0px 1px 3px 0px rgba(0,0,0,0.45), 0px 2px 4px -1px rgba(0,0,0,0.45)';
+    shadows[4] = '0px 1px 3px 0px rgba(0,0,0,0.45), 0px 4px 6px -1px rgba(0,0,0,0.45)';
+    shadows[8] = '0px 1px 3px 0px rgba(0,0,0,0.50), 0px 8px 16px -4px rgba(0,0,0,0.50)';
+    shadows[16] = '0px 4px 24px rgba(0,0,0,0.70)';
   }
-
   return shadows;
 };
 
@@ -108,37 +104,30 @@ export const createAppTheme = (mode = 'light') => {
       background: tokens.background,
       primary: tokens.primary,
       secondary: tokens.secondary,
-      error: {
-        main: tokens.destructive,
-        contrastText: '#ffffff',
-      },
-      success: {
-        main: '#10b981',
-      },
-      warning: {
-        main: '#f59e0b',
-      },
-      info: {
-        main: '#3b82f6',
-      },
+      error: { main: tokens.destructive, contrastText: '#ffffff' },
+      success: { main: tokens.gain },
+      warning: { main: '#f59e0b' },
+      info: { main: '#3b82f6' },
       text: tokens.text,
       divider: tokens.border,
       action: {
         hover: tokens.muted,
-        selected: tokens.accent.main,
+        selected: mode === 'dark' ? 'rgba(15,179,175,0.12)' : 'rgba(10,123,123,0.08)',
       },
       custom: {
-        accent: tokens.accent.main,
-        accentForeground: tokens.accent.contrastText,
         border: tokens.border,
         input: tokens.input,
         muted: tokens.muted,
         ring: tokens.ring,
+        gain: tokens.gain,
+        loss: tokens.loss,
         chart: tokens.chart,
+        elevated: tokens.background.elevated,
       },
     },
     typography: {
-      fontFamily: '"Outfit", "Segoe UI", sans-serif',
+      // DM Sans as MUI base — used for all components, forms, tables, buttons
+      fontFamily: '"DM Sans", system-ui, sans-serif',
       fontWeightRegular: 400,
       fontWeightMedium: 500,
       fontWeightSemiBold: 600,
@@ -149,27 +138,21 @@ export const createAppTheme = (mode = 'light') => {
       h4: { fontWeight: 600, letterSpacing: '-0.01em' },
       h5: { fontWeight: 600, letterSpacing: '0em' },
       h6: { fontWeight: 600, letterSpacing: '0em' },
-      subtitle1: { fontWeight: 500, letterSpacing: '0em' },
-      subtitle2: { fontWeight: 500, letterSpacing: '0em' },
+      subtitle1: { fontWeight: 500 },
+      subtitle2: { fontWeight: 500 },
       body1: { letterSpacing: '0em' },
       body2: { letterSpacing: '0em' },
-      button: {
-        fontWeight: 600,
-        letterSpacing: '0em',
-        textTransform: 'none',
-      },
+      button: { fontWeight: 600, letterSpacing: '0.02em', textTransform: 'none' },
     },
     shadows: getShadows(mode),
-    shape: {
-      borderRadius: 8,
-    },
+    shape: { borderRadius: 8 },
     components: {
       MuiCssBaseline: {
         styleOverrides: {
           body: {
-            letterSpacing: '0em',
             backgroundColor: tokens.background.default,
             color: tokens.text.primary,
+            letterSpacing: '0em',
           },
         },
       },
@@ -185,15 +168,11 @@ export const createAppTheme = (mode = 'light') => {
           },
           contained: {
             boxShadow: 'none',
-            '&:hover': { boxShadow: getShadows(mode)[2] },
+            '&:hover': { boxShadow: 'none', filter: 'brightness(0.9)' },
           },
           containedPrimary: {
             backgroundColor: tokens.primary.main,
             color: tokens.primary.contrastText,
-            '&:hover': {
-              backgroundColor: tokens.primary.main,
-              filter: 'brightness(0.92)',
-            },
           },
           outlined: {
             borderWidth: '1.5px',
@@ -215,7 +194,7 @@ export const createAppTheme = (mode = 'light') => {
         styleOverrides: {
           root: {
             borderRadius: '0.5rem',
-            transition: 'all 0.3s ease-in-out',
+            transition: 'all 0.2s ease-in-out',
             backgroundColor: tokens.background.paper,
             color: tokens.text.primary,
           },
@@ -226,24 +205,16 @@ export const createAppTheme = (mode = 'light') => {
           root: {
             borderRadius: '0.5rem',
             backgroundColor: tokens.input,
-            '& fieldset': {
-              borderColor: tokens.border,
-              borderWidth: '1.5px',
-            },
-            '&:hover fieldset': {
-              borderColor: tokens.ring,
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: tokens.ring,
-              borderWidth: '2px',
-            },
+            '& fieldset': { borderColor: tokens.border, borderWidth: '1.5px' },
+            '&:hover fieldset': { borderColor: tokens.ring },
+            '&.Mui-focused fieldset': { borderColor: tokens.ring, borderWidth: '2px' },
           },
         },
       },
       MuiDialog: {
         styleOverrides: {
           paper: {
-            borderRadius: '0.5rem',
+            borderRadius: '0.75rem',
             backgroundColor: tokens.background.paper,
             color: tokens.text.primary,
           },
@@ -251,19 +222,11 @@ export const createAppTheme = (mode = 'light') => {
       },
       MuiTableRow: {
         styleOverrides: {
-          root: {
-            '&:hover': {
-              backgroundColor: tokens.muted,
-            },
-          },
+          root: { '&:hover': { backgroundColor: tokens.muted } },
         },
       },
       MuiTableCell: {
-        styleOverrides: {
-          root: {
-            borderColor: tokens.border,
-          },
-        },
+        styleOverrides: { root: { borderColor: tokens.border } },
       },
       MuiMenu: {
         styleOverrides: {
@@ -285,6 +248,11 @@ export const createAppTheme = (mode = 'light') => {
             color: tokens.popoverForeground,
             border: `1px solid ${tokens.border}`,
           },
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          root: { fontFamily: '"DM Sans", sans-serif', fontWeight: 600 },
         },
       },
     },

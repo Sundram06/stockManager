@@ -6,9 +6,29 @@
   <link rel="icon" type="image/svg+xml" href="/vittnest.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="VittNest — Portfolio OS for modern equity management" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!--
+    All fonts loaded asynchronously — nothing blocks the first paint.
+    Hero text renders instantly in Georgia (close serif match), swaps to Newsreader
+    once the font file lands. DM Sans + Manrope swap in for UI elements.
+    Slim ranges only: no loading 200–800 weight ranges we never use.
+  -->
+  <link
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,600..700;1,6..72,600..700&family=DM+Sans:opsz,wght@9..40,400..700&family=Manrope:wght@400..600&display=swap"
+    onload="this.rel='stylesheet'"
+  />
+  <noscript>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,600..700;1,6..72,600..700&family=DM+Sans:opsz,wght@9..40,400..700&family=Manrope:wght@400..600&display=swap"
+      rel="stylesheet"
+    />
+  </noscript>
+
   <title>VittNest</title>
 </head>
 

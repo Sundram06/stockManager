@@ -42,12 +42,13 @@ export default function Header() {
 
 	return (
 		<AppBar
-			position="static" 
-			elevation={1}
+			position="static"
+			elevation={0}
 			sx={{
-				background: 'var(--secondary)',
-				color: 'var(--secondary-foreground)',
-				boxShadow: theme.shadows[2],
+				background: theme.palette.background.paper,
+				color: theme.palette.text.primary,
+				borderBottom: `1px solid ${theme.palette.divider}`,
+				boxShadow: "none",
 				borderRadius: 0,
 			}}
 		>
@@ -104,7 +105,7 @@ export default function Header() {
 							sx={{
 								size: "small",
 								"&:hover": {
-									backgroundColor: "rgba(255, 255, 255, 0.15)",
+									backgroundColor: theme.palette.action.hover,
 								},
 							}}
 						>
@@ -122,7 +123,7 @@ export default function Header() {
 								sx={{
 									size: "small",
 									"&:hover": {
-										backgroundColor: "rgba(255, 255, 255, 0.1)",
+										backgroundColor: theme.palette.action.hover,
 									},
 								}}
 							>

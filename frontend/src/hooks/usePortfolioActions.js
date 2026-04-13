@@ -19,7 +19,6 @@ export default function usePortfolioActions({ setAddOpen, setDeleteModalOpen }) 
 			dispatch(addStockToPortfolio(data));
 			queryClient.invalidateQueries({ queryKey: ["stocks"] });
 			queryClient.invalidateQueries({ queryKey: ["history"] });
-			setAddOpen(false);
 		},
 	});
 
@@ -28,13 +27,15 @@ export default function usePortfolioActions({ setAddOpen, setDeleteModalOpen }) 
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["stocks"] });
 			queryClient.invalidateQueries({ queryKey: ["history"] });
-			setAddOpen(false);
 		},
 	});
 
 	const { mutate: mutateSell } = useMutation({
 		mutationFn: handleSellStockRowInHistory,
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["history"] }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["stocks"] });
+			queryClient.invalidateQueries({ queryKey: ["history"] });
+		},
 	});
 
 	const { mutate: mutateDelete } = useMutation({
@@ -55,15 +56,18 @@ export default function usePortfolioActions({ setAddOpen, setDeleteModalOpen }) 
 
 	const submitStockAction = useCallback(
 		({ actionType, stockId, data }) => {
-			if (actionType === "add") {
-				if (stockId) {
-					mutateAddToHistory({ ...data, stockId });
-				} else {
-					mutateAdd(data);
+			return new Promise((resolve, reject) => {
+				const callbacks = { onSuccess: resolve, onError: reject };
+				if (actionType === "add") {
+					if (stockId) {
+						mutateAddToHistory({ ...data, stockId }, callbacks);
+					} else {
+						mutateAdd(data, callbacks);
+					}
+				} else if (actionType === "sell") {
+					mutateSell({ ...data, stockId }, callbacks);
 				}
-			} else if (actionType === "sell") {
-				mutateSell({ ...data, stockId });
-			}
+			});
 		},
 		[mutateAddToHistory, mutateAdd, mutateSell],
 	);

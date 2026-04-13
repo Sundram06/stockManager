@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useDispatch } from "react-redux";
-import { setAuth } from "../store/auth-slice";
 import {
 	TextField,
 	Button,
@@ -16,15 +14,17 @@ import { addUser } from "../util/api/auth.mjs";
 
 const RegistrationForm = () => {
 	const [error, setError] = useState("");
-	const dispatch = useDispatch();
+	const [registeredEmail, setRegisteredEmail] = useState("");
 	const navigate = useNavigate();
 
 	const { mutate } = useMutation({
 		mutationKey: ["register"],
 		mutationFn: addUser,
-		onSuccess: (data) => {
-			dispatch(setAuth({ user: data.user }));
-			navigate("/login");
+		onSuccess: (data, variables) => {
+			setRegisteredEmail(variables.email);
+		},
+		onError: (err) => {
+			setError(err.message || "Registration failed. Please try again.");
 		},
 	});
 
@@ -55,6 +55,38 @@ const RegistrationForm = () => {
 		mutate(data);
 		e.target.reset();
 	};
+
+	if (registeredEmail) {
+		return (
+			<Box>
+				<Grid container justifyContent="center" alignItems="center" sx={{ minHeight: "80vh" }}>
+					<Grid item xs={12} sm={8} md={4}>
+						<Paper elevation={3} sx={{ p: 4 }}>
+							<Typography variant="h5" textAlign="center" fontWeight="bold" gutterBottom>
+								Check your email
+							</Typography>
+							<Alert severity="success" sx={{ mb: 2 }}>
+								We sent a verification link to <strong>{registeredEmail}</strong>. Click it to activate your account.
+							</Alert>
+							<Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 2 }}>
+								Didn't receive it? Check your spam folder or{" "}
+								<Link
+									to={`/verify-email?resend=1&email=${encodeURIComponent(registeredEmail)}`}
+									style={{ color: "inherit", textDecoration: "underline" }}
+								>
+									request a new link
+								</Link>
+								.
+							</Typography>
+							<Button variant="outlined" fullWidth onClick={() => navigate("/login")}>
+								Go to Login
+							</Button>
+						</Paper>
+					</Grid>
+				</Grid>
+			</Box>
+		);
+	}
 
 	return (
 		<Box>
