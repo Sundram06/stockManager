@@ -8,10 +8,16 @@ export default function RootLayout() {
 	useHydrateAuth();
 	const isAuthLoading = useSelector((s) => s.auth.isAuthLoading);
 	const location = useLocation();
-	const isLoginOrRegister = [
+
+	// Pages that manage their own nav/layout — hide the global Header
+	const hideHeader = [
+		"/",
 		"/login",
 		"/register",
 		"/forgot-password",
+		"/reset-password",
+		"/verify-email",
+		"/oauth-success",
 	].includes(location.pathname);
 
 	return (
@@ -23,7 +29,7 @@ export default function RootLayout() {
 				backgroundColor: "background.default",
 			}}
 		>
-			<Header />
+			{!hideHeader && <Header />}
 			<Box
 				component="main"
 				sx={{
@@ -33,7 +39,7 @@ export default function RootLayout() {
 					flexDirection: "column",
 				}}
 			>
-				{isAuthLoading && !isLoginOrRegister ? (
+				{isAuthLoading && !hideHeader ? (
 					<Box
 						sx={{
 							display: "flex",
