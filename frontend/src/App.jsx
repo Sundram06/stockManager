@@ -19,6 +19,8 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const OAuthSuccessPage = lazy(() => import("./pages/OAuthSuccessPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 const DemoLandingPage = lazy(() => import("./pages/DemoLandingPage"));
 
 const renderLazy = (Component, props) => (
@@ -38,6 +40,8 @@ const router = createBrowserRouter([
 			{ path: "login", element: renderLazy(LoginPage) },
 			{ path: "register", element: renderLazy(RegisterPage) },
 			{ path: "/forgot-password", element: renderLazy(ForgotPasswordPage) },
+			{ path: "/reset-password", element: renderLazy(ResetPasswordPage) },
+			{ path: "/verify-email", element: renderLazy(VerifyEmailPage) },
 		],
 	},
 ]);

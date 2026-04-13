@@ -5,6 +5,9 @@ import {
 	getUserProfile,
 	loginUser,
 	registerUser,
+	resendVerification,
+	resetPassword,
+	verifyEmail,
 } from "../services/auth.service.mjs";
 
 export const register = async (req, res) => {
@@ -13,20 +16,15 @@ export const register = async (req, res) => {
 	if (result.error) {
 		return res.status(result.statusCode).json({ message: result.error });
 	}
-
-	return res.status(201).json({
-		message: "User registered successfully",
-		user: result.user,
-	});
+	return res.status(201).json({ message: result.message });
 };
 
 export const login = async (req, res) => {
 	const payload = req.validated || req.body;
 	const result = await loginUser(payload);
 	if (result.error) {
-		return res.status(result.statusCode).json({ message: result.error });
+		return res.status(result.statusCode).json({ message: result.error, code: result.code });
 	}
-
 	return res.json({ user: result.user, token: result.token });
 };
 
@@ -45,6 +43,36 @@ export const me = async (req, res) => {
 export const forgotPasswordHandler = async (req, res) => {
 	const payload = req.validated || req.body;
 	const result = await forgotPassword(payload.email);
+	if (result.error) {
+		return res.status(result.statusCode).json({ message: result.error });
+	}
+	return res.json(result);
+};
+
+export const verifyEmailHandler = async (req, res) => {
+	const payload = req.validated || req.body;
+	const result = await verifyEmail(payload);
+	if (result.error) {
+		return res.status(result.statusCode).json({ message: result.error, code: result.code });
+	}
+	return res.json(result);
+};
+
+export const resendVerificationHandler = async (req, res) => {
+	const payload = req.validated || req.body;
+	const result = await resendVerification(payload.email);
+	if (result.error) {
+		return res.status(result.statusCode).json({ message: result.error });
+	}
+	return res.json(result);
+};
+
+export const resetPasswordHandler = async (req, res) => {
+	const payload = req.validated || req.body;
+	const result = await resetPassword(payload);
+	if (result.error) {
+		return res.status(result.statusCode).json({ message: result.error });
+	}
 	return res.json(result);
 };
 
