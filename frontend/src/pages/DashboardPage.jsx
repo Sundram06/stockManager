@@ -5,7 +5,7 @@ import PortfolioTable from "../component/PortfolioTable";
 import PortfolioHeader from "../component/PortfolioHeader";
 import PortfolioSummary from "../component/PortfolioSummary";
 import useMarketData from "../hooks/useMarketData";
-import { Box, Typography, CircularProgress, Fab, useTheme, useMediaQuery, useScrollTrigger } from "@mui/material";
+import { Box, Typography, CircularProgress, Fab, useTheme, useMediaQuery, useScrollTrigger, Paper } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 export default function DashboardPage() {
@@ -70,30 +70,57 @@ export default function DashboardPage() {
 	return (
 		<Box
 			sx={{
-				mx: "auto",
-				py: { xs: 2, sm: 4 },
-				px: { xs: 1.5, sm: 2 },
+				py: { xs: 2, sm: 3 },
+				px: { xs: 1.5, sm: 2.5 },
 				width: "100%",
 			}}
 		>
-			<PortfolioHeader
-				search={search}
-				onSearchChange={setSearch}
-				tab={tab}
-				onTabChange={setTab}
-				onAddStock={handleAddStock}
-				username={user?.name?.split(" ")[0]}
+			{/* ── Page heading ─────────────────────────────── */}
+			<Typography
+				variant="h4"
+				fontWeight={700}
+				sx={{
+					fontSize: { xs: "1.2rem", sm: "1.6rem" },
+					lineHeight: 1.15,
+					mb: { xs: 1.5, sm: 2 },
+				}}
 			>
-				<PortfolioSummary ltpMap={ltpMap} />
-			</PortfolioHeader>
-			<PortfolioTable
-				activeTab={tab}
-				search={deferredSearch}
-				addOpen={addOpen}
-				setAddOpen={setAddOpen}
-				ltpMap={ltpMap}
-				isConnected={isConnected}
-			/>
+				{user?.name?.trim().split(/\s+/)[0]
+					? `${user.name.trim().split(/\s+/)[0]}'s Portfolio`
+					: "My Portfolio"}
+			</Typography>
+
+			{/* ── Summary strip ────────────────────────────── */}
+			<PortfolioSummary ltpMap={ltpMap} />
+
+			{/* ── Card: toolbar + table ────────────────────── */}
+			<Paper
+				elevation={0}
+				sx={{
+					bgcolor: "background.paper",
+					border: 1,
+					borderColor: "divider",
+					borderRadius: 2,
+					overflow: "hidden",
+					mb: 4,
+				}}
+			>
+				<PortfolioHeader
+					search={search}
+					onSearchChange={setSearch}
+					tab={tab}
+					onTabChange={setTab}
+					onAddStock={handleAddStock}
+				/>
+				<PortfolioTable
+					activeTab={tab}
+					search={deferredSearch}
+					addOpen={addOpen}
+					setAddOpen={setAddOpen}
+					ltpMap={ltpMap}
+					isConnected={isConnected}
+				/>
+			</Paper>
 
 			{isMobile && (
 				<Fab

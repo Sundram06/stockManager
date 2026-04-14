@@ -169,6 +169,7 @@ function ActionSheet({
 	onAdd,
 	onSell,
 	onViewHistory,
+	onChart,
 	onDelete,
 }) {
 	const theme = useTheme();
@@ -186,6 +187,7 @@ function ActionSheet({
 	const handleAdd = useCallback(() => { onClose(); onAdd(stock); }, [onClose, onAdd, stock]);
 	const handleSell = useCallback(() => { onClose(); onSell(stock._id); }, [onClose, onSell, stock]);
 	const handleHistory = useCallback(() => { onClose(); onViewHistory(stock); }, [onClose, onViewHistory, stock]);
+	const handleChart = useCallback(() => { onClose(); onChart(stock); }, [onClose, onChart, stock]);
 	const handleDelete = useCallback(() => { onClose(); onDelete(stock); }, [onClose, onDelete, stock]);
 
 	return (
@@ -267,7 +269,18 @@ function ActionSheet({
 			</Box>
 
 			{/* Secondary actions */}
-			<Box sx={{ display: "flex", gap: 1.5 }}>
+			<Box sx={{ display: "flex", gap: 1.5, mb: 1.5 }}>
+				<Button
+					fullWidth
+					variant="outlined"
+					color="primary"
+					size="large"
+					startIcon={<BarChartIcon />}
+					onClick={handleChart}
+					sx={{ borderRadius: 2, py: 1.25 }}
+				>
+					Chart
+				</Button>
 				<Button
 					fullWidth
 					variant="outlined"
@@ -279,18 +292,18 @@ function ActionSheet({
 				>
 					History
 				</Button>
-				<Button
-					fullWidth
-					variant="outlined"
-					color="error"
-					size="large"
-					startIcon={<DeleteOutlineIcon />}
-					onClick={handleDelete}
-					sx={{ borderRadius: 2, py: 1.25 }}
-				>
-					Delete
-				</Button>
 			</Box>
+			<Button
+				fullWidth
+				variant="outlined"
+				color="error"
+				size="large"
+				startIcon={<DeleteOutlineIcon />}
+				onClick={handleDelete}
+				sx={{ borderRadius: 2, py: 1.25 }}
+			>
+				Delete
+			</Button>
 		</SwipeableDrawer>
 	);
 }
@@ -306,6 +319,7 @@ function PortfolioMobileList({
 	onAdd,
 	onSell,
 	onViewHistory,
+	onChart,
 	onDelete,
 }) {
 	const [selectedStock, setSelectedStock] = useState(null);
@@ -358,6 +372,7 @@ function PortfolioMobileList({
 				onAdd={onAdd}
 				onSell={onSell}
 				onViewHistory={onViewHistory}
+				onChart={onChart}
 				onDelete={onDelete}
 			/>
 		</>

@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
-import { Box, Button, IconButton, Tooltip, Typography, useMediaQuery } from "@mui/material";
-import LightModeIcon from "@mui/icons-material/LightMode";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import { useTheme as useAppTheme } from "../theme/useTheme";
+import { Box, Button, Typography, useMediaQuery } from "@mui/material";
+import PublicNav from "../component/PublicNav";
 import BoltIcon from "@mui/icons-material/Bolt";
 import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
@@ -13,7 +11,6 @@ import TrendingUpOutlinedIcon from "@mui/icons-material/TrendingUpOutlined";
 import AddBusinessOutlinedIcon from "@mui/icons-material/AddBusinessOutlined";
 import ShowChartOutlinedIcon from "@mui/icons-material/ShowChartOutlined";
 import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
-import { useSelector } from "react-redux";
 
 // ─── Scroll animation hook ───────────────────────────────────────────────────
 function useRevealOnScroll() {
@@ -55,34 +52,13 @@ export default function DemoLandingPage() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const isLoggedIn = useSelector((s) => !!s.auth.token);
-
-  const { mode, toggleTheme } = useAppTheme();
   const isDark = theme.palette.mode === "dark";
   const teal = theme.palette.primary.main;
-  const bg = theme.palette.background.default;
   const paper = theme.palette.background.paper;
   const elevated = theme.palette.background.elevated ?? (isDark ? "#222836" : "#F0F0F5");
   const textPrimary = theme.palette.text.primary;
   const textSecondary = theme.palette.text.secondary;
   const border = theme.palette.divider;
-
-  // Nav scroll effect
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const glassNav = {
-    background: scrolled
-      ? isDark ? "rgba(17,24,39,0.88)" : "rgba(249,249,251,0.88)"
-      : "transparent",
-    backdropFilter: scrolled ? "blur(20px)" : "none",
-    borderBottom: scrolled ? `1px solid ${border}` : "1px solid transparent",
-    transition: "background 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease",
-  };
 
   const glassPanel = {
     background: isDark ? "rgba(26,31,46,0.5)" : "rgba(255,255,255,0.65)",
@@ -126,76 +102,7 @@ export default function DemoLandingPage() {
       `}</style>
 
       {/* ── NAV ──────────────────────────────────────────────────────────── */}
-      <Box
-        component="nav"
-        sx={{
-          position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-          px: { xs: 3, md: 6 }, py: 2.5,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          ...glassNav,
-        }}
-      >
-        <Typography
-          sx={{
-            fontFamily: '"Newsreader", serif',
-            fontStyle: "italic",
-            fontWeight: 700,
-            fontSize: { xs: "1.4rem", md: "1.6rem" },
-            color: teal,
-            letterSpacing: "-0.01em",
-            cursor: "pointer",
-          }}
-          onClick={() => navigate("/")}
-        >
-          VittNest
-        </Typography>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, md: 2.5 } }}>
-          {!isMobile && (
-            <Button
-              onClick={() => navigate("/login")}
-              sx={{
-                color: textSecondary, fontFamily: '"DM Sans", sans-serif',
-                fontSize: "0.8rem", fontWeight: 600, letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                "&:hover": { color: textPrimary, background: "transparent" },
-              }}
-            >
-              Sign In
-            </Button>
-          )}
-          <Tooltip title={isDark ? "Light mode" : "Dark mode"}>
-            <IconButton
-              onClick={toggleTheme}
-              size="small"
-              sx={{
-                color: textSecondary,
-                border: `1px solid ${border}`,
-                borderRadius: "0.5rem",
-                p: "6px",
-                "&:hover": { color: textPrimary, borderColor: teal, background: "transparent" },
-              }}
-            >
-              {isDark ? <LightModeIcon sx={{ fontSize: "1.1rem" }} /> : <DarkModeIcon sx={{ fontSize: "1.1rem" }} />}
-            </IconButton>
-          </Tooltip>
-          <Button
-            variant="contained"
-            onClick={() => navigate(isLoggedIn ? "/dashboard" : "/register")}
-            sx={{
-              bgcolor: teal, color: "#fff",
-              fontFamily: '"DM Sans", sans-serif',
-              fontSize: "0.75rem", fontWeight: 700,
-              letterSpacing: "0.08em", textTransform: "uppercase",
-              px: { xs: 2.5, md: 3 }, py: 1.1,
-              borderRadius: "0.5rem", boxShadow: "none",
-              "&:hover": { bgcolor: teal, filter: "brightness(0.88)", boxShadow: "none" },
-            }}
-          >
-            Get Started
-          </Button>
-        </Box>
-      </Box>
+      <PublicNav />
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <Box
