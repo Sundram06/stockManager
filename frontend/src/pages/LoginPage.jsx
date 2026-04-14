@@ -11,6 +11,7 @@ import {
 	Paper,
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
+import PublicNav from "../component/PublicNav";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { login, clearLogoutMessage } from "../store/auth-slice";
 import { useMutation } from "@tanstack/react-query";
@@ -83,13 +84,14 @@ export default function LoginPage() {
 	};
 
 	return (
-		<Box>
-			<Container component="main" maxWidth="xs">
+		<Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+			<PublicNav alwaysGlass currentPage="login" />
+			<Container component="main" maxWidth="xs" sx={{ pt: "88px" }}>
 				<Paper
 					elevation={3}
 					sx={{
 						p: 4,
-						mt: 6,
+						mt: 4,
 					}}
 				>
 					{logoutMessage && (

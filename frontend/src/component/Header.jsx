@@ -6,7 +6,6 @@ import {
 	IconButton,
 	Tooltip,
 } from "@mui/material";
-import AssessmentIcon from "@mui/icons-material/Assessment";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -66,16 +65,18 @@ export default function Header() {
 						gap: { xs: 0.5, sm: 1 },
 					}}
 				>
-					<AssessmentIcon
-						sx={{ fontSize: { xs: "1.4rem", sm: "1.8rem" } }}
-					/>
 					<Typography
 						variant="h6"
 						noWrap
 						component="div"
 						sx={{
-							fontWeight: "bold",
-							fontSize: { xs: "1rem", sm: "1.25rem" },
+							fontFamily: "'Newsreader', Georgia, serif",
+							fontStyle: "italic",
+							fontWeight: 700,
+							fontSize: { xs: "1.15rem", sm: "1.4rem" },
+							color: "primary.main",
+							letterSpacing: "-0.01em",
+							lineHeight: 1,
 						}}
 					>
 						VittNest
