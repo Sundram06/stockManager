@@ -1,4 +1,4 @@
-Stock Manager is a simple yet powerful application designed to help investors accurately track their stock purchases, sales, and profits/losses on a First-Come-First-Serve (FCFS) basis, ensuring clear insights into portfolio performance and realized gains.
+VittNest is a simple yet powerful application designed to help investors accurately track their stock purchases, sales, and profits/losses on a First-Come-First-Serve (FCFS) basis, ensuring clear insights into portfolio performance and realized gains.
 
 Lets understand with an example scenario. 
 
