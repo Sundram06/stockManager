@@ -24,44 +24,61 @@ const fmtPct = (num) =>
 		? `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`
 		: null;
 
-// ─── Value card (Invested / Current Value / P&L / Day Change) ───────────────
-function ValueCard({ label, value, prefix, accent, isPnl }) {
+// ─── Shared card shell ───────────────────────────────────────────────────────
+function SummaryCard({ accentColor, children, sx = {} }) {
+	const theme = useTheme();
 	return (
 		<Box
 			sx={{
-				bgcolor: "background.paper",
-				borderLeft: `3px solid ${accent}`,
-				borderRadius: "0 8px 8px 0",
-				px: { xs: 1, sm: 2 },
-				py: { xs: 0.75, sm: 1.5 },
+				bgcolor: "background.elevated",
+				border: `1px solid ${theme.palette.divider}`,
+				borderLeft: `3px solid ${accentColor ?? theme.palette.primary.main}`,
+				borderRadius: "12px",
+				px: { xs: 1.5, sm: 2 },
+				py: { xs: 1.25, sm: 1.75 },
 				display: "flex",
 				flexDirection: "column",
-				gap: { xs: 0.35, sm: 0.6 },
-				boxShadow: 1,
-				...(isPnl && {
-					background: `linear-gradient(135deg, ${accent}0d 0%, transparent 55%)`,
-				}),
+				gap: { xs: 0.5, sm: 0.75 },
 				transition: "box-shadow 0.2s",
-				"&:hover": { boxShadow: 3 },
+				"&:hover": {
+					boxShadow: `0 0 0 1px ${(accentColor ?? theme.palette.primary.main)}40, 0 2px 8px rgba(0,0,0,0.25)`,
+				},
+				...sx,
 			}}
 		>
-			<Typography
-				sx={{
-					fontSize: "0.6rem",
-					fontWeight: 700,
-					letterSpacing: "0.09em",
-					color: "text.secondary",
-					textTransform: "uppercase",
-					lineHeight: 1,
-				}}
-			>
-				{label}
-			</Typography>
+			{children}
+		</Box>
+	);
+}
+
+// ─── Uppercase micro-label ───────────────────────────────────────────────────
+function CardLabel({ children }) {
+	return (
+		<Typography
+			sx={{
+				fontSize: "0.6rem",
+				fontWeight: 700,
+				letterSpacing: "0.09em",
+				color: "text.secondary",
+				textTransform: "uppercase",
+				lineHeight: 1,
+			}}
+		>
+			{children}
+		</Typography>
+	);
+}
+
+// ─── Value card (Invested / Current Value / P&L / Day Change) ───────────────
+function ValueCard({ label, value, prefix, accent, isPnl }) {
+	return (
+		<SummaryCard accentColor={accent}>
+			<CardLabel>{label}</CardLabel>
 			<Box sx={{ display: "flex", alignItems: "baseline", gap: "2px" }}>
 				{prefix && (
 					<Typography
 						sx={{
-							fontSize: "0.8rem",
+							fontSize: "0.85rem",
 							fontWeight: 700,
 							color: isPnl ? accent : "text.primary",
 							lineHeight: 1,
@@ -72,17 +89,18 @@ function ValueCard({ label, value, prefix, accent, isPnl }) {
 				)}
 				<Typography
 					sx={{
-						fontSize: { xs: "0.82rem", sm: "1.05rem" },
+						fontSize: { xs: "0.95rem", sm: "1.15rem" },
 						fontWeight: 700,
 						color: isPnl ? accent : "text.primary",
 						lineHeight: 1.2,
 						fontVariantNumeric: "tabular-nums",
+						letterSpacing: "-0.01em",
 					}}
 				>
 					{value}
 				</Typography>
 			</Box>
-		</Box>
+		</SummaryCard>
 	);
 }
 
@@ -91,41 +109,15 @@ function StockCard({ label, stock, accent, isBest }) {
 	const Icon = isBest ? TrendingUpIcon : TrendingDownIcon;
 
 	return (
-		<Box
-			sx={{
-				bgcolor: "background.paper",
-				borderLeft: `3px solid ${accent}`,
-				borderRadius: "0 8px 8px 0",
-				px: { xs: 1, sm: 2 },
-				py: { xs: 0.75, sm: 1.5 },
-				display: "flex",
-				flexDirection: "column",
-				gap: { xs: 0.35, sm: 0.6 },
-				boxShadow: 1,
-				background: `linear-gradient(135deg, ${accent}0d 0%, transparent 55%)`,
-				transition: "box-shadow 0.2s",
-				"&:hover": { boxShadow: 3 },
-			}}
-		>
-			<Typography
-				sx={{
-					fontSize: "0.6rem",
-					fontWeight: 700,
-					letterSpacing: "0.09em",
-					color: "text.secondary",
-					textTransform: "uppercase",
-					lineHeight: 1,
-				}}
-			>
-				{label}
-			</Typography>
+		<SummaryCard accentColor={accent}>
+			<CardLabel>{label}</CardLabel>
 			{stock ? (
 				<>
 					<Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
 						<Icon sx={{ fontSize: "0.9rem", color: accent, flexShrink: 0 }} />
 						<Typography
 							sx={{
-								fontSize: { xs: "0.76rem", sm: "0.95rem" },
+								fontSize: { xs: "0.8rem", sm: "0.95rem" },
 								fontWeight: 700,
 								color: "text.primary",
 								lineHeight: 1.2,
@@ -140,7 +132,7 @@ function StockCard({ label, stock, accent, isBest }) {
 					</Box>
 					<Typography
 						sx={{
-							fontSize: "0.7rem",
+							fontSize: "0.72rem",
 							fontWeight: 600,
 							color: accent,
 							lineHeight: 1,
@@ -155,7 +147,7 @@ function StockCard({ label, stock, accent, isBest }) {
 					—
 				</Typography>
 			)}
-		</Box>
+		</SummaryCard>
 	);
 }
 
@@ -234,7 +226,7 @@ export default function PortfolioSummary({ ltpMap }) {
 
 	const green = theme.palette.success.main;
 	const red = theme.palette.error.main;
-	const orange = theme.palette.primary.main;
+	const teal = theme.palette.primary.main;
 
 	const pnlAccent = (val) => {
 		if (val === null || val === undefined) return theme.palette.text.disabled;
@@ -250,19 +242,19 @@ export default function PortfolioSummary({ ltpMap }) {
 					sm: "repeat(3, 1fr)",
 					lg: "repeat(6, 1fr)",
 				},
-				gap: { xs: 0.75, sm: 1.5 },
-				mb: { xs: 1.5, sm: 2.5 },
+				gap: { xs: 1, sm: 1.25 },
+				mb: { xs: 1.5, sm: 2 },
 			}}
 		>
 			<ValueCard
 				label="Total Invested"
 				value={fmt(summary.totalInvested)}
-				accent={orange}
+				accent={teal}
 			/>
 			<ValueCard
 				label="Current Value"
 				value={summary.currentValue !== null ? fmt(summary.currentValue) : "—"}
-				accent={orange}
+				accent={teal}
 			/>
 			<ValueCard
 				label="Unrealized P&L"

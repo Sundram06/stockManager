@@ -25,5 +25,6 @@ PortfolioViewSwitch.propTypes = {
 	onAdd: PropTypes.func.isRequired,
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,
+	onChart: PropTypes.func.isRequired,
 	onDelete: PropTypes.func.isRequired,
 };

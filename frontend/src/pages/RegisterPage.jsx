@@ -9,6 +9,7 @@ import {
 	Paper,
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
+import PublicNav from "../component/PublicNav";
 import { useMutation } from "@tanstack/react-query";
 import { addUser } from "../util/api/auth.mjs";
 
@@ -58,8 +59,9 @@ const RegistrationForm = () => {
 
 	if (registeredEmail) {
 		return (
-			<Box>
-				<Grid container justifyContent="center" alignItems="center" sx={{ minHeight: "80vh" }}>
+			<Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+				<PublicNav alwaysGlass currentPage="register" />
+				<Grid container justifyContent="center" alignItems="center" sx={{ minHeight: "100vh", pt: "72px" }}>
 					<Grid item xs={12} sm={8} md={4}>
 						<Paper elevation={3} sx={{ p: 4 }}>
 							<Typography variant="h5" textAlign="center" fontWeight="bold" gutterBottom>
@@ -89,12 +91,13 @@ const RegistrationForm = () => {
 	}
 
 	return (
-		<Box>
+		<Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+			<PublicNav alwaysGlass currentPage="register" />
 			<Grid
 				container
 				justifyContent="center"
 				alignItems="center"
-				sx={{ minHeight: "80vh" }}
+				sx={{ minHeight: "100vh", pt: "72px" }}
 			>
 				<Grid item xs={12} sm={8} md={4}>
 					<Paper

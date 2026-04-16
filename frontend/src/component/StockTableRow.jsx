@@ -1,8 +1,77 @@
-﻿import { TableRow, TableCell } from "@mui/material";
+﻿/* eslint-disable react/prop-types */
+import { TableRow, TableCell, Box, Typography, useTheme } from "@mui/material";
 import { memo, useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
 import StockActions from "./StockActions";
 import { computeDormantMetrics } from "../util/portfolioMetrics.mjs";
+
+// ─── P&L badge ───────────────────────────────────────────────────────────────
+function PnlBadge({ pnl, pct, theme }) {
+	const isPos = pnl > 0;
+	const isNeg = pnl < 0;
+	const accent = isPos
+		? theme.palette.success.main
+		: isNeg
+		? theme.palette.error.main
+		: theme.palette.text.secondary;
+
+	const absRupee = `₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+	const sign = isPos ? "+" : isNeg ? "−" : "";
+	const pctStr = pct != null ? `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%` : null;
+
+	return (
+		<Box
+			sx={{
+				display: "inline-flex",
+				flexDirection: "column",
+				alignItems: "flex-end",
+				bgcolor: `${accent}18`,
+				borderRadius: "6px",
+				px: 1,
+				py: 0.4,
+				minWidth: 80,
+			}}
+		>
+			<Typography
+				sx={{ fontSize: "0.8rem", fontWeight: 700, color: accent, lineHeight: 1.3 }}
+			>
+				{sign}{absRupee}
+			</Typography>
+			{pctStr && (
+				<Typography
+					sx={{ fontSize: "0.68rem", fontWeight: 600, color: accent, lineHeight: 1.2, opacity: 0.85 }}
+				>
+					{pctStr}
+				</Typography>
+			)}
+		</Box>
+	);
+}
+
+// ─── Stock name cell ─────────────────────────────────────────────────────────
+function StockNameCell({ name }) {
+	return (
+		<Box>
+			<Typography
+				sx={{ fontWeight: 600, fontSize: "0.875rem", lineHeight: 1.3 }}
+			>
+				{name}
+			</Typography>
+			<Typography
+				sx={{
+					fontSize: "0.65rem",
+					fontWeight: 600,
+					color: "text.secondary",
+					letterSpacing: "0.06em",
+					lineHeight: 1,
+					mt: 0.2,
+				}}
+			>
+				NSE
+			</Typography>
+		</Box>
+	);
+}
 
 function StockTableRow({
 	stock,
@@ -13,13 +82,16 @@ function StockTableRow({
 	onAdd,
 	onSell,
 	onViewHistory,
+	onChart,
 	onDelete,
 }) {
+	const theme = useTheme();
 	const handleAdd = useCallback(() => onAdd(stock), [onAdd, stock]);
 	const handleViewHistory = useCallback(
 		() => onViewHistory(stock),
 		[onViewHistory, stock],
 	);
+	const handleChart = useCallback(() => onChart(stock), [onChart, stock]);
 	const handleDelete = useCallback(() => onDelete(stock), [onDelete, stock]);
 	const handleSell = useCallback(() => onSell(stock._id), [onSell, stock._id]);
 
@@ -48,7 +120,10 @@ function StockTableRow({
 		const pnl = ltp !== null
 			? parseFloat(((ltp - avgPrice) * stock.quantity).toFixed(2))
 			: null;
-		return { totalInvested, currVal, pnl, avgPrice, ltp };
+		const pct = ltp !== null && avgPrice > 0
+			? ((ltp - avgPrice) / avgPrice) * 100
+			: null;
+		return { totalInvested, currVal, pnl, pct, avgPrice, ltp };
 	}, [activeTab, stock, activeStockMetrics, liveData]);
 
 	if (activeTab === 1 && dormantMetrics) {
@@ -61,23 +136,18 @@ function StockTableRow({
 			avgSellPrice,
 		} = dormantMetrics;
 
+		const dormantPct = totalSoldCost > 0 ? (totalPnl / totalSoldCost) * 100 : null;
+
 		return (
-			<TableRow hover>
-				<TableCell>{stock.stockName}</TableCell>
+			<TableRow hover sx={{ "& td": { py: 1.2 } }}>
+				<TableCell><StockNameCell name={stock.stockName} /></TableCell>
 				<TableCell align="right">{totalSoldQty}</TableCell>
 				<TableCell align="right">{rupee(avgBuyPrice)}</TableCell>
 				<TableCell align="right">{rupee(totalSoldCost)}</TableCell>
 				<TableCell align="right">{rupee(avgSellPrice)}</TableCell>
 				<TableCell align="right">{rupee(totalSellValue)}</TableCell>
-				<TableCell
-					align="right"
-					style={{
-						fontWeight: 700,
-						color:
-							totalPnl > 0 ? "#1a882c" : totalPnl < 0 ? "#c91b24" : "#1d1d1d",
-					}}
-				>
-					{rupee(totalPnl)}
+				<TableCell align="right">
+					<PnlBadge pnl={totalPnl} pct={dormantPct} theme={theme} />
 				</TableCell>
 				<TableCell align="center">
 					<StockActions
@@ -92,30 +162,28 @@ function StockTableRow({
 		);
 	}
 
-	const { totalInvested, currVal, pnl, avgPrice, ltp } = activeMetrics;
+	const { totalInvested, currVal, pnl, pct, avgPrice, ltp } = activeMetrics;
 
 	return (
-		<TableRow hover>
-			<TableCell>{stock.stockName}</TableCell>
+		<TableRow hover sx={{ "& td": { py: 1.2 } }}>
+			<TableCell><StockNameCell name={stock.stockName} /></TableCell>
 			<TableCell align="right">{stock.quantity}</TableCell>
 			<TableCell align="right">{rupee(avgPrice)}</TableCell>
 			<TableCell align="right">{rupee(totalInvested)}</TableCell>
 			<TableCell align="right">{ltp !== null ? rupee(ltp) : "—"}</TableCell>
 			<TableCell align="right">{currVal !== null ? rupee(currVal) : "—"}</TableCell>
-			<TableCell
-				align="right"
-				style={{
-					fontWeight: 700,
-					color: pnl > 0 ? "#1a882c" : pnl < 0 ? "#c91b24" : "#1d1d1d",
-				}}
-			>
-				{rupee(pnl)}
+			<TableCell align="right">
+				{pnl !== null
+					? <PnlBadge pnl={pnl} pct={pct} theme={theme} />
+					: <Typography sx={{ fontSize: "0.875rem", color: "text.disabled" }}>—</Typography>
+				}
 			</TableCell>
 			<TableCell align="center">
 				<StockActions
 					onAdd={handleAdd}
 					onSell={handleSell}
 					onViewHistory={handleViewHistory}
+					onChart={handleChart}
 					onDelete={handleDelete}
 					canSell={stock.quantity > 0}
 				/>
