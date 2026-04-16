@@ -4,9 +4,9 @@ import { API_URL } from "../util/api/config.mjs";
 const BACKOFF_DELAYS = [1000, 5000, 10000, 30000, 60000];
 
 // Converts http(s):// → ws(s)://
-const toWsUrl = (baseUrl, token) => {
+const toWsUrl = (baseUrl) => {
 	const ws = baseUrl.replace(/^http/, "ws");
-	return `${ws}/ws/market-data?token=${encodeURIComponent(token)}`;
+	return `${ws}/ws/market-data`;
 };
 
 export default function useMarketData() {
@@ -24,12 +24,14 @@ export default function useMarketData() {
 			const token = localStorage.getItem("token");
 			if (!token || !API_URL) return;
 
-			const url = toWsUrl(API_URL, token);
+			const url = toWsUrl(API_URL);
 			const ws = new window.WebSocket(url);
 			wsRef.current = ws;
 
 			ws.onopen = () => {
 				if (unmountedRef.current) return ws.close();
+				// Send token as first message — keeps JWT out of URLs and server logs
+				ws.send(JSON.stringify({ type: "auth", token }));
 				setIsConnected(true);
 				attemptsRef.current = 0;
 			};
