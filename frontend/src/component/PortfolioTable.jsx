@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Typography } from "@mui/material";
 import PortfolioViewSwitch from "./PortfolioViewSwitch";
 import AddStock from "./AddStock";
 import StockHistoryModal from "./StockHistoryModal";
 import DeleteStockModal from "./DeleteStockModal";
+
+// Lazy-loaded: Recharts (~350 KB) only downloads when a chart is first opened
+const StockChartModal = lazy(() => import("./StockChartModal"));
 import PropTypes from "prop-types";
 import usePortfolioData from "../hooks/usePortfolioData";
 import usePortfolioActions from "../hooks/usePortfolioActions";
@@ -17,6 +20,7 @@ export default function PortfolioTable({
 	isConnected,
 }) {
 	const [selectedStock, setSelectedStock] = useState(null);
+	const [chartStock, setChartStock] = useState(null);
 	const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 	const [stockToDelete, setStockToDelete] = useState(null);
 	const [actionType, setActionType] = useState("");
@@ -113,6 +117,28 @@ export default function PortfolioTable({
 		setSelectedStock(null);
 	}, []);
 
+	const handleViewChart = useCallback(
+		(stock) => {
+			const history = historyByStockId[stock._id] || [];
+			setChartStock({ ...stock, history });
+		},
+		[historyByStockId],
+	);
+
+	const handleCloseChart = useCallback(() => setChartStock(null), []);
+
+	const handleChartAddMore = useCallback(() => {
+		if (!chartStock) return;
+		handleCloseChart();
+		handleAddStock(chartStock);
+	}, [chartStock, handleCloseChart, handleAddStock]);
+
+	const handleChartSell = useCallback(() => {
+		if (!chartStock) return;
+		handleCloseChart();
+		handleSellStock(chartStock._id);
+	}, [chartStock, handleCloseChart, handleSellStock]);
+
 	const handleCloseDeleteModal = useCallback(() => {
 		setDeleteModalOpen(false);
 	}, []);
@@ -142,14 +168,29 @@ export default function PortfolioTable({
 				onAdd={handleAddStock}
 				onSell={handleSellStock}
 				onViewHistory={handleViewHistory}
+				onChart={handleViewChart}
 				onDelete={handleDeleteStock}
 			/>
 			<StockHistoryModal
 				open={!!selectedStock}
 				onClose={handleCloseHistoryModal}
+				stock={selectedStock ?? null}
 				stockName={selectedStock?.stockName ?? ""}
 				history={selectedStock?.history ?? []}
+				ltpMap={ltpMap}
 			/>
+			<Suspense fallback={null}>
+				<StockChartModal
+					open={!!chartStock}
+					onClose={handleCloseChart}
+					stock={chartStock}
+					history={chartStock?.history ?? []}
+					ltpMap={ltpMap}
+					activeStockMetrics={activeStockMetrics}
+					onAddMore={handleChartAddMore}
+					onSell={handleChartSell}
+				/>
+			</Suspense>
 			{deleteModalOpen && stockToDelete && (
 				<DeleteStockModal
 					open={deleteModalOpen}

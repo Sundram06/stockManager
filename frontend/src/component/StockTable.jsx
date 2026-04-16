@@ -6,9 +6,9 @@ import {
 	TableHead,
 	TableRow,
 	TableSortLabel,
-	Paper,
 	Typography,
 	Box,
+	useTheme,
 } from "@mui/material";
 import { memo, useMemo, useState } from "react";
 import StockTableRow from "./StockTableRow";
@@ -43,6 +43,20 @@ const nullLast = (val, dir) =>
 		? dir === "asc" ? Infinity : -Infinity
 		: val;
 
+// ─── Column widths ───────────────────────────────────────────────────────────
+const COL_WIDTHS = {
+	name:      "20%",
+	qty:       "7%",
+	avgPrice:  "11%",
+	invested:  "12%",
+	ltp:       "9%",
+	currVal:   "12%",
+	sellPrice: "11%",
+	sellVal:   "12%",
+	pnl:       "11%",
+	actions:   "88px",
+};
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 function StockTable({
@@ -54,6 +68,7 @@ function StockTable({
 	onAdd,
 	onSell,
 	onViewHistory,
+	onChart,
 	onDelete,
 }) {
 	// Per-tab sort state: { [tab]: { col, dir } }
@@ -129,10 +144,12 @@ function StockTable({
 	}, [stocks, col, dir, activeTab, activeStockMetrics, ltpMap, dormantMetricsMap]);
 
 	const cols = activeTab === 0 ? ACTIVE_COLS : DORMANT_COLS;
+	const theme = useTheme();
+	const stickyHeaderBg = theme.palette.background.paper;
 
 	return (
-		<TableContainer component={Paper} elevation={2} sx={{ mb: 4 }}>
-			<Table>
+		<TableContainer sx={{ maxHeight: "calc(100vh - 340px)", overflowY: "auto" }}>
+			<Table stickyHeader size="small">
 				<TableHead>
 					<TableRow>
 						{cols.map((c) => (
@@ -140,7 +157,18 @@ function StockTable({
 								key={c.id}
 								align={c.align}
 								sortDirection={col === c.id ? dir : false}
-								sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}
+								sx={{
+									fontWeight: 700,
+									whiteSpace: "nowrap",
+									fontSize: "0.72rem",
+									letterSpacing: "0.06em",
+									textTransform: "uppercase",
+									color: "text.secondary",
+									bgcolor: stickyHeaderBg,
+									borderBottom: `2px solid ${theme.palette.divider}`,
+									width: COL_WIDTHS[c.id],
+									py: 1.25,
+								}}
 							>
 								<TableSortLabel
 									active={col === c.id}
@@ -151,7 +179,20 @@ function StockTable({
 								</TableSortLabel>
 							</TableCell>
 						))}
-						<TableCell align="center" sx={{ fontWeight: "bold" }}>
+						<TableCell
+							align="center"
+							sx={{
+								fontWeight: 700,
+								fontSize: "0.72rem",
+								letterSpacing: "0.06em",
+								textTransform: "uppercase",
+								color: "text.secondary",
+								bgcolor: stickyHeaderBg,
+								borderBottom: `2px solid ${theme.palette.divider}`,
+								width: COL_WIDTHS.actions,
+								py: 1.25,
+							}}
+						>
 							Actions
 						</TableCell>
 					</TableRow>
@@ -186,6 +227,7 @@ function StockTable({
 								onAdd={onAdd}
 								onSell={onSell}
 								onViewHistory={onViewHistory}
+								onChart={onChart}
 								onDelete={onDelete}
 							/>
 						))
@@ -205,6 +247,7 @@ StockTable.propTypes = {
 	onAdd: PropTypes.func.isRequired,
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,
+	onChart: PropTypes.func.isRequired,
 	onDelete: PropTypes.func.isRequired,
 };
 

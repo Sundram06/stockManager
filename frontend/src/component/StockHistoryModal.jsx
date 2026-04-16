@@ -12,7 +12,6 @@ import {
 	Typography,
 	IconButton,
 	TableContainer,
-	Paper,
 	useTheme,
 	useMediaQuery,
 	SwipeableDrawer,
@@ -23,7 +22,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import { dateFormatter } from "../util/util.mjs";
 
-// Short date for mobile: "05 Jul 2025"
+// ─── Formatters ───────────────────────────────────────────────────────────────
 const fmtDate = (d) => {
 	if (!d) return "—";
 	return new Date(d).toLocaleDateString("en-IN", {
@@ -33,22 +32,23 @@ const fmtDate = (d) => {
 	});
 };
 
-const rupeeAbs = (n, dec = 0) =>
+const rupee = (n, dec = 0) =>
 	typeof n === "number" && !isNaN(n)
 		? `₹${Math.abs(n).toLocaleString("en-IN", { maximumFractionDigits: dec })}`
 		: "—";
 
-// --- Helper for totals ---
+// ─── Compute totals ───────────────────────────────────────────────────────────
 function computeHistoryTotals(historyRows) {
-	let totalSoldQty = 0,
-		totalSoldAmt = 0,
-		totalSoldPL = 0,
-		totalSoldCost = 0,
-		totalSoldBuyQty = 0;
-	let totalUnsoldQty = 0,
-		totalUnsoldAmt = 0;
-	let totalSellPriceQty = 0,
-		totalBuyPriceQty = 0;
+	let totalBoughtQty = 0;
+	let totalSoldQty = 0;
+	let totalSoldAmt = 0;
+	let totalSoldPL = 0;
+	let totalSoldCost = 0;
+	let totalSellPriceQty = 0;
+	let totalSoldBuyQty = 0;
+	let totalUnsoldQty = 0;
+	let totalUnsoldAmt = 0;
+	let totalBuyPriceQty = 0;
 
 	historyRows.forEach((row) => {
 		const soldQty = row.quantitySold || 0;
@@ -56,6 +56,8 @@ function computeHistoryTotals(historyRows) {
 		const avgBuy = row.avgPrice || 0;
 		const sellPrice = row.sellingPrice || 0;
 		const pnl = row.pnl || 0;
+
+		totalBoughtQty += buyQty;
 
 		if (soldQty > 0) {
 			totalSoldQty += soldQty;
@@ -75,6 +77,7 @@ function computeHistoryTotals(historyRows) {
 	});
 
 	return {
+		totalBoughtQty,
 		totalSoldQty,
 		totalSoldAmt,
 		avgSoldPrice: totalSoldQty > 0 ? totalSellPriceQty / totalSoldQty : null,
@@ -87,8 +90,173 @@ function computeHistoryTotals(historyRows) {
 	};
 }
 
-// ─── Mobile: individual lot card ─────────────────────────────────────────────
+// ─── Lot status helpers ───────────────────────────────────────────────────────
+function getLotStatus(row) {
+	const soldQty = row.quantitySold || 0;
+	const buyQty = row.quantity || 0;
+	if (soldQty >= buyQty) return "SOLD";
+	if (soldQty > 0) return "PARTIAL";
+	return "HOLDING";
+}
 
+function LotStatusBadge({ status }) {
+	const theme = useTheme();
+	if (status === "SOLD") return null; // sold rows just dim, no badge
+
+	const styles = {
+		HOLDING: {
+			bg: `${theme.palette.primary.main}20`,
+			color: theme.palette.primary.main,
+			label: "HOLDING",
+		},
+		PARTIAL: {
+			bg: `${theme.palette.warning.main}22`,
+			color: theme.palette.warning.main,
+			label: "PARTIAL",
+		},
+	}[status];
+
+	return (
+		<Box
+			sx={{
+				display: "inline-flex",
+				px: 0.75,
+				py: "2px",
+				borderRadius: "4px",
+				bgcolor: styles.bg,
+			}}
+		>
+			<Typography
+				sx={{
+					fontSize: "0.6rem",
+					fontWeight: 700,
+					letterSpacing: "0.06em",
+					color: styles.color,
+					lineHeight: 1.4,
+				}}
+			>
+				{styles.label}
+			</Typography>
+		</Box>
+	);
+}
+
+// ─── ACTIVE / EXITED header badge ─────────────────────────────────────────────
+function StockStatusBadge({ isActive }) {
+	const theme = useTheme();
+	return (
+		<Box
+			sx={{
+				display: "inline-flex",
+				px: 1,
+				py: "3px",
+				borderRadius: "6px",
+				bgcolor: isActive
+					? `${theme.palette.primary.main}22`
+					: `${theme.palette.text.secondary}18`,
+				border: `1px solid ${isActive ? theme.palette.primary.main + "44" : theme.palette.divider}`,
+			}}
+		>
+			<Typography
+				sx={{
+					fontSize: "0.62rem",
+					fontWeight: 700,
+					letterSpacing: "0.08em",
+					color: isActive ? theme.palette.primary.main : theme.palette.text.secondary,
+					lineHeight: 1.4,
+				}}
+			>
+				{isActive ? "ACTIVE" : "EXITED"}
+			</Typography>
+		</Box>
+	);
+}
+
+// ─── Pinned 4-metric footer ───────────────────────────────────────────────────
+function HistoryFooter({ totals, unrealizedPnL }) {
+	const theme = useTheme();
+	const green = theme.palette.success.main;
+	const red = theme.palette.error.main;
+
+	const realizedColor =
+		totals.totalSoldPL > 0 ? green : totals.totalSoldPL < 0 ? red : "text.secondary";
+	const unrealizedColor =
+		unrealizedPnL != null
+			? unrealizedPnL > 0 ? green : unrealizedPnL < 0 ? red : "text.secondary"
+			: "text.secondary";
+
+	const metrics = [
+		{
+			label: "Total Bought",
+			value: `${totals.totalBoughtQty} units`,
+			color: "text.primary",
+		},
+		{
+			label: "Total Sold",
+			value: totals.totalSoldQty > 0 ? `${totals.totalSoldQty} units` : "—",
+			color: "text.primary",
+		},
+		{
+			label: "Realized P&L",
+			value: totals.totalSoldQty > 0
+				? `${totals.totalSoldPL >= 0 ? "+" : "−"}${rupee(totals.totalSoldPL)}`
+				: "—",
+			color: totals.totalSoldQty > 0 ? realizedColor : "text.disabled",
+		},
+		{
+			label: "Unrealized P&L",
+			value: unrealizedPnL != null && totals.totalUnsoldQty > 0
+				? `${unrealizedPnL >= 0 ? "+" : "−"}${rupee(unrealizedPnL)}`
+				: "—",
+			color: totals.totalUnsoldQty > 0 ? unrealizedColor : "text.disabled",
+		},
+	];
+
+	return (
+		<Box
+			sx={{
+				flexShrink: 0,
+				borderTop: `1px solid ${theme.palette.divider}`,
+				bgcolor: "background.paper",
+				display: "grid",
+				gridTemplateColumns: "repeat(4, 1fr)",
+				px: { xs: 1.5, sm: 2.5 },
+				py: { xs: 1.25, sm: 1.5 },
+				gap: 1,
+			}}
+		>
+			{metrics.map((m) => (
+				<Box key={m.label}>
+					<Typography
+						sx={{
+							fontSize: "0.58rem",
+							fontWeight: 700,
+							letterSpacing: "0.08em",
+							color: "text.secondary",
+							textTransform: "uppercase",
+							mb: 0.3,
+						}}
+					>
+						{m.label}
+					</Typography>
+					<Typography
+						sx={{
+							fontSize: { xs: "0.8rem", sm: "0.9rem" },
+							fontWeight: 700,
+							color: m.color,
+							fontVariantNumeric: "tabular-nums",
+							letterSpacing: "-0.01em",
+						}}
+					>
+						{m.value}
+					</Typography>
+				</Box>
+			))}
+		</Box>
+	);
+}
+
+// ─── Mobile: individual lot card ─────────────────────────────────────────────
 function LotCard({ lot, index }) {
 	const theme = useTheme();
 	const green = theme.palette.success.main;
@@ -97,30 +265,37 @@ function LotCard({ lot, index }) {
 	const soldQty = lot.quantitySold || 0;
 	const buyQty = lot.quantity || 0;
 	const unsoldQty = buyQty - soldQty;
-	const isSold = soldQty >= buyQty;
-	const isPartial = soldQty > 0 && soldQty < buyQty;
+	const status = getLotStatus(lot);
 
 	const pnlColor = lot.pnl > 0 ? green : lot.pnl < 0 ? red : "text.secondary";
 	const pnlSign = lot.pnl >= 0 ? "+" : "−";
 
-	const statusLabel = isSold ? "SOLD" : isPartial ? "PARTIAL" : "ACTIVE";
 	const statusStyles = {
 		SOLD: {
 			bg: theme.palette.mode === "dark" ? "rgba(148,163,184,0.12)" : "rgba(148,163,184,0.14)",
 			color: theme.palette.text.secondary,
+			label: "SOLD",
 		},
 		PARTIAL: {
-			bg: theme.palette.mode === "dark" ? `${theme.palette.warning.main}22` : `${theme.palette.warning.main}1a`,
+			bg: `${theme.palette.warning.main}22`,
 			color: theme.palette.warning.main,
+			label: "PARTIAL",
 		},
-		ACTIVE: {
-			bg: theme.palette.mode === "dark" ? "rgba(59,130,246,0.14)" : "rgba(59,130,246,0.09)",
-			color: theme.palette.info.main,
+		HOLDING: {
+			bg: `${theme.palette.primary.main}20`,
+			color: theme.palette.primary.main,
+			label: "HOLDING",
 		},
-	}[statusLabel];
+	}[status];
 
 	return (
-		<Box sx={{ px: 2, py: 1.1 }}>
+		<Box
+			sx={{
+				px: 2,
+				py: 1.1,
+				opacity: status === "SOLD" ? 0.7 : 1,
+			}}
+		>
 			{/* Lot header */}
 			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
 				<Typography
@@ -134,94 +309,41 @@ function LotCard({ lot, index }) {
 				>
 					Lot {index + 1}
 				</Typography>
-				<Box
-					sx={{
-						px: 0.75,
-						py: "2px",
-						borderRadius: 0.75,
-						bgcolor: statusStyles.bg,
-					}}
-				>
-					<Typography
-						sx={{
-							fontSize: "0.58rem",
-							fontWeight: 700,
-							letterSpacing: "0.06em",
-							color: statusStyles.color,
-						}}
-					>
-						{statusLabel}
+				<Box sx={{ px: 0.75, py: "2px", borderRadius: 0.75, bgcolor: statusStyles.bg }}>
+					<Typography sx={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.06em", color: statusStyles.color }}>
+						{statusStyles.label}
 					</Typography>
 				</Box>
 			</Box>
 
 			{/* Buy row */}
 			<Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
-				<ArrowDownwardIcon
-					sx={{ fontSize: "0.65rem", color: "text.disabled", flexShrink: 0 }}
-				/>
-				<Typography
-					sx={{
-						fontSize: "0.7rem",
-						color: "text.secondary",
-						flex: 1,
-						lineHeight: 1.45,
-					}}
-				>
-					{fmtDate(lot.date)}&ensp;{buyQty} qty @ ₹{parseFloat(lot.avgPrice || 0).toFixed(2)}
+				<ArrowDownwardIcon sx={{ fontSize: "0.65rem", color: "text.disabled", flexShrink: 0 }} />
+				<Typography sx={{ fontSize: "0.7rem", color: "text.secondary", flex: 1, lineHeight: 1.45 }}>
+					{fmtDate(lot.date)}&ensp;
+					{status === "PARTIAL" ? `${soldQty}/${buyQty}` : buyQty} qty @ ₹{parseFloat(lot.avgPrice || 0).toFixed(2)}
 				</Typography>
-				<Typography
-					sx={{
-						fontSize: "0.7rem",
-						color: "text.secondary",
-						fontVariantNumeric: "tabular-nums",
-						flexShrink: 0,
-					}}
-				>
-					Cost {rupeeAbs(buyQty * (lot.avgPrice || 0))}
+				<Typography sx={{ fontSize: "0.7rem", color: "text.secondary", fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+					Cost {rupee(buyQty * (lot.avgPrice || 0))}
 				</Typography>
 			</Box>
 
 			{/* Sell row */}
 			{soldQty > 0 && (
 				<Box sx={{ display: "flex", alignItems: "center", gap: 0.6, mt: 0.3 }}>
-					<ArrowUpwardIcon
-						sx={{ fontSize: "0.65rem", color: pnlColor, flexShrink: 0 }}
-					/>
-					<Typography
-						sx={{
-							fontSize: "0.7rem",
-							color: "text.secondary",
-							flex: 1,
-							lineHeight: 1.45,
-						}}
-					>
+					<ArrowUpwardIcon sx={{ fontSize: "0.65rem", color: pnlColor, flexShrink: 0 }} />
+					<Typography sx={{ fontSize: "0.7rem", color: "text.secondary", flex: 1, lineHeight: 1.45 }}>
 						{fmtDate(lot.dateSold)}&ensp;{soldQty} qty @ ₹{parseFloat(lot.sellingPrice || 0).toFixed(2)}
 					</Typography>
-					<Typography
-						sx={{
-							fontSize: "0.7rem",
-							fontWeight: 600,
-							color: pnlColor,
-							fontVariantNumeric: "tabular-nums",
-							flexShrink: 0,
-						}}
-					>
-						{pnlSign}{rupeeAbs(lot.pnl)}
+					<Typography sx={{ fontSize: "0.7rem", fontWeight: 600, color: pnlColor, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+						{pnlSign}{rupee(lot.pnl)}
 					</Typography>
 				</Box>
 			)}
 
-			{/* Still held (partial lots only) */}
-			{isPartial && (
-				<Typography
-					sx={{
-						fontSize: "0.63rem",
-						color: "text.disabled",
-						mt: 0.3,
-						pl: "18px",
-					}}
-				>
+			{/* Still held note for partial */}
+			{status === "PARTIAL" && (
+				<Typography sx={{ fontSize: "0.63rem", color: "text.disabled", mt: 0.3, pl: "18px" }}>
 					{unsoldQty} shares still held
 				</Typography>
 			)}
@@ -229,141 +351,117 @@ function LotCard({ lot, index }) {
 	);
 }
 
-// ─── Mobile: summary footer ───────────────────────────────────────────────────
-
-function MobileSummary({ totals }) {
+// ─── Mobile: 4-metric summary footer ─────────────────────────────────────────
+function MobileFooter({ totals, unrealizedPnL }) {
 	const theme = useTheme();
 	const green = theme.palette.success.main;
 	const red = theme.palette.error.main;
-	const isDark = theme.palette.mode === "dark";
 
-	const soldBg =
-		totals.totalSoldPL > 0
-			? isDark ? "rgba(16,185,129,0.14)" : "rgba(16,185,129,0.08)"
-			: totals.totalSoldPL < 0
-				? isDark ? "rgba(239,68,68,0.16)" : "rgba(239,68,68,0.08)"
-				: "action.hover";
-
-	const pnlColor =
-		totals.totalSoldPL > 0 ? green : totals.totalSoldPL < 0 ? red : "text.secondary";
-	const pnlSign = totals.totalSoldPL >= 0 ? "+" : "−";
+	const realizedColor = totals.totalSoldPL > 0 ? green : totals.totalSoldPL < 0 ? red : "text.secondary";
+	const unrealizedColor = unrealizedPnL != null
+		? unrealizedPnL > 0 ? green : unrealizedPnL < 0 ? red : "text.secondary"
+		: "text.secondary";
 
 	return (
 		<Box sx={{ flexShrink: 0 }}>
 			<Divider />
-
-			{/* Total Sold */}
-			{totals.totalSoldQty > 0 && (
-				<Box sx={{ px: 2, py: 1.1, bgcolor: soldBg }}>
-					<Typography
+			<Box
+				sx={{
+					display: "grid",
+					gridTemplateColumns: "repeat(2, 1fr)",
+					gap: 0,
+				}}
+			>
+				{[
+					{ label: "Total Bought", value: `${totals.totalBoughtQty} units`, color: "text.primary" },
+					{ label: "Total Sold", value: totals.totalSoldQty > 0 ? `${totals.totalSoldQty} units` : "—", color: "text.primary" },
+					{
+						label: "Realized P&L",
+						value: totals.totalSoldQty > 0
+							? `${totals.totalSoldPL >= 0 ? "+" : "−"}${rupee(totals.totalSoldPL)}`
+							: "—",
+						color: totals.totalSoldQty > 0 ? realizedColor : "text.disabled",
+					},
+					{
+						label: "Unrealized P&L",
+						value: unrealizedPnL != null && totals.totalUnsoldQty > 0
+							? `${unrealizedPnL >= 0 ? "+" : "−"}${rupee(unrealizedPnL)}`
+							: "—",
+						color: totals.totalUnsoldQty > 0 ? unrealizedColor : "text.disabled",
+					},
+				].map((m, i) => (
+					<Box
+						key={m.label}
 						sx={{
-							fontSize: "0.58rem",
-							fontWeight: 700,
-							letterSpacing: "0.07em",
-							color: "text.disabled",
-							textTransform: "uppercase",
-							mb: 0.4,
+							px: 2,
+							py: 1.1,
+							borderTop: `1px solid ${theme.palette.divider}`,
+							borderRight: i % 2 === 0 ? `1px solid ${theme.palette.divider}` : "none",
+							pb: i >= 2 ? "calc(1.1 * 8px + env(safe-area-inset-bottom, 8px))" : undefined,
 						}}
 					>
-						Total Sold
-					</Typography>
-					<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-						<Typography sx={{ fontSize: "0.7rem", color: "text.secondary", flex: 1, mr: 1 }}>
-							{totals.totalSoldQty} qty&ensp;·&ensp;Avg Buy ₹{totals.avgBuyPriceForSold?.toFixed(2) ?? "—"}&ensp;·&ensp;Cost {rupeeAbs(totals.totalSoldCost)}
+						<Typography sx={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.07em", color: "text.disabled", textTransform: "uppercase", mb: 0.3 }}>
+							{m.label}
 						</Typography>
-						<Typography
-							sx={{
-								fontSize: "0.72rem",
-								fontWeight: 700,
-								color: pnlColor,
-								fontVariantNumeric: "tabular-nums",
-								flexShrink: 0,
-							}}
-						>
-							{pnlSign}{rupeeAbs(totals.totalSoldPL)}
+						<Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: m.color, fontVariantNumeric: "tabular-nums" }}>
+							{m.value}
 						</Typography>
 					</Box>
-					<Typography sx={{ fontSize: "0.66rem", color: "text.secondary", mt: 0.2 }}>
-						Avg Sell ₹{totals.avgSoldPrice?.toFixed(2) ?? "—"}&ensp;·&ensp;Sell Value {rupeeAbs(totals.totalSoldAmt)}
-					</Typography>
-				</Box>
-			)}
-
-			<Divider />
-
-			{/* Total Unsold */}
-			{totals.totalUnsoldQty > 0 && (
-				<Box
-					sx={{
-						px: 2,
-						py: 1.1,
-						pb: 1.75,
-						bgcolor: isDark ? "rgba(59,130,246,0.10)" : "rgba(59,130,246,0.06)",
-					}}
-				>
-					<Typography
-						sx={{
-							fontSize: "0.58rem",
-							fontWeight: 700,
-							letterSpacing: "0.07em",
-							color: "text.disabled",
-							textTransform: "uppercase",
-							mb: 0.4,
-						}}
-					>
-						Total Unsold
-					</Typography>
-					<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-						<Typography sx={{ fontSize: "0.7rem", color: "text.secondary" }}>
-							{totals.totalUnsoldQty} qty&ensp;·&ensp;Avg Buy ₹{totals.avgBuyPrice?.toFixed(2) ?? "—"}
-						</Typography>
-						<Typography
-							sx={{
-								fontSize: "0.72rem",
-								fontWeight: 600,
-								color: "text.primary",
-								fontVariantNumeric: "tabular-nums",
-							}}
-						>
-							{rupeeAbs(totals.totalUnsoldAmt)}
-						</Typography>
-					</Box>
-				</Box>
-			)}
+				))}
+			</Box>
 		</Box>
 	);
 }
 
-// ─── Desktop: unchanged modal styles ─────────────────────────────────────────
+// ─── Desktop table header cell sx ────────────────────────────────────────────
+const hcSx = {
+	fontWeight: 700,
+	whiteSpace: "nowrap",
+	fontSize: "0.68rem",
+	letterSpacing: "0.06em",
+	textTransform: "uppercase",
+	color: "text.secondary",
+	py: 1.25,
+	bgcolor: "background.elevated",
+	borderBottom: "2px solid",
+	borderColor: "divider",
+};
 
-const modalStyle = {
-	position: "absolute",
-	top: "50%",
-	left: "50%",
-	transform: "translate(-50%, -50%)",
-	width: "96vw",
-	maxWidth: 1200,
-	maxHeight: "88vh",
-	bgcolor: "background.paper",
-	boxShadow: 24,
-	p: { xs: 1.5, sm: 2.5, md: 3 },
-	borderRadius: 2,
-	display: "flex",
-	flexDirection: "column",
+const numSx = {
+	whiteSpace: "nowrap",
+	fontSize: "0.82rem",
+	py: 1.1,
+	textAlign: "right",
+	fontVariantNumeric: "tabular-nums",
+};
+
+const dateSx = {
+	whiteSpace: "nowrap",
+	fontSize: "0.82rem",
+	py: 1.1,
 };
 
 // ─── Main component ───────────────────────────────────────────────────────────
-
-export default function StockHistoryModal({ open, onClose, stockName, history }) {
+export default function StockHistoryModal({ open, onClose, stock, stockName, history, ltpMap }) {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+	// Ascending sort (oldest first = FIFO order)
 	const sortedHistory = useMemo(
-		() => history.slice().sort((a, b) => new Date(b.date) - new Date(a.date)),
+		() => history.slice().sort((a, b) => new Date(a.date) - new Date(b.date)),
 		[history],
 	);
 
 	const totals = useMemo(() => computeHistoryTotals(sortedHistory), [sortedHistory]);
+
+	const isActive = (stock?.quantity ?? 0) > 0;
+
+	// Unrealized P&L = (LTP - avgBuyPrice) × unsold qty
+	const ltp = ltpMap?.[stockName]?.ltp ?? null;
+	const unrealizedPnL = useMemo(() => {
+		if (ltp == null || totals.totalUnsoldQty === 0 || totals.avgBuyPrice == null) return null;
+		return (ltp - totals.avgBuyPrice) * totals.totalUnsoldQty;
+	}, [ltp, totals]);
 
 	const hasSameDateLots = useMemo(() => {
 		const seen = new Set();
@@ -376,31 +474,6 @@ export default function StockHistoryModal({ open, onClose, stockName, history })
 		}
 		return false;
 	}, [history]);
-
-	const soldSummaryBg = (t) => {
-		if (totals.totalSoldPL > 0)
-			return t.palette.mode === "dark" ? "rgba(16, 185, 129, 0.16)" : "rgba(16, 185, 129, 0.10)";
-		if (totals.totalSoldPL < 0)
-			return t.palette.mode === "dark" ? "rgba(239, 68, 68, 0.18)" : "rgba(239, 68, 68, 0.10)";
-		return t.palette.mode === "dark" ? "rgba(148, 163, 184, 0.14)" : "rgba(148, 163, 184, 0.08)";
-	};
-
-	const headerCellSx = {
-		fontWeight: 700,
-		whiteSpace: "nowrap",
-		fontSize: { xs: "0.74rem", sm: "0.8rem" },
-		py: 1.2,
-	};
-	const dataCellSx = {
-		whiteSpace: "nowrap",
-		fontSize: { xs: "0.78rem", sm: "0.84rem" },
-		py: 1,
-	};
-	const numberCellSx = {
-		...dataCellSx,
-		textAlign: "right",
-		fontVariantNumeric: "tabular-nums",
-	};
 
 	// ── Mobile ────────────────────────────────────────────────────────────────
 	if (isMobile) {
@@ -417,39 +490,26 @@ export default function StockHistoryModal({ open, onClose, stockName, history })
 						maxHeight: "90vh",
 						display: "flex",
 						flexDirection: "column",
-						paddingBottom: "env(safe-area-inset-bottom, 12px)",
 					},
 				}}
 			>
 				{/* Drag handle */}
-				<Box
-					sx={{
-						display: "flex",
-						justifyContent: "center",
-						pt: 1.5,
-						pb: 0.5,
-						flexShrink: 0,
-					}}
-				>
+				<Box sx={{ display: "flex", justifyContent: "center", pt: 1.5, pb: 0.5, flexShrink: 0 }}>
 					<Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: "divider" }} />
 				</Box>
 
 				{/* Header */}
-				<Box
-					sx={{
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-						px: 2,
-						pt: 0.5,
-						pb: 1,
-						flexShrink: 0,
-					}}
-				>
-					<Typography sx={{ fontSize: "0.95rem", fontWeight: 700 }}>
-						{stockName} History
-					</Typography>
-					<IconButton size="small" onClick={onClose} aria-label="Close">
+				<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", px: 2, pt: 0.5, pb: 1, flexShrink: 0 }}>
+					<Box>
+						<Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.25 }}>
+							<Typography sx={{ fontSize: "0.95rem", fontWeight: 700 }}>{stockName}</Typography>
+							<StockStatusBadge isActive={isActive} />
+						</Box>
+						<Typography sx={{ fontSize: "0.68rem", color: "text.secondary", letterSpacing: "0.04em" }}>
+							NSE · {stockName}
+						</Typography>
+					</Box>
+					<IconButton size="small" onClick={onClose} aria-label="Close" sx={{ mt: -0.25 }}>
 						<CloseIcon fontSize="small" />
 					</IconButton>
 				</Box>
@@ -459,7 +519,7 @@ export default function StockHistoryModal({ open, onClose, stockName, history })
 				{hasSameDateLots && (
 					<Box sx={{ px: 2, py: 0.75, bgcolor: "action.hover", flexShrink: 0 }}>
 						<Typography sx={{ fontSize: "0.65rem", color: "text.secondary", lineHeight: 1.4 }}>
-							Multiple lots purchased on the same day — shares are distributed proportionally across those lots during a sell.
+							Multiple lots on the same day — shares are distributed proportionally during a sell.
 						</Typography>
 					</Box>
 				)}
@@ -468,12 +528,10 @@ export default function StockHistoryModal({ open, onClose, stockName, history })
 				<Box sx={{ flex: 1, overflowY: "auto" }}>
 					{sortedHistory.length === 0 ? (
 						<Box sx={{ py: 4, textAlign: "center" }}>
-							<Typography variant="body2" color="text.secondary">
-								No history yet
-							</Typography>
+							<Typography variant="body2" color="text.secondary">No history yet</Typography>
 						</Box>
 					) : (
-						[...sortedHistory].reverse().map((lot, i) => (
+						sortedHistory.map((lot, i) => (
 							<Box key={lot._id}>
 								<LotCard lot={lot} index={i} />
 								{i < sortedHistory.length - 1 && <Divider />}
@@ -482,45 +540,76 @@ export default function StockHistoryModal({ open, onClose, stockName, history })
 					)}
 				</Box>
 
-				{/* Summary footer */}
-				<MobileSummary totals={totals} />
+				<MobileFooter totals={totals} unrealizedPnL={unrealizedPnL} />
 			</SwipeableDrawer>
 		);
 	}
 
-	// ── Desktop (unchanged) ───────────────────────────────────────────────────
+	// ── Desktop ───────────────────────────────────────────────────────────────
 	return (
 		<Modal open={open} onClose={onClose}>
-			<Box sx={modalStyle}>
-				{/* Header */}
+			<Box
+				sx={{
+					position: "absolute",
+					top: "50%",
+					left: "50%",
+					transform: "translate(-50%, -50%)",
+					width: "96vw",
+					maxWidth: 1100,
+					maxHeight: "88vh",
+					bgcolor: "background.paper",
+					border: `1px solid ${theme.palette.divider}`,
+					boxShadow: 16,
+					borderRadius: 2,
+					display: "flex",
+					flexDirection: "column",
+					overflow: "hidden",
+				}}
+			>
+				{/* ── Modal header ─────────────────────────────────────── */}
 				<Box
 					sx={{
 						display: "flex",
 						justifyContent: "space-between",
-						alignItems: "center",
-						mb: 2,
-						borderBottom: (t) => `1px solid ${t.palette.divider}`,
-						pb: 1,
+						alignItems: "flex-start",
+						px: { xs: 2, sm: 3 },
+						pt: { xs: 2, sm: 2.5 },
+						pb: { xs: 1.5, sm: 2 },
 						flexShrink: 0,
+						borderBottom: `1px solid ${theme.palette.divider}`,
 					}}
 				>
-					<Typography variant="h6" fontWeight="bold">
-						{stockName} History
-					</Typography>
-					<IconButton onClick={onClose} aria-label="Close">
+					<Box>
+						<Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.4 }}>
+							<Typography
+								sx={{
+									fontSize: { xs: "1.1rem", sm: "1.25rem" },
+									fontWeight: 700,
+									letterSpacing: "-0.01em",
+									lineHeight: 1,
+								}}
+							>
+								{stockName}
+							</Typography>
+							<StockStatusBadge isActive={isActive} />
+						</Box>
+						<Typography sx={{ fontSize: "0.72rem", color: "text.secondary", letterSpacing: "0.05em" }}>
+							NSE · {stockName} · Transaction History
+						</Typography>
+					</Box>
+					<IconButton onClick={onClose} aria-label="Close" size="small" sx={{ mt: -0.5 }}>
 						<CloseIcon />
 					</IconButton>
 				</Box>
 
+				{/* Same-date lots notice */}
 				{hasSameDateLots && (
 					<Box
 						sx={{
-							mb: 1.5,
-							px: 1.5,
+							px: 3,
 							py: 0.75,
-							borderRadius: 1,
-							bgcolor: (t) => t.palette.mode === "dark" ? "rgba(148,163,184,0.10)" : "rgba(148,163,184,0.12)",
-							border: (t) => `1px solid ${t.palette.divider}`,
+							bgcolor: (t) => t.palette.mode === "dark" ? "rgba(148,163,184,0.08)" : "rgba(148,163,184,0.10)",
+							borderBottom: `1px solid ${theme.palette.divider}`,
 							flexShrink: 0,
 						}}
 					>
@@ -530,151 +619,120 @@ export default function StockHistoryModal({ open, onClose, stockName, history })
 					</Box>
 				)}
 
-				{/* Table */}
-				<TableContainer
-					component={Paper}
-					elevation={0}
-					sx={{
-						flex: 1,
-						overflow: "auto",
-						borderRadius: 1,
-						border: (t) => `1px solid ${t.palette.divider}`,
-					}}
-				>
-					<Table size="medium" stickyHeader>
+				{/* ── Table ────────────────────────────────────────────── */}
+				<TableContainer sx={{ flex: 1, overflow: "auto" }}>
+					<Table size="small" stickyHeader>
 						<TableHead>
 							<TableRow>
-								<TableCell sx={headerCellSx}>Date Purchased</TableCell>
-								<TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Quantity</TableCell>
-								<TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Price</TableCell>
-								<TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Total Cost Price</TableCell>
-								<TableCell sx={headerCellSx}>Date Sold</TableCell>
-								<TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Quantity Sold</TableCell>
-								<TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Selling Price</TableCell>
-								<TableCell sx={{ ...headerCellSx, textAlign: "right" }}>Total Selling Price</TableCell>
-								<TableCell sx={{ ...headerCellSx, textAlign: "right" }}>P&L</TableCell>
+								<TableCell sx={{ ...hcSx, width: 60 }}>Lot</TableCell>
+								<TableCell sx={hcSx}>Buy Date</TableCell>
+								<TableCell sx={{ ...hcSx, textAlign: "right" }}>Qty</TableCell>
+								<TableCell sx={{ ...hcSx, textAlign: "right" }}>Buy Price</TableCell>
+								<TableCell sx={{ ...hcSx, textAlign: "right" }}>Cost</TableCell>
+								<TableCell sx={hcSx}>Sell Date</TableCell>
+								<TableCell sx={{ ...hcSx, textAlign: "right" }}>Sell Price</TableCell>
+								<TableCell sx={{ ...hcSx, textAlign: "right" }}>P&L</TableCell>
+								<TableCell sx={{ ...hcSx, textAlign: "center" }}>Status</TableCell>
 							</TableRow>
 						</TableHead>
 						<TableBody>
 							{sortedHistory.map((row, index) => {
-								const costPrice =
-									row.avgPrice !== undefined
-										? (row.quantity * row.avgPrice).toFixed(2)
-										: "—";
-								const totalSellPrice =
-									row.quantitySold && row.sellingPrice !== undefined
-										? (row.quantitySold * row.sellingPrice).toFixed(2)
-										: "—";
+								const soldQty = row.quantitySold || 0;
+								const buyQty = row.quantity || 0;
+								const status = getLotStatus(row);
+								const isSold = status === "SOLD";
+
+								const pnlColor =
+									row.pnl > 0 ? theme.palette.success.main
+									: row.pnl < 0 ? theme.palette.error.main
+									: "inherit";
+
 								return (
 									<TableRow
 										key={row._id}
 										sx={{
-											backgroundColor: (t) =>
-												index % 2 === 0 ? t.palette.action.hover : "inherit",
+											opacity: isSold ? 0.65 : 1,
+											"& td": { borderColor: "divider" },
+											"&:hover": { bgcolor: "action.hover" },
 										}}
 									>
-										<TableCell sx={dataCellSx}>{dateFormatter(row.date)}</TableCell>
-										<TableCell sx={numberCellSx}>{row.quantity}</TableCell>
-										<TableCell sx={numberCellSx}>
-											{row.avgPrice !== undefined
-												? parseFloat(row.avgPrice).toFixed(2)
-												: "—"}
+										{/* Lot # */}
+										<TableCell sx={{ ...dateSx, pl: { xs: 2, sm: 3 } }}>
+											<Typography
+												sx={{
+													fontSize: "0.7rem",
+													fontWeight: 700,
+													color: "text.secondary",
+													fontVariantNumeric: "tabular-nums",
+													letterSpacing: "0.04em",
+												}}
+											>
+												L{index + 1}
+											</Typography>
 										</TableCell>
-										<TableCell sx={numberCellSx}>{costPrice}</TableCell>
-										<TableCell sx={dataCellSx}>
+
+										{/* Buy Date */}
+										<TableCell sx={dateSx}>{dateFormatter(row.date)}</TableCell>
+
+										{/* Qty — shows `soldQty/totalQty` for partial */}
+										<TableCell sx={numSx}>
+											{status === "PARTIAL"
+												? <Typography component="span" sx={{ fontSize: "0.82rem", fontVariantNumeric: "tabular-nums" }}>
+													<Typography component="span" sx={{ fontWeight: 700, color: "warning.main", fontSize: "inherit" }}>{soldQty}</Typography>
+													<Typography component="span" sx={{ color: "text.disabled", fontSize: "inherit" }}>/{buyQty}</Typography>
+												  </Typography>
+												: buyQty
+											}
+										</TableCell>
+
+										{/* Buy Price */}
+										<TableCell sx={numSx}>
+											{row.avgPrice !== undefined ? `₹${parseFloat(row.avgPrice).toFixed(2)}` : "—"}
+										</TableCell>
+
+										{/* Cost */}
+										<TableCell sx={numSx}>
+											{row.avgPrice !== undefined ? rupee(buyQty * row.avgPrice) : "—"}
+										</TableCell>
+
+										{/* Sell Date */}
+										<TableCell sx={dateSx}>
 											{row.dateSold ? dateFormatter(row.dateSold) : "—"}
 										</TableCell>
-										<TableCell sx={numberCellSx}>{row.quantitySold || "—"}</TableCell>
-										<TableCell sx={numberCellSx}>
-											{row.sellingPrice !== undefined
-												? parseFloat(row.sellingPrice).toFixed(2)
+
+										{/* Sell Price */}
+										<TableCell sx={numSx}>
+											{row.sellingPrice !== undefined && soldQty > 0
+												? `₹${parseFloat(row.sellingPrice).toFixed(2)}`
 												: "—"}
 										</TableCell>
-										<TableCell sx={numberCellSx}>{totalSellPrice}</TableCell>
+
+										{/* P&L */}
 										<TableCell
 											sx={{
-												...numberCellSx,
-												color:
-													row.pnl > 0 ? "green" : row.pnl < 0 ? "red" : "inherit",
-												fontWeight: "bold",
+												...numSx,
+												fontWeight: 700,
+												color: pnlColor,
 											}}
 										>
-											{row.pnl !== undefined ? parseFloat(row.pnl).toFixed(2) : "—"}
+											{row.pnl != null && soldQty > 0
+												? `${row.pnl >= 0 ? "+" : "−"}${rupee(row.pnl)}`
+												: "—"}
+										</TableCell>
+
+										{/* Status badge */}
+										<TableCell sx={{ ...dateSx, textAlign: "center" }}>
+											<LotStatusBadge status={status} />
 										</TableCell>
 									</TableRow>
 								);
 							})}
-
-							{/* Total Sold row */}
-							<TableRow sx={{ backgroundColor: soldSummaryBg }}>
-								<TableCell sx={{ ...dataCellSx, fontWeight: "bold" }}>Total Sold</TableCell>
-								<TableCell sx={{ ...numberCellSx, fontWeight: "bold" }}>
-									{totals.totalSoldQty > 0 ? totals.totalSoldQty : "—"}
-								</TableCell>
-								<TableCell sx={{ ...numberCellSx, fontWeight: "bold" }}>
-									{totals.avgBuyPriceForSold
-										? parseFloat(totals.avgBuyPriceForSold).toFixed(2)
-										: "—"}
-								</TableCell>
-								<TableCell sx={{ ...numberCellSx, fontWeight: "bold" }}>
-									{totals.totalSoldCost > 0 ? totals.totalSoldCost.toFixed(2) : "—"}
-								</TableCell>
-								<TableCell />
-								<TableCell sx={{ ...numberCellSx, fontWeight: "bold" }}>
-									{totals.totalSoldQty > 0 ? totals.totalSoldQty : "—"}
-								</TableCell>
-								<TableCell sx={{ ...numberCellSx, fontWeight: "bold" }}>
-									{totals.avgSoldPrice ? parseFloat(totals.avgSoldPrice).toFixed(2) : "—"}
-								</TableCell>
-								<TableCell sx={{ ...numberCellSx, fontWeight: "bold" }}>
-									{totals.totalSoldAmt > 0 ? totals.totalSoldAmt.toFixed(2) : "—"}
-								</TableCell>
-								<TableCell
-									sx={{
-										...numberCellSx,
-										fontWeight: "bold",
-										color:
-											totals.totalSoldPL > 0
-												? "green"
-												: totals.totalSoldPL < 0
-													? "red"
-													: "inherit",
-									}}
-								>
-									{totals.totalSoldPL !== 0
-										? parseFloat(totals.totalSoldPL).toFixed(2)
-										: "—"}
-								</TableCell>
-							</TableRow>
-
-							{/* Total Unsold row */}
-							<TableRow
-								sx={{
-									backgroundColor: (t) =>
-										t.palette.mode === "dark"
-											? "rgba(59, 130, 246, 0.12)"
-											: "rgba(59, 130, 246, 0.06)",
-								}}
-							>
-								<TableCell sx={{ ...dataCellSx, fontWeight: "bold" }}>Total Unsold</TableCell>
-								<TableCell sx={{ ...numberCellSx, fontWeight: "bold" }}>
-									{totals.totalUnsoldQty > 0 ? totals.totalUnsoldQty : "—"}
-								</TableCell>
-								<TableCell sx={{ ...numberCellSx, fontWeight: "bold" }}>
-									{totals.avgBuyPrice ? parseFloat(totals.avgBuyPrice).toFixed(2) : "—"}
-								</TableCell>
-								<TableCell sx={{ ...numberCellSx, fontWeight: "bold" }}>
-									{totals.totalUnsoldAmt > 0 ? totals.totalUnsoldAmt.toFixed(2) : "—"}
-								</TableCell>
-								<TableCell />
-								<TableCell />
-								<TableCell />
-								<TableCell />
-								<TableCell />
-							</TableRow>
 						</TableBody>
 					</Table>
 				</TableContainer>
+
+				{/* ── Pinned footer ─────────────────────────────────────── */}
+				<HistoryFooter totals={totals} unrealizedPnL={unrealizedPnL} />
 			</Box>
 		</Modal>
 	);
@@ -685,4 +743,6 @@ StockHistoryModal.propTypes = {
 	onClose: PropTypes.func.isRequired,
 	stockName: PropTypes.string.isRequired,
 	history: PropTypes.array.isRequired,
+	stock: PropTypes.object,
+	ltpMap: PropTypes.object,
 };

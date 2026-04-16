@@ -20,24 +20,43 @@ const buildSnapshot = () => {
 export const initInternalWebSocket = (httpServer) => {
 	wss = new WebSocketServer({ server: httpServer, path: "/ws/market-data" });
 
-	wss.on("connection", (client, req) => {
-		const url = new URL(req.url, `http://${req.headers.host}`);
-		const token = url.searchParams.get("token");
+	wss.on("connection", (client) => {
+		client.authenticated = false;
 
-		try {
-			jwt.verify(token, env.JWT_SECRET);
-		} catch {
-			client.close(4001, "Unauthorized");
-			return;
-		}
+		// Auth timeout — close unauthenticated connections after 5s
+		const authTimeout = setTimeout(() => {
+			if (!client.authenticated) {
+				client.close(4001, "Unauthorized");
+			}
+		}, 5000);
 
-		logInfo("Frontend WS client connected", { clients: wss.clients.size });
+		client.on("message", (data) => {
+			// First message must be { type: "auth", token }
+			if (!client.authenticated) {
+				try {
+					const msg = JSON.parse(data);
+					if (msg.type !== "auth") {
+						client.close(4001, "Unauthorized");
+						return;
+					}
+					jwt.verify(msg.token, env.JWT_SECRET);
+					client.authenticated = true;
+					clearTimeout(authTimeout);
+					logInfo("Frontend WS client authenticated", { clients: wss.clients.size });
 
-		// Send current LTP snapshot immediately on connect
-		const snapshot = buildSnapshot();
-		if (snapshot) client.send(JSON.stringify(snapshot));
+					// Send current LTP snapshot now that auth is confirmed
+					const snapshot = buildSnapshot();
+					if (snapshot) client.send(JSON.stringify(snapshot));
+				} catch {
+					client.close(4001, "Unauthorized");
+				}
+				return;
+			}
+			// Authenticated clients — no client→server messages expected currently
+		});
 
 		client.on("close", () => {
+			clearTimeout(authTimeout);
 			logInfo("Frontend WS client disconnected", { clients: wss.clients.size });
 		});
 
@@ -55,7 +74,7 @@ export const initInternalWebSocket = (httpServer) => {
 			feeds: { [symbol]: { ltp: data.ltp, cp: data.cp } },
 		});
 		for (const client of wss.clients) {
-			if (client.readyState === client.OPEN) client.send(msg);
+			if (client.readyState === client.OPEN && client.authenticated) client.send(msg);
 		}
 	});
 
