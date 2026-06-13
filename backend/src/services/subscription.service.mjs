@@ -1,4 +1,4 @@
-import instruments from "../../assets/instruments.json" assert { type: "json" };
+import instruments from "../../assets/instruments.json" with { type: "json" };
 import { Stock } from "../models/stock.model.mjs";
 
 // Fallback maps built from instruments.json for stocks that pre-date Phase 1 (no instrumentKey in DB)
