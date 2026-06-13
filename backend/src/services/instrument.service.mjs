@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import instruments from "../../assets/instruments.json" assert { type: "json" };
+import instruments from "../../assets/instruments.json" with { type: "json" };
 import { getAnalyticsToken } from "../providers/analytics-token.provider.mjs";
 import { logError, logInfo } from "../utils/logger.mjs";
 
