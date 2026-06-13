@@ -15,6 +15,7 @@ complete.json
 
 # local planning/docs not for check-in
 INTERVIEW_CASE_STUDIES.md
+DESIGN_SYSTEM.md
 CLAUDE.md
 ANALYTICS_TOKEN_MIGRATION_PLAN.md
 OPTIMIZATION_IMPROVEMENT_PLAN.md
