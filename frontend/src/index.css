@@ -1,116 +1,18 @@
-:root {
-  /* Color Tokens - Light Mode */
-  --background: #e8ebed;
-  --foreground: #333333;
-  --card: #ffffff;
-  --card-foreground: #333333;
-  --popover: #ffffff;
-  --popover-foreground: #333333;
-  --primary: #df6035;
-  --primary-foreground: #ffffff;
-  --secondary: #2f4b79;
-  --secondary-foreground: #ffffff;
-  --muted: #f9fafb;
-  --muted-foreground: #6b7280;
-  --accent: #d6e4f0;
-  --accent-foreground: #1e3a8a;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #cccccc;
-  --input: #f4f5f7;
-  --ring: #e05d38;
-  --chart-1: #7399bf;
-  --chart-2: #e16f41;
-  --chart-3: #d54450;
-  --chart-4: #e2b146;
-  --chart-5: #3c4c76;
-  
-  /* Sidebar - Light Mode */
-  --sidebar: #dddfe2;
-  --sidebar-foreground: #333333;
-  --sidebar-primary: #e05d38;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #d6e4f0;
-  --sidebar-accent-foreground: #1e3a8a;
-  --sidebar-border: #e5e7eb;
-  --sidebar-ring: #e05d38;
-  
-  /* Typography */
-  --font-sans: 'Outfit', sans-serif;
-  --font-serif: 'Merriweather', serif;
-  --font-mono: 'Fira Code', monospace;
-  
-  /* Border Radius */
-  --radius: 0.5rem;
-  --radius-sm: calc(var(--radius) - 0.25rem);
-  --radius-md: calc(var(--radius) - 0.125rem);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 0.25rem);
-  
-  /* Shadows */
-  --shadow-color: #1a1a1a;
-  --shadow-2xs: 0px 1px 3px 0px rgba(26, 26, 26, 0.05);
-  --shadow-xs: 0px 1px 3px 0px rgba(26, 26, 26, 0.05);
-  --shadow-sm: 0px 1px 3px 0px rgba(26, 26, 26, 0.10), 0px 1px 2px -1px rgba(26, 26, 26, 0.10);
-  --shadow: 0px 1px 3px 0px rgba(26, 26, 26, 0.10), 0px 1px 2px -1px rgba(26, 26, 26, 0.10);
-  --shadow-md: 0px 1px 3px 0px rgba(26, 26, 26, 0.10), 0px 2px 4px -1px rgba(26, 26, 26, 0.10);
-  --shadow-lg: 0px 1px 3px 0px rgba(26, 26, 26, 0.10), 0px 4px 6px -1px rgba(26, 26, 26, 0.10);
-  --shadow-xl: 0px 1px 3px 0px rgba(26, 26, 26, 0.10), 0px 8px 10px -1px rgba(26, 26, 26, 0.10);
-  --shadow-2xl: 0px 1px 3px 0px rgba(26, 26, 26, 0.25);
-}
-
-/* Dark Mode Color Overrides */
-.dark {
-  --background: #1a1a1a;
-  --foreground: #e5e5e5;
-  --card: #202020;
-  --card-foreground: #e5e5e5;
-  --popover: #202020;
-  --popover-foreground: #e5e5e5;
-  --primary: #df6035;
-  --primary-foreground: #ffffff;
-  --secondary: #284167;
-  --secondary-foreground: #e5e5e5;
-  --muted: #2a2a2a;
-  --muted-foreground: #808080;
-  --accent: #2a3656;
-  --accent-foreground: #bfdbfe;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: #353535;
-  --input: #303030;
-  --ring: #e05d38;
-  --chart-1: #85a6c7;
-  --chart-2: #e16f41;
-  --chart-3: #d54450;
-  --chart-4: #e2b146;
-  --chart-5: #3c4c76;
-  
-  /* Sidebar - Dark Mode */
-  --sidebar: #1f1f1f;
-  --sidebar-foreground: #e5e5e5;
-  --sidebar-primary: #e05d38;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #2a3656;
-  --sidebar-accent-foreground: #bfdbfe;
-  --sidebar-border: #353535;
-  --sidebar-ring: #e05d38;
-}
-
+/* Global reset. All theme tokens live in src/theme/appTheme.js (MUI). */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body,
-html {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: var(--font-sans);
+html,
+body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--background);
-  color: var(--foreground);
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
