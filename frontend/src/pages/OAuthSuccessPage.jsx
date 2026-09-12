@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { login, setAuthLoading } from "../store/auth-slice";
 import { useNavigate } from "react-router-dom";
@@ -9,9 +9,20 @@ export default function OAuthSuccessPage() {
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
 	const user = useSelector((s) => s.auth.user);
-	const token = new URLSearchParams(window.location.search).get("token");
+	// Capture the token ONCE, at mount. Reading window.location.search on every
+	// render is a bug: as soon as we navigate to /dashboard the query string is
+	// gone, this component re-renders with token === null before it unmounts,
+	// and the effect below re-runs into its `else` branch and bounces the user
+	// to /login — undoing the successful login.
+	const [token] = useState(() =>
+		new URLSearchParams(window.location.search).get("token"),
+	);
+	const hasHandledToken = useRef(false);
 
 	useEffect(() => {
+		if (hasHandledToken.current) return;
+		hasHandledToken.current = true;
+
 		if (token) {
 			localStorage.setItem("token", token);
 			localStorage.setItem("sessionActive", "active");
@@ -34,7 +45,7 @@ export default function OAuthSuccessPage() {
 			};
 			fetchProfile();
 		} else {
-			navigate("/login");
+			navigate("/login", { replace: true });
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [dispatch, token, navigate]);
