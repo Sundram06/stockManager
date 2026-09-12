@@ -1,5 +1,6 @@
 import {
-	checkTokenExpiry,
+	getTokenStatus,
+	expireSession,
 	scheduleTokenExpiryTimer,
 	clearTokenExpiryTimer,
 } from "./util/api/session.mjs";
@@ -61,10 +62,15 @@ function App() {
 			}
 		}
 
-		if (token && checkTokenExpiry(token)) {
+		const status = getTokenStatus(token);
+		if (status === "valid") {
 			scheduleTokenExpiryTimer(token);
 		} else {
 			clearTokenExpiryTimer();
+			// A token we hold but can no longer use ends the session. This used
+			// to happen implicitly inside checkTokenExpiry; it is explicit now
+			// so that the same check can run on every API call without one.
+			if (status !== "missing") expireSession(status);
 		}
 
 		return () => {
