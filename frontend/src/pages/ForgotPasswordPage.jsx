@@ -1,12 +1,8 @@
 import { useState, useEffect } from "react";
-import {
-	Box,
-	Button,
-	TextField,
-	Typography,
-	Paper,
-	Alert,
-} from "@mui/material";
+import { Box, Button, TextField, Alert } from "@mui/material";
+import { Link } from "react-router-dom";
+import LockResetOutlinedIcon from "@mui/icons-material/LockResetOutlined";
+import AuthShell from "../component/AuthShell";
 import { API_URL } from "../util/api/config.mjs";
 
 export default function ForgotPasswordPage() {
@@ -47,52 +43,39 @@ export default function ForgotPasswordPage() {
 	};
 
 	return (
-		<Box>
-			<Paper
-				elevation={3}
-				sx={{ p: 4, mt: 6, borderRadius: 3 }}
-			>
-				<Typography
-					variant="h5"
-					fontWeight="bold"
-					textAlign="center"
-					gutterBottom
-				>
-					Forgot Password
-				</Typography>
-				{submitted ? (
-					<Alert severity="success" sx={{ mb: 2 }}>
-						If an account with that email exists, a password reset link has been
-						sent.
-					</Alert>
-				) : (
-					<form onSubmit={handleSubmit}>
-						<TextField
-							label="Email"
-							type="email"
-							fullWidth
-							required
-							margin="normal"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-						/>
-						{error && (
-							<Alert severity="error" sx={{ mb: 2 }}>
-								{error}
-							</Alert>
-						)}
-						<Button
-							type="submit"
-							variant="contained"
-							color="primary"
-							fullWidth
-							sx={{ mt: 2 }}
-						>
-							Send Reset Link
-						</Button>
-					</form>
-				)}
-			</Paper>
-		</Box>
+		<AuthShell icon={<LockResetOutlinedIcon />} title="Forgot Password">
+			{submitted ? (
+				<Alert severity="success" sx={{ mb: 2 }}>
+					If an account with that email exists, a password reset link has been sent.
+				</Alert>
+			) : (
+				<Box component="form" onSubmit={handleSubmit}>
+					<TextField
+						label="Email"
+						type="email"
+						fullWidth
+						required
+						autoFocus
+						margin="normal"
+						autoComplete="email"
+						value={email}
+						onChange={(e) => setEmail(e.target.value)}
+					/>
+					{error && (
+						<Alert severity="error" sx={{ mt: 1, mb: 1 }}>
+							{error}
+						</Alert>
+					)}
+					<Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 3 }}>
+						Send Reset Link
+					</Button>
+				</Box>
+			)}
+			<Box mt={2} textAlign="center">
+				<Link to="/login" style={{ color: "inherit", fontSize: "0.9rem", opacity: 0.8 }}>
+					Back to Login
+				</Link>
+			</Box>
+		</AuthShell>
 	);
 }

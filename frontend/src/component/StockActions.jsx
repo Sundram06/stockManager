@@ -19,6 +19,7 @@ export default function StockActions({
 			<Tooltip title="Add lot">
 				<IconButton
 					size="small"
+					aria-label="Add lot"
 					onClick={onAdd}
 					sx={{
 						color: "text.secondary",
@@ -28,10 +29,11 @@ export default function StockActions({
 					<AddIcon sx={{ fontSize: "1rem" }} />
 				</IconButton>
 			</Tooltip>
-			<Tooltip title={canSell ? "Sell" : "No shares to sell"}>
+			<Tooltip title={canSell ? "Sell" : "No shares to sell"} describeChild>
 				<span>
 					<IconButton
 						size="small"
+						aria-label="Sell"
 						onClick={canSell ? onSell : undefined}
 						disabled={!canSell}
 						sx={{
@@ -46,6 +48,7 @@ export default function StockActions({
 			<Tooltip title="Chart">
 				<IconButton
 					size="small"
+					aria-label="Chart"
 					onClick={onChart}
 					sx={{
 						color: "text.secondary",
@@ -58,6 +61,7 @@ export default function StockActions({
 			<Tooltip title="History">
 				<IconButton
 					size="small"
+					aria-label="History"
 					onClick={onViewHistory}
 					sx={{
 						color: "text.secondary",
@@ -70,6 +74,7 @@ export default function StockActions({
 			<Tooltip title="Delete stock">
 				<IconButton
 					size="small"
+					aria-label="Delete stock"
 					onClick={onDelete}
 					sx={{
 						color: "error.main",

@@ -55,13 +55,13 @@ export default function DemoLandingPage() {
   const isDark = theme.palette.mode === "dark";
   const teal = theme.palette.primary.main;
   const paper = theme.palette.background.paper;
-  const elevated = theme.palette.background.elevated ?? (isDark ? "#222836" : "#F0F0F5");
+  const elevated = theme.palette.background.elevated ?? (isDark ? "#1a1a1a" : "#F0F0F5");
   const textPrimary = theme.palette.text.primary;
   const textSecondary = theme.palette.text.secondary;
   const border = theme.palette.divider;
 
   const glassPanel = {
-    background: isDark ? "rgba(26,31,46,0.5)" : "rgba(255,255,255,0.65)",
+    background: isDark ? "rgba(26,26,26,0.5)" : "rgba(255,255,255,0.65)",
     backdropFilter: "blur(20px)",
     border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : `rgba(10,123,123,0.12)`}`,
   };
@@ -435,7 +435,7 @@ export default function DemoLandingPage() {
                 {/* Mock FIFO table */}
                 <Box sx={{
                   mt: 4,
-                  bgcolor: isDark ? "rgba(17,24,39,0.6)" : "rgba(255,255,255,0.7)",
+                  bgcolor: isDark ? "rgba(17,17,17,0.6)" : "rgba(255,255,255,0.7)",
                   border: `1px solid ${border}`,
                   borderRadius: "0.6rem",
                   p: 2,
