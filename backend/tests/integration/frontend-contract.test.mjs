@@ -47,13 +47,9 @@ describe("frontend response contract regression", () => {
 		vi.clearAllMocks();
 	});
 
-	it("POST /register keeps message + user object shape", async () => {
+	it("POST /register returns a message only (email verification flow)", async () => {
 		registerUserMock.mockResolvedValueOnce({
-			user: {
-				_id: "u1",
-				name: "Demo",
-				email: "demo@example.com",
-			},
+			message: "Registration successful. Check your email to verify your account.",
 		});
 
 		const res = await request(app).post("/register").send({
@@ -64,11 +60,8 @@ describe("frontend response contract regression", () => {
 
 		expect(res.status).toBe(201);
 		expect(typeof res.body.message).toBe("string");
-		expect(res.body.user).toMatchObject({
-			_id: "u1",
-			name: "Demo",
-			email: "demo@example.com",
-		});
+		expect(res.body.user).toBeUndefined();
+		expect(res.body.token).toBeUndefined();
 	});
 
 	it("POST /login keeps user + token envelope", async () => {
