@@ -55,6 +55,12 @@ export const subscriptionService = {
 		return keyToSymbol.get(instrumentKey) ?? instrumentKey;
 	},
 
+	// Resolve a trading symbol (e.g. "INFY") to its instrument key via instruments.json.
+	// Used for stocks that pre-date Phase 1 and have no instrumentKey in DB.
+	keyForSymbol(symbol) {
+		return symbolToKeyFallback.get(symbol) ?? null;
+	},
+
 	// Set by server.mjs to wire subscription changes → Upstox subscribe call
 	onSubscriptionChange(callback) {
 		onChangeCallback = callback;
