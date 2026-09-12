@@ -61,7 +61,7 @@ npm run preview    # Preview production build
 
 **Middleware order** (in `app.mjs`): `requestId` → `cors` → `json` → `session` → `passport` → routes → `notFound` → `errorHandler`
 
-**Route files**: `system.routes.mjs`, `auth.routes.mjs`, `stock.routes.mjs`, `history.routes.mjs`, `market.routes.mjs`, `instrument.routes.mjs` (Phase 1 — planned)
+**Route files**: `system.routes.mjs`, `auth.routes.mjs`, `stock.routes.mjs`, `history.routes.mjs`, `market.routes.mjs` (instrument search lives here: `GET /api/instruments/search`)
 
 **Pattern**: Routes → Controllers (thin, only HTTP) → Services (all logic) → Models (Mongoose).
 
@@ -82,7 +82,7 @@ Single Upstox Analytics Token (1-year, server-side only) → Upstox WebSocket V3
 
 - **Upstox WS** uses protobuf (LTPC mode). Binary frames = price data (`initial_feed` / `live_feed`). Text frames = `market_info` JSON (logged only).
 - **REST seed** (`market-quote.service.mjs`): `GET /v3/market-quote/ltp` called on startup and on new stock added — ensures prices show even when market is closed.
-- **Internal WS auth**: currently JWT via `?token=` query param. Phase 2 will switch to first-message auth.
+- **Internal WS auth**: first message must be `{ type: "auth", token }` (JWT). No token in URL.
 - **Cache keys**: `NSE_EQ|ISIN` (pipe format) internally. Converted to trading symbols before sending to frontend.
 - **Provider**: `analytics-token.provider.mjs` — reads `UPSTOX_ANALYTICS_TOKEN` from env, throws if missing.
 
@@ -138,7 +138,7 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 - `useHydrateAuth` — On mount, reads localStorage token → `GET /api/me` → dispatches `login`. Sets `isAuthLoading` false when done. Run in `App.jsx`.
 - `usePortfolioData({ activeTab, search })` — Fetches stocks + history via React Query, computes `historyByStockId`, `activeStockMetrics`, `filteredStocks` with `useMemo`.
 - `usePortfolioActions({ setAddOpen, setDeleteModalOpen })` — All mutations (create stock, add to position, sell, delete). Calls `queryClient.invalidateQueries` on success to trigger refetch.
-- `useMarketData()` — Connects to `/ws/market-data?token=<JWT>`, handles `snapshot` and `ltp_update` messages, exponential backoff reconnect. Returns `{ ltpMap, isConnected }`. Used in `PortfolioTable`, passed down as props.
+- `useMarketData()` — Connects to `/ws/market-data`, sends `{ type: "auth", token }` as first message, handles `snapshot` and `ltp_update` messages, exponential backoff reconnect. Returns `{ ltpMap, isConnected }`. Used in `PortfolioTable`, passed down as props.
 
 **`activeTab`**: `0` = active stocks (`quantity > 0`), `1` = dormant stocks (`quantity ≤ 0`).
 
@@ -148,9 +148,9 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 
 **API layer** (`util/api/`): All fetch calls go through `getValidTokenOrThrow()` (throws if JWT expired). Token stored in `localStorage`. Session expiry timer scheduled in `App.jsx` on mount.
 
-**Routing** (`App.jsx`): `/` landing, `/dashboard`, `/login`, `/register`, `/forgot-password`, `/oauth-success` (handles Google OAuth redirect).
+**Routing** (`App.jsx`): `/` landing, `/dashboard`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/oauth-success` (handles Google OAuth redirect).
 
-**Theme** (`theme/`): MUI theme with dark/light toggle. Mode persisted to `localStorage` under key `vittnest-theme-mode`. Primary brand color: `#df6035` (orange).
+**Theme** (`theme/`): MUI theme with dark/light toggle. Mode persisted to `localStorage` under key `vittnest-theme-mode`. Brand accent: teal `#0A7B7B` (light) / `#0fb3af` (dark). Dark bg `#0a0a0a`. Fonts: DM Sans (UI), Newsreader italic (logo/display). Orange `#df6035` is retired — never use.
 
 **Responsive**: `PortfolioViewSwitch` uses `useMediaQuery(theme.breakpoints.down('md'))` — mobile renders `PortfolioMobileList`, desktop renders `StockTable`.
 
@@ -172,23 +172,24 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 
 ## Planned Work
 
-**Phase 2 — WebSocket First-Message Auth (pending):**
-- Move JWT from WS URL query param to first message `{ type: "auth", token }` on connection open
+**Phase 5 — Real price history for stock chart: done (branch `feat/price-history-chart`).**
+- `GET /api/market/history/:instrument?range=1W|1M|3M|6M|1Y|ALL` (JWT). `:instrument` = URL-encoded instrument key, or bare symbol for pre-Phase-1 stocks (resolved via `subscriptionService.keyForSymbol`).
+- `market-history.service.mjs` → Upstox `/v3/historical-candle/{key}/days/1/{to}/{from}`, normalised to ascending `{date, price(close), open, high, low, volume}`, 1h in-memory cache per key+range. ALL = 5 years, single request.
+- Frontend fetches ALL once per stock (`util/api/market.mjs`, React Query key `["priceHistory", instrument]`), range pills filter client-side. Today's LTP appended as a live tip. Buy/sell markers snap to last trading day on or before the event. Recharts animation disabled (1240-point series).
+
+**Phase 6 — Polish (unverified):** teal theme on auth pages, light-mode check, Lighthouse.
 
 **Next priorities (from PRODUCT_IDEAS_BRAINSTORM.md):**
 - Portfolio export report (PDF/CSV/Excel)
-- Backdated purchase FCFS recalculation (warn + preview diff + confirm)
 - Demat account import (Zerodha/Upstox/Groww CSV)
-- Chart inside stock detail (post-MVP)
 
 ---
 
 ## Key Limitations (Current State)
 
-- **Forgot password**: logs email only, no email sending implemented.
-- **`DELETE /stocks`**: missing JWT middleware (bug — should be protected).
+- **Email sender**: Gmail SMTP via personal `GMAIL_USER`; needs dedicated account or Resend + custom domain for production.
 - **Stale ISINs**: `instruments.json` may have stale ISINs (e.g. ADANIPOWER); affects only stocks added before Phase 1. Re-adding a stock via the autocomplete search fixes it permanently.
-- **WebSocket JWT in URL**: `?token=` query param is a minor security concern — Phase 2 moves to first-message auth.
+- **Upstox account must be active**: if Upstox segments deactivate (error `UDAPI100058`), WS feed 401s while REST LTP still works. Reactivate from Upstox app.
 
 ---
 
