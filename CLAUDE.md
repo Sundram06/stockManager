@@ -19,11 +19,12 @@ npm run dev        # Dev server with --watch and .env.development
 npm start          # Production server
 npm test           # Run Vitest integration + unit tests
 npm run smoke      # Alias for npm test
+npm run dev:sandbox # Backend on an in-memory copy of the DB (safe for manual testing)
 ```
 
 Run a single test file:
 ```bash
-npx vitest run tests/fifo-sell.test.mjs
+npx vitest run tests/unit/ledger.test.mjs
 ```
 
 Extract/rebuild instruments list from raw Upstox data:
@@ -108,17 +109,25 @@ One History row per buy transaction. A single sell may update multiple rows (old
 
 ---
 
-### FIFO Sell Algorithm (`src/utils/fifo-sell.mjs`)
+### FIFO Ledger (`src/utils/ledger.mjs`, `src/services/ledger.service.mjs`)
 
-`applyFifoSell({ fifoRows, quantityToSell, sellingPrice, dateSold })`:
-- Iterates history rows in insertion order (oldest first = FIFO)
-- Fills `row.quantitySold` up to each row's remaining capacity
-- Computes weighted avg `sellingPrice` and per-lot `pnl = qty × (sellingPrice − avgPrice)`
-- Saves each row and returns `{ totalPnl, updatedRows }`
+Sells are their own records: one `SellEvent` per sale (`date, quantity, price, source, externalTradeId?, importBatchId?, allocations[]`). The sell fields on `History` rows (`quantitySold, sellingPrice, dateSold, pnl`) are **caches** rebuilt from SellEvents; never write them directly.
 
-Called from `history.service.mjs` → `POST /history/sell`.
+- `replayLedger({ lots, sells })` — pure, no DB. Replays sells chronologically; lots consumed oldest trading day first, **same-day lots pooled pro-rata** with the last lot absorbing rounding (identical to the pre-ledger algorithm; frozen copy in `tests/fixtures/legacy-fifo-sell.mjs` is the test oracle). Returns lot caches, per-sell allocations, remaining qty/cost, and a `shortfall` instead of throwing.
+- `ledger.service.mjs` — `loadLedger` (derives SellEvents from legacy History caches for stocks with none, source `MIGRATED_DERIVED`), `persistReplay`, `rebuildStockLedger`, `addLotAndRebuild`, `recordSell`, `withTransaction`. Every write path runs inside a Mongo transaction (Atlas replica set).
+- A sale is validated by replaying the whole ledger with it added, so a backdated sell that would starve a later sale is rejected (400). A stock whose stored history can't be replayed (legacy sale dated before its purchase) returns 409 on sell or add-lot.
+- Migration: `npm run migrate:sell-events` (dry run) / `-- --apply` (writes a JSON backup to `backend/backups/` first).
 
----
+### Deletion cascades & data scripts
+
+- Deleting a stock (`deleteStockById`, `deleteAllStocks`) removes its History and SellEvents in one transaction, and only if the stock belongs to the requesting user.
+- Deleting a user cascades on the **User model** (pre `deleteOne`/`deleteMany`/`findOneAndDelete` hooks): stocks, History and SellEvents go too, joining the caller's session. `account.service.deleteUserAccount(userId)` wraps it in a transaction. There is no HTTP endpoint or UI for account deletion yet. Deletions done by hand in Atlas bypass the hooks.
+- `Stock` has a unique index on `{userId, stockName}`.
+- Data scripts (all dry-run by default; `-- --apply` writes a JSON backup to `backend/backups/`, git-ignored, first):
+  - `npm run migrate:sell-events` — derive SellEvents for pre-ledger stocks; only migrates stocks whose replay reproduces stored numbers.
+  - `npm run merge:duplicate-stocks` — merge same-user same-symbol Stock docs.
+  - `npm run cleanup:orphans` — remove stocks of deleted users and History/SellEvents whose stock is gone.
+- `npm run dev:sandbox` — runs the backend on an in-memory copy of the DB (copied read-only from `DB_URI` at start). Use it to test write paths in the UI without touching Atlas.
 
 ### Stock Quantity & Avg Price Recalculation
 
@@ -215,7 +224,8 @@ VITE_API_URL=http://localhost:3000
 
 Tests live in `backend/tests/`. Run with Vitest in Node environment.
 
-- `fifo-sell.test.mjs` — Unit tests for the FIFO algorithm
+- `ledger.test.mjs` — replayLedger unit tests incl. 500 randomized ledgers vs the legacy algorithm
+- `ledger-service.test.mjs` — service tests against in-memory Mongo replica set (mongodb-memory-server)
 - `auth-validation.test.mjs` — 400 responses for invalid auth inputs
 - `portfolio-routes.test.mjs` — Route integration tests with mocked services
 - `portfolio-auth-guard.test.mjs` — 401 without bearer token
