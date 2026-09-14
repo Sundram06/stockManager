@@ -39,7 +39,7 @@
 	},
 	"devDependencies": {
 		"cross-env": "^7.0.3",
-		"mongodb-memory-server": "^10.4.3",
+		"mongodb-memory-server-core": "^10.4.3",
 		"supertest": "^7.1.0",
 		"vitest": "^2.1.8"
 	}

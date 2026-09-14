@@ -8,7 +8,7 @@
 // sells, new lots, deletes, migrations — changes only the copy. Stop the
 // process and the copy is gone; the real database is never written.
 import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server-core";
 
 const COLLECTIONS = ["users", "stocks", "histories", "sellevents"];
 const realUri = process.env.DB_URI;

@@ -2,7 +2,7 @@
 // transaction, bulkWrite and legacy-derivation paths actually run.
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server-core";
 
 vi.mock("../../src/services/market-calendar.service.mjs", () => ({
 	checkTradingDate: async () => ({ allowed: true }),
