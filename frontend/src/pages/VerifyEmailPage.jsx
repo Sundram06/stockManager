@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Box, Button, Paper, Typography, Alert, CircularProgress } from "@mui/material";
+import { Box, Button, Typography, Alert, CircularProgress } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
+import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
+import AuthShell from "../component/AuthShell";
 import { API_URL } from "../util/api/config.mjs";
 
 export default function VerifyEmailPage() {
@@ -76,78 +78,43 @@ export default function VerifyEmailPage() {
 	};
 
 	return (
-		<Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-			<Paper elevation={3} sx={{ p: 4, borderRadius: 3, maxWidth: 440, width: "100%" }}>
-				{status === "loading" && (
-					<Box textAlign="center">
-						<CircularProgress sx={{ mb: 2 }} />
-						<Typography>Verifying your email…</Typography>
-					</Box>
-				)}
+		<AuthShell icon={<MarkEmailReadOutlinedIcon />}>
+			{status === "loading" && (
+				<Box textAlign="center">
+					<CircularProgress sx={{ mb: 2 }} />
+					<Typography>Verifying your email…</Typography>
+				</Box>
+			)}
 
-				{status === "success" && (
-					<>
-						<Typography variant="h5" fontWeight="bold" textAlign="center" gutterBottom>
-							Email verified
-						</Typography>
-						<Alert severity="success" sx={{ mb: 3 }}>
-							Your email has been verified. You can now log in.
-						</Alert>
-						<Button variant="contained" fullWidth onClick={() => navigate("/login")}>
-							Go to Login
-						</Button>
-					</>
-				)}
+			{status === "success" && (
+				<>
+					<Typography variant="h5" fontWeight="bold" textAlign="center" gutterBottom>
+						Email verified
+					</Typography>
+					<Alert severity="success" sx={{ mb: 3 }}>
+						Your email has been verified. You can now log in.
+					</Alert>
+					<Button variant="contained" fullWidth onClick={() => navigate("/login")}>
+						Go to Login
+					</Button>
+				</>
+			)}
 
-				{(status === "expired" || status === "invalid") && (
-					<>
-						<Typography variant="h5" fontWeight="bold" textAlign="center" gutterBottom>
-							{status === "expired" ? "Link expired" : "Invalid link"}
-						</Typography>
-						<Alert severity="error" sx={{ mb: 3 }}>
-							{message}
-						</Alert>
-						{status === "expired" && (
-							resendStatus === "sent" ? (
-								<Alert severity="success">
-									A new verification link has been sent to <strong>{resendEmail}</strong>.
-								</Alert>
-							) : (
-								<>
-									{resendError && <Alert severity="error" sx={{ mb: 2 }}>{resendError}</Alert>}
-									<Button
-										variant="contained"
-										fullWidth
-										disabled={resendStatus === "sending"}
-										onClick={handleResend}
-									>
-										{resendStatus === "sending" ? "Sending…" : "Resend verification email"}
-									</Button>
-								</>
-							)
-						)}
-						<Box mt={2} textAlign="center">
-							<Link to="/login" style={{ color: "inherit", fontSize: "0.9rem", opacity: 0.8 }}>
-								Back to Login
-							</Link>
-						</Box>
-					</>
-				)}
-
-				{status === "resend_form" && (
-					<>
-						<Typography variant="h5" fontWeight="bold" textAlign="center" gutterBottom>
-							Resend verification
-						</Typography>
-						{resendStatus === "sent" ? (
+			{(status === "expired" || status === "invalid") && (
+				<>
+					<Typography variant="h5" fontWeight="bold" textAlign="center" gutterBottom>
+						{status === "expired" ? "Link expired" : "Invalid link"}
+					</Typography>
+					<Alert severity="error" sx={{ mb: 3 }}>
+						{message}
+					</Alert>
+					{status === "expired" && (
+						resendStatus === "sent" ? (
 							<Alert severity="success">
 								A new verification link has been sent to <strong>{resendEmail}</strong>.
 							</Alert>
 						) : (
 							<>
-								<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-									We'll send a new verification link to <strong>{resendEmail}</strong>.
-								</Typography>
 								{resendError && <Alert severity="error" sx={{ mb: 2 }}>{resendError}</Alert>}
 								<Button
 									variant="contained"
@@ -155,18 +122,51 @@ export default function VerifyEmailPage() {
 									disabled={resendStatus === "sending"}
 									onClick={handleResend}
 								>
-									{resendStatus === "sending" ? "Sending…" : "Send new link"}
+									{resendStatus === "sending" ? "Sending…" : "Resend verification email"}
 								</Button>
 							</>
-						)}
-						<Box mt={2} textAlign="center">
-							<Link to="/login" style={{ color: "inherit", fontSize: "0.9rem", opacity: 0.8 }}>
-								Back to Login
-							</Link>
-						</Box>
-					</>
-				)}
-			</Paper>
-		</Box>
+						)
+					)}
+					<Box mt={2} textAlign="center">
+						<Link to="/login" style={{ color: "inherit", fontSize: "0.9rem", opacity: 0.8 }}>
+							Back to Login
+						</Link>
+					</Box>
+				</>
+			)}
+
+			{status === "resend_form" && (
+				<>
+					<Typography variant="h5" fontWeight="bold" textAlign="center" gutterBottom>
+						Resend verification
+					</Typography>
+					{resendStatus === "sent" ? (
+						<Alert severity="success">
+							A new verification link has been sent to <strong>{resendEmail}</strong>.
+						</Alert>
+					) : (
+						<>
+							<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+								We'll send a new verification link to <strong>{resendEmail}</strong>.
+							</Typography>
+							{resendError && <Alert severity="error" sx={{ mb: 2 }}>{resendError}</Alert>}
+							<Button
+								variant="contained"
+								fullWidth
+								disabled={resendStatus === "sending"}
+								onClick={handleResend}
+							>
+								{resendStatus === "sending" ? "Sending…" : "Send new link"}
+							</Button>
+						</>
+					)}
+					<Box mt={2} textAlign="center">
+						<Link to="/login" style={{ color: "inherit", fontSize: "0.9rem", opacity: 0.8 }}>
+							Back to Login
+						</Link>
+					</Box>
+				</>
+			)}
+		</AuthShell>
 	);
 }

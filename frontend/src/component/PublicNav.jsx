@@ -39,7 +39,7 @@ export default function PublicNav({ alwaysGlass = false, currentPage }) {
 
 	const glassStyle = {
 		background: scrolled
-			? isDark ? "rgba(17,24,39,0.88)" : "rgba(249,249,251,0.88)"
+			? isDark ? "rgba(17,17,17,0.88)" : "rgba(249,249,251,0.88)"
 			: "transparent",
 		backdropFilter: scrolled ? "blur(20px)" : "none",
 		borderBottom: scrolled ? `1px solid ${border}` : "1px solid transparent",

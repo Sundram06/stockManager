@@ -1,6 +1,7 @@
 import { Router } from "express";
 import passport from "passport";
 import { asyncHandler } from "../utils/async-handler.mjs";
+import { logError } from "../utils/logger.mjs";
 import { validateRequest } from "../middlewares/validate-request.mjs";
 import {
 	forgotPasswordSchema,
@@ -66,6 +67,20 @@ if (googleAuthEnabled) {
 			session: true,
 		}),
 		asyncHandler(googleOAuthCallback),
+		// failureRedirect covers a declined sign-in, not a thrown one: if the
+		// token exchange with Google fails (network, clock, revoked secret) the
+		// user would otherwise see a raw 500. Send them back to the login page
+		// with something they can act on; the cause is in the server log.
+		(err, req, res, next) => {
+			if (res.headersSent) return next(err);
+			logError("Google sign-in failed", {
+				requestId: req.requestId,
+				errorName: err?.name,
+				errorMessage: err?.message,
+				...(err?.code && { errorCode: err.code }),
+			});
+			return res.redirect(`${env.FE_URL}/login?error=google`);
+		},
 	);
 } else {
 	router.get("/api/auth/google", (req, res) => {

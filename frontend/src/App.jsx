@@ -1,6 +1,6 @@
-import "./App.css";
 import {
-	checkTokenExpiry,
+	getTokenStatus,
+	expireSession,
 	scheduleTokenExpiryTimer,
 	clearTokenExpiryTimer,
 } from "./util/api/session.mjs";
@@ -22,6 +22,7 @@ const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 const DemoLandingPage = lazy(() => import("./pages/DemoLandingPage"));
+const ImportPage = lazy(() => import("./pages/ImportPage"));
 
 const renderLazy = (Component, props) => (
 	<Suspense fallback={null}>
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
 			{ path: "", element: renderLazy(DemoLandingPage) },
 			{ path: "/oauth-success", element: renderLazy(OAuthSuccessPage) },
 			{ path: "/dashboard", element: renderLazy(DashboardPage) },
+			{ path: "/import", element: renderLazy(ImportPage) },
 			{ path: "login", element: renderLazy(LoginPage) },
 			{ path: "register", element: renderLazy(RegisterPage) },
 			{ path: "/forgot-password", element: renderLazy(ForgotPasswordPage) },
@@ -62,10 +64,15 @@ function App() {
 			}
 		}
 
-		if (token && checkTokenExpiry(token)) {
+		const status = getTokenStatus(token);
+		if (status === "valid") {
 			scheduleTokenExpiryTimer(token);
 		} else {
 			clearTokenExpiryTimer();
+			// A token we hold but can no longer use ends the session. This used
+			// to happen implicitly inside checkTokenExpiry; it is explicit now
+			// so that the same check can run on every API call without one.
+			if (status !== "missing") expireSession(status);
 		}
 
 		return () => {
