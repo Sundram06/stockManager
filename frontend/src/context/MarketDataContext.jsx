@@ -3,10 +3,8 @@ import { createContext, useContext, useMemo } from "react";
 import PropTypes from "prop-types";
 import useMarketData from "../hooks/useMarketData";
 
-// Live prices arrive on one WebSocket, so there can only be one connection —
-// which is why `ltpMap` used to be threaded through five layers of props. The
-// provider opens that single connection; anything under it reads prices
-// directly with useMarketPrices().
+// Live prices arrive on one WebSocket, so the app must open exactly one
+// connection. The provider owns it and everything below reads from context.
 
 const MarketDataContext = createContext({ ltpMap: {}, isConnected: false });
 
@@ -23,7 +21,7 @@ MarketDataProvider.propTypes = {
 
 /**
  * Live prices by trading symbol: `{ ltpMap: { INFY: { ltp, cp } }, isConnected }`.
- * Outside a MarketDataProvider this returns an empty map rather than throwing,
- * so a component can render without live prices (tests, the import preview).
+ * Outside a provider this returns an empty map instead of throwing, so a
+ * component still renders without live prices.
  */
 export const useMarketPrices = () => useContext(MarketDataContext);

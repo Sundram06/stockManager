@@ -7,14 +7,13 @@ import { planImport } from "./plan.service.mjs";
 import { fingerprint, snapshot } from "./state.mjs";
 import { describeBatch } from "./batches.service.mjs";
 
-// Writes an import. The plan is rebuilt inside the transaction so it acts on
-// current data, and any stock whose chosen option no longer replays is refused
-// rather than written differently from what the preview showed.
+// The plan is rebuilt inside the transaction so it acts on current data. A
+// stock whose chosen option no longer replays is refused rather than written
+// differently from what the preview showed.
 
 const { ObjectId } = mongoose.Types;
 
-// Rows created by this import, as opposed to stored rows (which may carry an
-// earlier import's id).
+// Stored rows can carry an earlier import's id, so compare against this one.
 const fromBatch = (rows, importBatchId) => rows.filter((r) => String(r.importBatchId) === String(importBatchId));
 
 async function insertLots(lots, { userId, stockId, session }) {
@@ -93,7 +92,7 @@ export async function commitImport(userId, { fileName, content, choices = {}, re
 				});
 			}
 
-			// Replace-all also means the stocks the file doesn't mention go.
+			// Replacing everything also removes stocks the file does not mention.
 			if (replaceAll) {
 				for (const u of plan.untouched) {
 					const before = await snapshot(u.stock._id, session);

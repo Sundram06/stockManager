@@ -7,9 +7,9 @@ import { FileFormatError, hashContent, normalizeSymbol } from "./file-format.mjs
 import { parsePortfolioFile } from "./parsers/index.mjs";
 import { dedupe, tradeKey } from "./matching.mjs";
 
-// Works out what an import would do, without writing anything. Every option a
-// user can pick (keep, merge, replace) is simulated with replayLedger, so the
-// preview shows the numbers a commit would actually write.
+// Works out what an import would do without writing anything. Each option the
+// user can pick is replayed through the ledger, so the preview shows the
+// numbers a commit would write.
 
 const { ObjectId } = mongoose.Types;
 const round2 = (n) => Number(n.toFixed(2));
@@ -36,8 +36,8 @@ const toEvent = (t, importBatchId) => ({
 	...(importBatchId && { importBatchId }),
 });
 
-// Ledger order: date, then insertion order. New ObjectIds sort after stored
-// ones, which is where the rows land once inserted.
+// Ledger order is date, then insertion order. New ObjectIds sort after stored
+// ones, which is where these rows will land once inserted.
 const sortLots = (lots) =>
 	[...lots].sort((a, b) => new Date(a.date) - new Date(b.date) || String(a._id).localeCompare(String(b._id)));
 
@@ -61,7 +61,7 @@ const simulate = (lots, events) => {
 		: { ok: true, after: summarise(lots, events, result), lots, events, result };
 };
 
-/** What the file would do to one stock, under each option the user can pick. */
+/** What the file would do to one stock, under each option. */
 export function planStock({ stockName, trades, stored, importBatchId }) {
 	const fileBuys = trades.filter((t) => t.side === "BUY");
 	const fileSells = trades.filter((t) => t.side === "SELL");
@@ -133,10 +133,7 @@ function parseOrThrow(content) {
 	}
 }
 
-/**
- * The whole file against the whole portfolio. Writes nothing; the commit runs
- * this again inside its transaction so it acts on current data.
- */
+/** The whole file against the whole portfolio. Writes nothing. */
 export async function planImport(userId, content, { session = null, importBatchId } = {}) {
 	const parsed = parseOrThrow(content);
 
@@ -163,8 +160,8 @@ export async function planImport(userId, content, { session = null, importBatchI
 	return { source: parsed.source, exportedAt: parsed.exportedAt, fileHash: hashContent(content), stocks, untouched };
 }
 
-// The plan carries Mongoose documents the commit needs; the preview must not
-// leak them to the client.
+// The plan holds Mongoose documents the commit needs, which must not reach
+// the client.
 const publicOption = (opt) => (opt.ok ? { ok: true, after: opt.after } : { ok: false, reason: opt.reason });
 
 export async function previewImport(userId, { fileName, content }) {

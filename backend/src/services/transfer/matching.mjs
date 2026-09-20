@@ -1,25 +1,14 @@
-// Deciding whether a trade in a file is one the ledger already has.
-//
-// Today's rule is exact: same timestamp, quantity and price, or the same
-// externalTradeId. That is right for a VittNest backup, where both sides came
-// from the same database and match to the millisecond.
-//
-// Broker files will need a looser rule, because a trade typed in by hand is
-// stored at midnight with a rounded price while the broker records the real
-// time and the exact fill: match on the calendar day, group the broker's fills
-// by order id, and allow a small price difference. That belongs here, next to
-// the exact rule, not inside the planner.
+// Matching is exact: same timestamp, quantity and price, or the same
+// externalTradeId. That works for a VittNest backup, where both sides of the
+// comparison came from this database. Broker files need day-level matching
+// with a price tolerance, and that rule belongs in this file.
 
 export const tradeKey = (date, quantity, price) => `${new Date(date).getTime()}|${quantity}|${price}`;
 
 /**
- * Splits file trades into ones the ledger already has and new ones. Matching is
- * a multiset: two identical buys in the file against one stored buy means one
- * of them is new.
- *
- * @param {Array} fileTrades  CanonicalTrade[] for one stock and one side
- * @param {Array} storedRows  the stored lots or sell events for that stock
- * @param {Function} storedKey  builds a tradeKey from a stored row
+ * Splits file trades into ones the ledger already has and new ones. Counts
+ * matter: two identical buys in the file against one stored buy means one of
+ * them is still new.
  */
 export function dedupe(fileTrades, storedRows, storedKey) {
 	const counts = new Map();

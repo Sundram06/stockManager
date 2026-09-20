@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { History, SellEvent, Stock } from "../../models/index.mjs";
 
-// How an import records what a stock looked like, so undo can put it back and
-// can tell whether it is still safe to do so.
+// What an import records about a stock, so undo can put it back and can tell
+// whether doing so is still safe.
 
 /** Everything belonging to one stock, as raw documents. */
 export async function snapshot(stockId, session) {
@@ -14,9 +14,8 @@ export async function snapshot(stockId, session) {
 }
 
 /**
- * A fingerprint of a stock's stored state, taken right after an import. Undo
- * compares it with the state at that moment: any buy, sale or delete since then
- * changes it, and undo is refused rather than dropping that change.
+ * A fingerprint of a stock's stored state, taken right after an import. Any buy,
+ * sale or delete since then changes it, which is how undo knows to refuse.
  */
 export async function fingerprint(userId, entry, session) {
 	if (entry.action === "deleted") {

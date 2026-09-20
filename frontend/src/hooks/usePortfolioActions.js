@@ -7,7 +7,6 @@ import {
 	handleSellStockRowInHistory,
 } from "../util/api/history.mjs";
 
-// Server data lives in React Query; these mutations write and then invalidate.
 const refreshPortfolio = () => {
 	queryClient.invalidateQueries({ queryKey: ["stocks"] });
 	queryClient.invalidateQueries({ queryKey: ["history"] });

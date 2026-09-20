@@ -1,23 +1,18 @@
 import { API_URL } from "./config.mjs";
 import { getValidTokenOrThrow } from "./session.mjs";
 
-// One place where every call to the backend is made. Each module under
-// util/api/ used to repeat this: attach the token, JSON-encode the body, and
-// turn a failed response into an Error carrying the server's message.
-
 async function toError(response, fallback) {
 	const data = await response.json().catch(() => ({}));
 	const error = new Error(data?.message || fallback);
-	// Some endpoints return a machine-readable code (EMAIL_NOT_VERIFIED,
-	// GOOGLE_ACCOUNT) that the UI branches on.
+	// Codes like EMAIL_NOT_VERIFIED and GOOGLE_ACCOUNT are what the UI branches on.
 	if (data?.code) error.code = data.code;
 	error.status = response.status;
 	return error;
 }
 
 /**
- * Calls the backend and returns the raw Response (for downloads, or when the
- * headers matter). Throws on any non-2xx.
+ * Calls the backend and returns the raw Response, for downloads or when the
+ * headers matter. Throws on any non-2xx.
  *
  * @param {string} path            e.g. "/stocks"
  * @param {object} [options]
