@@ -18,9 +18,9 @@ vi.mock("../../src/services/export.service.mjs", () => ({
 	buildTransactionsCsv: vi.fn(async () => "Date\r\n"),
 }));
 
-vi.mock("../../src/services/import.service.mjs", () => ({
-	previewImport: previewImportMock,
-	commitImport: vi.fn(),
+vi.mock("../../src/services/transfer/plan.service.mjs", () => ({ previewImport: previewImportMock }));
+vi.mock("../../src/services/transfer/commit.service.mjs", () => ({ commitImport: vi.fn() }));
+vi.mock("../../src/services/transfer/batches.service.mjs", () => ({
 	listImports: vi.fn(async () => []),
 	undoImport: undoImportMock,
 }));

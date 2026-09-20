@@ -12,9 +12,9 @@ const { History, ImportBatch, SellEvent, Stock } = await import("../../src/model
 const { createStockForUser } = await import("../../src/services/stock.service.mjs");
 const { createHistory, sellHistory } = await import("../../src/services/history.service.mjs");
 const { buildBackup, buildHoldingsCsv, buildTransactionsCsv } = await import("../../src/services/export.service.mjs");
-const { commitImport, listImports, previewImport, undoImport } = await import(
-	"../../src/services/import.service.mjs"
-);
+const { previewImport } = await import("../../src/services/transfer/plan.service.mjs");
+const { commitImport } = await import("../../src/services/transfer/commit.service.mjs");
+const { listImports, undoImport } = await import("../../src/services/transfer/batches.service.mjs");
 
 const d = (s) => new Date(`${s}T00:00:00.000Z`);
 const alice = new mongoose.Types.ObjectId();

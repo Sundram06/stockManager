@@ -1,28 +1,12 @@
-// File formats for moving a portfolio in and out of VittNest. Pure: no
-// database, no I/O.
-//
-// Every importable file is parsed into the same shape, a list of
-// CanonicalTrade, so the import pipeline (dedupe → simulate → preview →
-// commit) doesn't care where the trades came from. The VittNest backup is the
-// first parser; broker files plug in here later.
-//
-//   CanonicalTrade = {
-//     stockName, instrumentKey?, isin?,
-//     side: "BUY" | "SELL",
-//     date: Date, quantity: number, price: number,
-//     source: string, externalTradeId?
-//   }
-import { createHash } from "node:crypto";
 import { z } from "zod";
+import { FileFormatError, normalizeSymbol } from "../file-format.mjs";
+
+// Reads a VittNest backup (what GET /api/export/json writes) into
+// CanonicalTrade[]. Allocations and summaries in the file are ignored: they are
+// derived values, and the import recomputes them.
 
 export const SCHEMA_VERSION = 1;
 export const APP_ID = "vittnest";
-
-export class FileFormatError extends Error {}
-
-export const hashContent = (content) => createHash("sha256").update(content).digest("hex");
-
-export const normalizeSymbol = (name) => String(name ?? "").trim().toUpperCase();
 
 // Accepts full ISO timestamps (what we export) and bare YYYY-MM-DD dates.
 const dateField = z
@@ -69,23 +53,10 @@ const describeIssue = (issue) => {
 	return `${issue.message}${where}`;
 };
 
-/**
- * Parses file text into CanonicalTrade[]. Throws FileFormatError with a
- * message fit to show the user.
- */
-export function parsePortfolioFile(content) {
-	let data;
-	try {
-		data = JSON.parse(content);
-	} catch {
-		throw new FileFormatError(
-			"This file isn't a VittNest backup (it isn't valid JSON). Broker files are coming soon.",
-		);
-	}
+/** True when this parser recognises the file, so the registry can pick it. */
+export const claims = (data) => Boolean(data) && typeof data === "object" && data.app === APP_ID;
 
-	if (!data || typeof data !== "object" || data.app !== APP_ID) {
-		throw new FileFormatError("This file isn't a VittNest backup. Broker files are coming soon.");
-	}
+export function parse(data) {
 	if (typeof data.schemaVersion === "number" && data.schemaVersion > SCHEMA_VERSION) {
 		throw new FileFormatError(
 			"This backup was made by a newer version of VittNest. Refresh the page and try again.",
@@ -110,19 +81,3 @@ export function parsePortfolioFile(content) {
 	}
 	return { source: "VITTNEST", exportedAt: parsed.data.exportedAt ?? null, trades };
 }
-
-// ─── CSV ─────────────────────────────────────────────────────────────────────
-
-// A cell starting with = + - @ (or tab / CR) is run as a formula by Excel and
-// Sheets. Prefix those with ' so a symbol or note can't execute. Numbers are
-// written as numbers, so negative P&L stays numeric.
-export function csvCell(value) {
-	if (value === null || value === undefined) return "";
-	if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
-	let s = value instanceof Date ? value.toISOString().slice(0, 10) : String(value);
-	if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-	return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-export const toCsv = (header, rows) =>
-	[header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n") + "\r\n";

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Stock } from "../models/index.mjs";
-import { APP_ID, SCHEMA_VERSION, toCsv } from "../utils/portfolio-file.mjs";
+import { toCsv } from "../utils/csv.mjs";
+import { APP_ID, SCHEMA_VERSION } from "./transfer/parsers/vittnest.parser.mjs";
 import { loadLedger, replayFor } from "./ledger.service.mjs";
 import { marketCache } from "./market-cache.service.mjs";
 import { subscriptionService } from "./subscription.service.mjs";
