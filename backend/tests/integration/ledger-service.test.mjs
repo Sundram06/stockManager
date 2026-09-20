@@ -163,8 +163,11 @@ describe("ledger service", () => {
 		const infy = await Stock.findOne({ userId: owner._id });
 		await sellHistory(owner._id, { stockId: infy._id, quantity: 4, avgPrice: 120, date: d("2025-02-01") });
 		await createStockForUser(other._id, { stockName: "TCS", quantity: 5, avgPrice: 300, date: d("2025-01-01") });
+		const { ImportBatch } = await import("../../src/models/index.mjs");
+		await ImportBatch.create({ userId: owner._id, source: "VITTNEST", fileHash: "x" });
 
 		expect(await deleteUserAccount(owner._id)).toBe(true);
+		expect(await ImportBatch.countDocuments({ userId: owner._id })).toBe(0);
 
 		expect(await User.countDocuments({ _id: owner._id })).toBe(0);
 		expect(await Stock.countDocuments({ userId: owner._id })).toBe(0);

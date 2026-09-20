@@ -10,7 +10,7 @@ import {
 	Container,
 	Paper,
 } from "@mui/material";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import PublicNav from "../component/PublicNav";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { login, clearLogoutMessage } from "../store/auth-slice";
@@ -27,9 +27,22 @@ export default function LoginPage() {
 	const [alertError, setAlertError] = useState({ message: "", code: "" });
 	const dispatch = useDispatch();
 	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
 
 	const sessionActive = useSelector((state) => state.auth.sessionActive);
 	const logoutMessage = useSelector((state) => state.auth.logoutMessage);
+
+	// The server sends the user back here when Google sign-in couldn't be
+	// completed (the reason is in the server log).
+	useEffect(() => {
+		if (searchParams.get("error") !== "google") return;
+		setAlertError({
+			message: "Google sign-in didn't complete. Try again, or sign in with your email and password.",
+			code: "GOOGLE_SIGNIN_FAILED",
+		});
+		searchParams.delete("error");
+		setSearchParams(searchParams, { replace: true });
+	}, [searchParams, setSearchParams]);
 
 	useEffect(() => {
 		// Only clear the logout message if it was already shown once
