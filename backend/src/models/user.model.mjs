@@ -44,6 +44,9 @@ async function deleteDataOwnedBy(userIds, session) {
 	await SellEvent.deleteMany(owned, { session });
 	await History.deleteMany(owned, { session });
 	await Stock.deleteMany({ userId: { $in: userIds } }, { session });
+	if (mongoose.modelNames().includes("ImportBatch")) {
+		await mongoose.model("ImportBatch").deleteMany({ userId: { $in: userIds } }, { session });
+	}
 }
 
 userSchema.pre(

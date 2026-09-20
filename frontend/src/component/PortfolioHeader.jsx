@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
+import ImportExportMenu from "./ImportExportMenu";
 
 // ─── Pill toggle (Active / Dormant) ─────────────────────────────────────────
 function SegmentedToggle({ value, onChange }) {
@@ -114,6 +115,8 @@ export default function PortfolioHeader({
 						},
 					}}
 				/>
+
+				<ImportExportMenu />
 
 				{/* Add Stock — desktop only (mobile uses FAB) */}
 				<Button
