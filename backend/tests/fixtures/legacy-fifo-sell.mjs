@@ -1,3 +1,7 @@
+// FROZEN COPY of src/utils/fifo-sell.mjs as it stood before the SellEvent ledger
+// refactor. Used only as a test oracle so replayLedger() provably keeps the same
+// allocation semantics (FIFO by day, pro-rata within a day). Do not edit.
+
 // Groups consecutive FIFO rows that share the same purchase date.
 // Same-day lots are treated as a single pool and consumed proportionally.
 function groupRowsByDate(rows) {

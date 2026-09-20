@@ -34,3 +34,6 @@ backend/docs/refactor/*.md
 .env.*.example
 **/.env.*.example
 
+
+# Local data backups from migration scripts (contain user data)
+backend/backups/

@@ -12,4 +12,10 @@ const stockSchema = new Schema({
 	userId: { type: Schema.Types.ObjectId, ref: "User" },
 });
 
+// One Stock document per user per symbol. Without this, two near-simultaneous
+// "add stock" requests (or an import) could create a second RELIANCE for the
+// same user, splitting its lots across two ledgers. Existing duplicates must be
+// merged first (npm run merge:duplicate-stocks) or the index build fails.
+stockSchema.index({ userId: 1, stockName: 1 }, { unique: true });
+
 export const Stock = mongoose.models.Stock || mongoose.model("Stock", stockSchema);

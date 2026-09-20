@@ -7,6 +7,10 @@
 		"start": "node server.mjs",
 		"extract:instruments": "node scripts/extract-instruments.mjs",
 		"env:check": "node scripts/validate-env.mjs",
+		"dev:sandbox": "cross-env NODE_ENV=development node --env-file=.env.development scripts/dev-sandbox.mjs",
+		"cleanup:orphans": "node --env-file=.env.development scripts/cleanup-orphans.mjs",
+		"merge:duplicate-stocks": "node --env-file=.env.development scripts/merge-duplicate-stocks.mjs",
+		"migrate:sell-events": "node --env-file=.env.development scripts/migrate-sell-events.mjs",
 		"smoke": "npm test",
 		"test": "vitest run"
 	},
@@ -35,6 +39,7 @@
 	},
 	"devDependencies": {
 		"cross-env": "^7.0.3",
+		"mongodb-memory-server-core": "^10.4.3",
 		"supertest": "^7.1.0",
 		"vitest": "^2.1.8"
 	}

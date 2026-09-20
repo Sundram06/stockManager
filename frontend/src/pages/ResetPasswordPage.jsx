@@ -1,13 +1,8 @@
 import { useState, useEffect } from "react";
-import {
-	Box,
-	Button,
-	TextField,
-	Typography,
-	Paper,
-	Alert,
-} from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Box, Button, TextField, Alert } from "@mui/material";
+import { Link, useNavigate } from "react-router-dom";
+import PasswordOutlinedIcon from "@mui/icons-material/PasswordOutlined";
+import AuthShell from "../component/AuthShell";
 import { API_URL } from "../util/api/config.mjs";
 
 export default function ResetPasswordPage() {
@@ -25,6 +20,8 @@ export default function ResetPasswordPage() {
 		if (emailParam) setEmail(emailParam);
 		if (tokenParam) setToken(tokenParam);
 	}, []);
+
+	const linkValid = Boolean(email && token);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -48,44 +45,48 @@ export default function ResetPasswordPage() {
 	};
 
 	return (
-		<Box>
-			<Paper elevation={3} sx={{ p: 4, mt: 6, borderRadius: 3 }}>
-				<Typography variant="h5" fontWeight="bold" textAlign="center" gutterBottom>
-					Reset Password
-				</Typography>
-				{success ? (
-					<Alert severity="success">
-						Password reset successfully. Redirecting to login…
+		<AuthShell icon={<PasswordOutlinedIcon />} title="Reset Password">
+			{success ? (
+				<Alert severity="success">Password reset successfully. Redirecting to login…</Alert>
+			) : !linkValid ? (
+				<>
+					<Alert severity="error" sx={{ mb: 2 }}>
+						This reset link is missing or incomplete. Request a new one.
 					</Alert>
-				) : (
-					<form onSubmit={handleSubmit}>
-						<TextField
-							label="New Password"
-							type="password"
-							fullWidth
-							required
-							margin="normal"
-							value={newPassword}
-							onChange={(e) => setNewPassword(e.target.value)}
-							inputProps={{ minLength: 6 }}
-						/>
-						{error && (
-							<Alert severity="error" sx={{ mb: 2 }}>
-								{error}
-							</Alert>
-						)}
-						<Button
-							type="submit"
-							variant="contained"
-							color="primary"
-							fullWidth
-							sx={{ mt: 2 }}
-						>
-							Reset Password
-						</Button>
-					</form>
-				)}
-			</Paper>
-		</Box>
+					<Button variant="contained" fullWidth onClick={() => navigate("/forgot-password")}>
+						Request new link
+					</Button>
+				</>
+			) : (
+				<Box component="form" onSubmit={handleSubmit}>
+					<TextField
+						label="New Password"
+						type="password"
+						fullWidth
+						required
+						autoFocus
+						margin="normal"
+						autoComplete="new-password"
+						value={newPassword}
+						onChange={(e) => setNewPassword(e.target.value)}
+						inputProps={{ minLength: 6 }}
+						helperText="At least 6 characters"
+					/>
+					{error && (
+						<Alert severity="error" sx={{ mt: 1, mb: 1 }}>
+							{error}
+						</Alert>
+					)}
+					<Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 3 }}>
+						Reset Password
+					</Button>
+				</Box>
+			)}
+			<Box mt={2} textAlign="center">
+				<Link to="/login" style={{ color: "inherit", fontSize: "0.9rem", opacity: 0.8 }}>
+					Back to Login
+				</Link>
+			</Box>
+		</AuthShell>
 	);
 }
