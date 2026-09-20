@@ -101,8 +101,10 @@ function ValueCard({ label, value, prefix, accent, isPnl }) {
 }
 
 // ─── Stock card (Best / Worst performer) ────────────────────────────────────
-function StockCard({ label, stock, accent, isBest }) {
-	const Icon = isBest ? TrendingUpIcon : TrendingDownIcon;
+// Colour and arrow follow the stock's own return. In a portfolio where
+// everything is down, the best performer is still a loss and must read as one.
+function StockCard({ label, stock, accent }) {
+	const Icon = (stock?.pct ?? 0) >= 0 ? TrendingUpIcon : TrendingDownIcon;
 
 	return (
 		<SummaryCard accentColor={accent}>
@@ -237,18 +239,8 @@ export default function PortfolioSummary() {
 				accent={pnlAccent(summary.dayChange)}
 				isPnl
 			/>
-			<StockCard
-				label="Best Performer"
-				stock={summary.best}
-				accent={green}
-				isBest
-			/>
-			<StockCard
-				label="Worst Performer"
-				stock={summary.worst}
-				accent={red}
-				isBest={false}
-			/>
+			<StockCard label="Best Performer" stock={summary.best} accent={pnlAccent(summary.best?.pct)} />
+			<StockCard label="Worst Performer" stock={summary.worst} accent={pnlAccent(summary.worst?.pct)} />
 		</Box>
 	);
 }
