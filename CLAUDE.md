@@ -189,13 +189,12 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 
 ### Conventions
 
-Worth knowing before adding code, because the codebase is not uniform yet:
-
-- **Server data lives in React Query; Redux holds only auth.** A dead `stocks` slice was removed in Sep 2026 — don't reintroduce client-side mirrors of server state. Mutations invalidate `["stocks"]` and `["history"]`.
-- **Every backend call goes through `util/api/request.mjs`** (`apiFetch` for the raw Response, `apiJson` for parsed JSON). It attaches the token, encodes the body, and turns a failed response into an Error carrying the server's `message` and `code`. Don't call `fetch` from a component. (Known exceptions not yet migrated: the auth pages — forgot/reset password, verify email — and the instrument search in `AddStock`.)
-- **Live prices come from context, not props.** `MarketDataProvider` (mounted in `DashboardPage`) opens the one WebSocket; components call `useMarketPrices()`. Outside the provider it returns an empty map instead of throwing.
-- **Tests:** `src/test/render.jsx` renders a component with store, query client, theme and router. Prefer asserting through roles and scoping queries (`within(table)`) — symbols appear in several places on the dashboard.
-- **Unresolved:** PropTypes are declared in 8 components and disabled in 12; hooks are split between `.js` and `.jsx`; `component/` is singular while `pages/` is plural. Pick one and apply it rather than following the nearest file.
+- **Comments.** Comment only what is genuinely hard to follow: a non-obvious rule, a constraint that is not visible in the code, a reason a safe-looking change would break something. Readers are coders, so ordinary code needs no narration. No em dashes, no notes left over from writing the code, no references to past discussions or reviews.
+- **Server data lives in React Query. Redux holds only auth.** Mutations invalidate `["stocks"]` and `["history"]`. Do not keep a second copy of server data in Redux.
+- **Every backend call goes through `util/api/request.mjs`.** `apiFetch` returns the Response, `apiJson` returns parsed JSON. Both attach the token, encode the body, and throw an Error carrying the server's `message` and `code`. Components should not call `fetch`. Not yet migrated: the auth pages and the instrument search in `AddStock`.
+- **Live prices come from context.** `MarketDataProvider` owns the single WebSocket; components call `useMarketPrices()`. Outside the provider it returns an empty map instead of throwing.
+- **Tests.** `src/test/render.jsx` renders a component with store, query client, theme and router. Scope queries with `within(...)`: a symbol appears in both the summary cards and the table.
+- **Not settled yet:** PropTypes are declared in 8 components and disabled in 12; hooks are split between `.js` and `.jsx`; `component/` is singular while `pages/` is plural.
 
 ### Instrument Token Mapping (transitional)
 
