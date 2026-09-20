@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-import { History, Stock } from "../models/index.mjs";
+import { History, SellEvent, Stock } from "../models/index.mjs";
 import { subscriptionService } from "./subscription.service.mjs";
-import { recalculateFifoForStock } from "./fifo-recalc.service.mjs";
+import { addLotAndRebuild, withTransaction } from "./ledger.service.mjs";
 import { checkTradingDate } from "./market-calendar.service.mjs";
 
 // ─── createStockForUser ───────────────────────────────────────────────────────
@@ -26,41 +26,11 @@ export const createStockForUser = async (userId, stockInput) => {
 			...(stockInput.instrumentKey && { instrumentKey: stockInput.instrumentKey }),
 		});
 
-		// Optimistic qty/avgPrice update (may be overridden by recalc below)
-		const activeHistoryRows = await History.find({
-			stockId: existingStock._id,
-			$expr: { $gt: ["$quantity", { $ifNull: ["$quantitySold", 0] }] },
-		});
-
-		let totalActiveQty = 0;
-		let totalActiveCost = 0;
-		activeHistoryRows.forEach((row) => {
-			const unsoldQty = row.quantity - (row.quantitySold || 0);
-			totalActiveQty += unsoldQty;
-			totalActiveCost += unsoldQty * row.avgPrice;
-		});
-		totalActiveQty += history.quantity;
-		totalActiveCost += history.quantity * history.avgPrice;
-
-		existingStock.quantity = totalActiveQty < 0 ? 0 : totalActiveQty;
-		existingStock.avgPrice = Number((totalActiveCost / totalActiveQty).toFixed(2));
-
-		await Promise.all([existingStock.save(), history.save()]);
-
-		// ── Backdated recalculation ───────────────────────────────────────────
-		// If any sell transaction occurred on or after the new lot's date,
-		// those FIFO assignments are now wrong — recalculate from scratch.
-		const lotDate = new Date(stockInput.date);
-		const affectedSell = await History.findOne({
-			stockId: existingStock._id,
-			quantitySold: { $gt: 0 },
-			dateSold: { $gte: lotDate },
-			_id: { $ne: history._id },
-		});
-
-		if (affectedSell) {
-			await recalculateFifoForStock(existingStock._id, existingStock);
-		}
+		// Save the lot and replay the ledger in one transaction. A backdated lot
+		// moves FIFO allocations of existing sells; the replay also refreshes
+		// quantity and avgPrice.
+		const saved = await addLotAndRebuild(existingStock, history);
+		if (saved.error) return saved;
 
 		if (stockInput.instrumentKey) {
 			subscriptionService.addSymbol(stockInput.stockName, stockInput.instrumentKey);
@@ -130,11 +100,21 @@ export const deleteAllStocks = async (userId) => {
 	const stocks = await Stock.find({ userId }).select("_id");
 	const stockIds = stocks.map((stock) => stock._id);
 
-	await Stock.deleteMany({ userId });
-	await History.deleteMany({ stockId: { $in: stockIds } });
+	await withTransaction(async (session) => {
+		await Stock.deleteMany({ userId }, { session });
+		await History.deleteMany({ stockId: { $in: stockIds } }, { session });
+		await SellEvent.deleteMany({ stockId: { $in: stockIds } }, { session });
+	});
 };
 
 export const deleteStockById = async (userId, stockId) => {
-	await Stock.findOneAndDelete({ _id: stockId, userId });
-	await History.deleteMany({ stockId });
+	await withTransaction(async (session) => {
+		const deleted = await Stock.findOneAndDelete({ _id: stockId, userId }, { session });
+		// Only remove the ledger if the stock belonged to this user. Previously
+		// History was deleted by stockId alone, so a request for someone else's
+		// stock id wiped their lots even though the stock itself survived.
+		if (!deleted) return;
+		await History.deleteMany({ stockId: deleted._id }, { session });
+		await SellEvent.deleteMany({ stockId: deleted._id }, { session });
+	});
 };
