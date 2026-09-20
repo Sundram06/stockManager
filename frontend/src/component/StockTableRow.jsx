@@ -39,7 +39,7 @@ function PnlBadge({ pnl, pct, theme }) {
 			</Typography>
 			{pctStr && (
 				<Typography
-					sx={{ fontSize: "0.68rem", fontWeight: 600, color: accent, lineHeight: 1.2, opacity: 0.85 }}
+					sx={{ fontSize: "0.7rem", fontWeight: 600, color: accent, lineHeight: 1.2 }}
 				>
 					{pctStr}
 				</Typography>
