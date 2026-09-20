@@ -3,6 +3,7 @@ import connectMongo from "./models/connection.mjs";
 import { extractData } from "../assets/extractData.mjs";
 import { env } from "./config/env.mjs";
 import { createApp } from "./app.mjs";
+import { preferIPv4 } from "./config/network.mjs";
 import {
 	connect as connectUpstox,
 	disconnect as disconnectUpstox,
@@ -18,6 +19,7 @@ import { fetchAndCacheLTP } from "./services/market-quote.service.mjs";
 import { logInfo, logError } from "./utils/logger.mjs";
 
 const start = async () => {
+	if (preferIPv4()) logInfo("Outbound requests prefer IPv4");
 	await connectMongo();
 	extractData();
 
