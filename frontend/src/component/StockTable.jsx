@@ -14,6 +14,7 @@ import { memo, useMemo, useState } from "react";
 import StockTableRow from "./StockTableRow";
 import PropTypes from "prop-types";
 import { computeDormantMetrics } from "../util/portfolioMetrics.mjs";
+import { useMarketPrices } from "../context/MarketDataContext";
 
 // ─── Column definitions per tab ─────────────────────────────────────────────
 
@@ -64,13 +65,13 @@ function StockTable({
 	activeTab,
 	historyByStockId,
 	activeStockMetrics,
-	ltpMap,
 	onAdd,
 	onSell,
 	onViewHistory,
 	onChart,
 	onDelete,
 }) {
+	const { ltpMap } = useMarketPrices();
 	// Per-tab sort state: { [tab]: { col, dir } }
 	const [sortByTab, setSortByTab] = useState({
 		0: { col: "name", dir: "asc" },
@@ -243,7 +244,6 @@ StockTable.propTypes = {
 	activeTab: PropTypes.number.isRequired,
 	historyByStockId: PropTypes.object.isRequired,
 	activeStockMetrics: PropTypes.object.isRequired,
-	ltpMap: PropTypes.object.isRequired,
 	onAdd: PropTypes.func.isRequired,
 	onSell: PropTypes.func.isRequired,
 	onViewHistory: PropTypes.func.isRequired,

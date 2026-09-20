@@ -17,8 +17,6 @@ export default function PortfolioTable({
 	search,
 	addOpen,
 	setAddOpen,
-	ltpMap,
-	isConnected,
 }) {
 	const [selectedStock, setSelectedStock] = useState(null);
 	const [chartStock, setChartStock] = useState(null);
@@ -166,8 +164,6 @@ export default function PortfolioTable({
 					activeTab={activeTab}
 					historyByStockId={historyByStockId}
 					activeStockMetrics={activeStockMetrics}
-					ltpMap={ltpMap}
-					isConnected={isConnected}
 					onAdd={handleAddStock}
 					onSell={handleSellStock}
 					onViewHistory={handleViewHistory}
@@ -181,7 +177,6 @@ export default function PortfolioTable({
 				stock={selectedStock ?? null}
 				stockName={selectedStock?.stockName ?? ""}
 				history={selectedStock?.history ?? []}
-				ltpMap={ltpMap}
 			/>
 			<Suspense fallback={null}>
 				<StockChartModal
@@ -189,7 +184,6 @@ export default function PortfolioTable({
 					onClose={handleCloseChart}
 					stock={chartStock}
 					history={chartStock?.history ?? []}
-					ltpMap={ltpMap}
 					activeStockMetrics={activeStockMetrics}
 					onAddMore={handleChartAddMore}
 					onSell={handleChartSell}
@@ -212,6 +206,4 @@ PortfolioTable.propTypes = {
 	search: PropTypes.string.isRequired,
 	addOpen: PropTypes.bool.isRequired,
 	setAddOpen: PropTypes.func.isRequired,
-	ltpMap: PropTypes.object.isRequired,
-	isConnected: PropTypes.bool.isRequired,
 };
