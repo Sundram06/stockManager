@@ -28,6 +28,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { useMarketPrices } from "../context/MarketDataContext";
+import { rupee as sharedRupee } from "../util/format.mjs";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const RANGES = [
@@ -120,10 +121,7 @@ function mergePriceWithAvgBuy(priceData, steps) {
 }
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
-const rupee = (n, dec = 0) =>
-	typeof n === "number" && !isNaN(n)
-		? `₹${Math.abs(n).toLocaleString("en-IN", { maximumFractionDigits: dec })}`
-		: "—";
+const rupee = (n, dec = 0) => sharedRupee(n, { decimals: dec, absolute: true });
 
 const fmtAxisDate = (str) => {
 	if (!str) return "";
