@@ -24,7 +24,7 @@ const subheaderSx = {
 	bgcolor: "transparent",
 };
 
-// Desktop only. On phones the same actions live in the Add button's sheet.
+// Desktop only. On phones these actions live in the add button's sheet.
 export default function ImportExportMenu() {
 	const navigate = useNavigate();
 	const [anchor, setAnchor] = useState(null);

@@ -1,5 +1,4 @@
-import { API_URL } from "./config.mjs";
-import { getValidTokenOrThrow } from "./session.mjs";
+import { apiJson } from "./request.mjs";
 
 /**
  * Fetch daily close-price history for a stock.
@@ -9,22 +8,7 @@ import { getValidTokenOrThrow } from "./session.mjs";
  * @param {"1W"|"1M"|"3M"|"6M"|"1Y"|"ALL"} [range="ALL"]
  * @returns {Promise<{ instrumentKey: string, range: string, candles: Array<{date: string, price: number}> }>}
  */
-export async function fetchPriceHistory(instrument, range = "ALL") {
-	const token = getValidTokenOrThrow();
-	const url = `${API_URL}/api/market/history/${encodeURIComponent(instrument)}?range=${range}`;
-	const response = await fetch(url, {
-		headers: { Authorization: `Bearer ${token}` },
+export const fetchPriceHistory = (instrument, range = "ALL") =>
+	apiJson(`/api/market/history/${encodeURIComponent(instrument)}?range=${range}`, {
+		fallback: "Unable to load price history",
 	});
-
-	if (!response.ok) {
-		let message = "Unable to load price history";
-		try {
-			const body = await response.json();
-			if (body?.message) message = body.message;
-		} catch {
-			// non-JSON error body
-		}
-		throw new Error(message);
-	}
-	return response.json();
-}

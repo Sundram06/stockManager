@@ -10,6 +10,7 @@ import {
 	groupHistoryByStockId,
 	computeActiveStockMetrics,
 } from "../util/portfolioMetrics.mjs";
+import { useMarketPrices } from "../context/MarketDataContext";
 
 const STALE = 60_000;
 const GC = 5 * 60_000;
@@ -152,7 +153,8 @@ function StockCard({ label, stock, accent, isBest }) {
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
-export default function PortfolioSummary({ ltpMap }) {
+export default function PortfolioSummary() {
+	const { ltpMap } = useMarketPrices();
 	const theme = useTheme();
 
 	const { data: stocks = [] } = useQuery({

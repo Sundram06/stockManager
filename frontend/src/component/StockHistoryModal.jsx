@@ -21,6 +21,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import { dateFormatter } from "../util/util.mjs";
+import { useMarketPrices } from "../context/MarketDataContext";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 const fmtDate = (d) => {
@@ -442,7 +443,8 @@ const dateSx = {
 };
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function StockHistoryModal({ open, onClose, stock, stockName, history, ltpMap }) {
+export default function StockHistoryModal({ open, onClose, stock, stockName, history }) {
+	const { ltpMap } = useMarketPrices();
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -744,5 +746,4 @@ StockHistoryModal.propTypes = {
 	stockName: PropTypes.string.isRequired,
 	history: PropTypes.array.isRequired,
 	stock: PropTypes.object,
-	ltpMap: PropTypes.object,
 };
