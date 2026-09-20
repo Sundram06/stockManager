@@ -27,6 +27,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
+import { useMarketPrices } from "../context/MarketDataContext";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const RANGES = [
@@ -580,7 +581,6 @@ export default function StockChartModal({
 	onClose,
 	stock,
 	history,
-	ltpMap,
 	activeStockMetrics,
 	onAddMore,
 	onSell,
@@ -589,6 +589,7 @@ export default function StockChartModal({
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 	const [range, setRange] = useState("1Y");
 
+	const { ltpMap } = useMarketPrices();
 	const stockName = stock?.stockName ?? "";
 	const isActive = (stock?.quantity ?? 0) > 0;
 	const ltp = ltpMap?.[stockName]?.ltp ?? null;
