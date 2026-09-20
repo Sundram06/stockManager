@@ -14,6 +14,7 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import { computeDormantMetrics } from "../util/portfolioMetrics.mjs";
+import { useMarketPrices } from "../context/MarketDataContext";
 
 const rupee = (num, decimals = 2) =>
 	typeof num === "number" && !isNaN(num)
@@ -27,7 +28,8 @@ const pct = (num) =>
 
 // ─── Single stock row (Zerodha-style 3-line layout) ──────────────────────────
 
-function ActiveStockRow({ stock, activeStockMetrics, ltpMap, onTap }) {
+function ActiveStockRow({ stock, activeStockMetrics, onTap }) {
+	const { ltpMap } = useMarketPrices();
 	const theme = useTheme();
 	const green = theme.palette.success.main;
 	const red = theme.palette.error.main;
@@ -164,7 +166,6 @@ function DormantStockRow({ stock, historyByStockId, onTap }) {
 function ActionSheet({
 	stock,
 	activeTab,
-	ltpMap,
 	onClose,
 	onAdd,
 	onSell,
@@ -176,6 +177,7 @@ function ActionSheet({
 	const green = theme.palette.success.main;
 	const red = theme.palette.error.main;
 
+	const { ltpMap } = useMarketPrices();
 	const isActive = activeTab === 0;
 	const live = stock ? ltpMap[stock?.stockName] : null;
 	const ltp = live?.ltp ?? null;
@@ -315,7 +317,6 @@ function PortfolioMobileList({
 	activeTab,
 	historyByStockId,
 	activeStockMetrics,
-	ltpMap,
 	onAdd,
 	onSell,
 	onViewHistory,
@@ -348,7 +349,6 @@ function PortfolioMobileList({
 							<ActiveStockRow
 								stock={stock}
 								activeStockMetrics={activeStockMetrics}
-								ltpMap={ltpMap}
 								onTap={() => setSelectedStock(stock)}
 							/>
 						) : (
@@ -367,7 +367,6 @@ function PortfolioMobileList({
 				stock={selectedStock}
 				activeTab={activeTab}
 				activeStockMetrics={activeStockMetrics}
-				ltpMap={ltpMap}
 				onClose={() => setSelectedStock(null)}
 				onAdd={onAdd}
 				onSell={onSell}

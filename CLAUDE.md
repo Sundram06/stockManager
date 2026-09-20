@@ -39,6 +39,8 @@ npm run env:check             # Validate required env vars are present
 npm run dev        # Vite dev server (port 5173)
 npm run build      # Production build
 npm run lint       # ESLint (0 warnings allowed)
+npm test           # Vitest + Testing Library (jsdom)
+npm run test:watch # same, in watch mode
 npm run preview    # Preview production build
 ```
 
@@ -62,7 +64,7 @@ npm run preview    # Preview production build
 
 **Middleware order** (in `app.mjs`): `requestId` → `cors` → `json` → `session` → `passport` → routes → `notFound` → `errorHandler`
 
-**Route files**: `system.routes.mjs`, `auth.routes.mjs`, `stock.routes.mjs`, `history.routes.mjs`, `market.routes.mjs` (instrument search lives here: `GET /api/instruments/search`)
+**Route files**: `system.routes.mjs`, `auth.routes.mjs`, `stock.routes.mjs`, `history.routes.mjs`, `market.routes.mjs` (instrument search lives here: `GET /api/instruments/search`), `transfer.routes.mjs` (backup/restore, see below)
 
 **Pattern**: Routes → Controllers (thin, only HTTP) → Services (all logic) → Models (Mongoose).
 
@@ -118,6 +120,22 @@ Sells are their own records: one `SellEvent` per sale (`date, quantity, price, s
 - A sale is validated by replaying the whole ledger with it added, so a backdated sell that would starve a later sale is rejected (400). A stock whose stored history can't be replayed (legacy sale dated before its purchase) returns 409 on sell or add-lot.
 - Migration: `npm run migrate:sell-events` (dry run) / `-- --apply` (writes a JSON backup to `backend/backups/` first).
 
+### Backup, restore and exports (`transfer.routes.mjs`)
+
+`GET /api/export/json` builds the VittNest backup: `{app:"vittnest", schemaVersion:1, stocks:[{stockName, instrumentKey, lots[], sells[]}]}` with full ISO timestamps and no database ids, so a restore replays to identical numbers. `holdings.csv` and `transactions.csv` are read-only reports (not importable); `csvCell` prefixes `'` on text starting with `= + - @` so a symbol can't execute as a formula.
+
+Import is one pipeline — parse → dedupe → simulate → preview → commit:
+- `utils/portfolio-file.mjs` parses a file into `CanonicalTrade[]` (`stockName, side, date, quantity, price, source, externalTradeId?`). Broker parsers plug in here.
+- `import.service.mjs` loads the stored ledger per stock, removes trades it already has (multiset on timestamp+qty+price, or `externalTradeId`), and simulates **every** option with `replayLedger`: keep, merge, replace. Nothing is written; the preview shows the numbers the commit would write.
+- `commitImport` re-plans inside `withTransaction` and refuses any stock whose chosen option no longer replays. A changed-but-still-valid portfolio writes the re-planned result, which can differ from what the preview showed.
+- Each commit writes an `ImportBatch` with `before` snapshots plus a per-stock `fingerprintAfter`. `undoImport` restores the raw documents (same `_id`s) for 7 days, refusing when a fingerprint no longer matches — the stock changed since, and undo would drop that change.
+
+Frontend: `util/api/transfer.mjs`, `ImportExportMenu` (desktop), `MobileActionSheet` (behind the mobile FAB), `EmptyPortfolio` (start card; a dropped file is handed to `/import` via router state), `ImportPage`, `ImportUndoSnackbar`.
+
+### Outbound network
+
+`config/network.mjs` makes http(s) prefer IPv4 in development. Some networks return only AAAA records for Google while having no IPv6 route, which made the OAuth token exchange hang and sign-in return 500. `PREFER_IPV4=false` opts out; `true` forces it in production. A failed Google sign-in redirects to `/login?error=google` instead of surfacing raw JSON.
+
 ### Deletion cascades & data scripts
 
 - Deleting a stock (`deleteStockById`, `deleteAllStocks`) removes its History and SellEvents in one transaction, and only if the stock belongs to the requesting user.
@@ -169,6 +187,15 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 
 ---
 
+### Conventions
+
+- **Comments.** Comment only what is genuinely hard to follow: a non-obvious rule, a constraint that is not visible in the code, a reason a safe-looking change would break something. Readers are coders, so ordinary code needs no narration. No em dashes, no notes left over from writing the code, no references to past discussions or reviews.
+- **Server data lives in React Query. Redux holds only auth.** Mutations invalidate `["stocks"]` and `["history"]`. Do not keep a second copy of server data in Redux.
+- **Every backend call goes through `util/api/request.mjs`.** `apiFetch` returns the Response, `apiJson` returns parsed JSON. Both attach the token, encode the body, and throw an Error carrying the server's `message` and `code`. Components should not call `fetch`. Not yet migrated: the auth pages and the instrument search in `AddStock`.
+- **Live prices come from context.** `MarketDataProvider` owns the single WebSocket; components call `useMarketPrices()`. Outside the provider it returns an empty map instead of throwing.
+- **Tests.** `src/test/render.jsx` renders a component with store, query client, theme and router. Scope queries with `within(...)`: a symbol appears in both the summary cards and the table.
+- **Not settled yet:** PropTypes are declared in 8 components and disabled in 12; hooks are split between `.js` and `.jsx`; `component/` is singular while `pages/` is plural.
+
 ### Instrument Token Mapping (transitional)
 
 `assets/instruments.json` maps symbols to Upstox instrument keys:
@@ -181,16 +208,19 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 
 ## Planned Work
 
-**Phase 5 — Real price history for stock chart: done (branch `feat/price-history-chart`).**
+**Phase 5 — Real price history for stock chart: done, merged.**
 - `GET /api/market/history/:instrument?range=1W|1M|3M|6M|1Y|ALL` (JWT). `:instrument` = URL-encoded instrument key, or bare symbol for pre-Phase-1 stocks (resolved via `subscriptionService.keyForSymbol`).
 - `market-history.service.mjs` → Upstox `/v3/historical-candle/{key}/days/1/{to}/{from}`, normalised to ascending `{date, price(close), open, high, low, volume}`, 1h in-memory cache per key+range. ALL = 5 years, single request.
 - Frontend fetches ALL once per stock (`util/api/market.mjs`, React Query key `["priceHistory", instrument]`), range pills filter client-side. Today's LTP appended as a live tip. Buy/sell markers snap to last trading day on or before the event. Recharts animation disabled (1240-point series).
 
-**Phase 6 — Polish (unverified):** teal theme on auth pages, light-mode check, Lighthouse.
+**Phase 6 — Polish: done.** Teal theme on auth pages (shared `AuthShell`), no navy header in dark mode, a11y/Lighthouse pass.
 
-**Next priorities (from PRODUCT_IDEAS_BRAINSTORM.md):**
-- Portfolio export report (PDF/CSV/Excel)
-- Demat account import (Zerodha/Upstox/Groww CSV)
+**Next — broker import (Zerodha/Groww/Upstox).** The pipeline is built; only parsers and trade matching are missing. Decisions already made:
+- A broker file is parsed into the same `CanonicalTrade[]` the VittNest backup produces, then reuses dedupe → simulate → preview → commit unchanged.
+- Matching a broker trade against one the user typed in by hand: same calendar day (not timestamp), same side, same quantity **after grouping the broker's fills** by order id (or by day+symbol+side when the file has none), and price within 1%. Ambiguous matches are never merged silently — the preview asks.
+- The broker file is the source of truth for a matched trade: its price **and its trade time** replace the manual values (manual entries store midnight, so ordering of same-day lots can change, which the preview must show as a P&L delta).
+- Charges (brokerage, STT) are out of scope: manual entries have none, so mixing them would make realised P&L part net, part gross.
+- Trades imported this way carry `externalTradeId`, so re-imports match exactly and the fuzzy rule runs only once per trade.
 
 ---
 
@@ -225,6 +255,9 @@ VITE_API_URL=http://localhost:3000
 Tests live in `backend/tests/`. Run with Vitest in Node environment.
 
 - `ledger.test.mjs` — replayLedger unit tests incl. 500 randomized ledgers vs the legacy algorithm
+- `portfolio-file.test.mjs` — backup parsing and CSV escaping (formula-injection guard)
+- `import-export.test.mjs` — export→import round trip, dedupe, conflicts, undo, replace-all (memory replica set)
+- `transfer-routes.test.mjs` — download headers, 413 on oversized upload, undo routing
 - `ledger-service.test.mjs` — service tests against in-memory Mongo replica set (mongodb-memory-server)
 - `auth-validation.test.mjs` — 400 responses for invalid auth inputs
 - `portfolio-routes.test.mjs` — Route integration tests with mocked services

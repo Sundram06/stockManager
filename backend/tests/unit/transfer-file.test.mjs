@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { FileFormatError, csvCell, parsePortfolioFile, toCsv } from "../../src/utils/portfolio-file.mjs";
+import { csvCell, toCsv } from "../../src/utils/csv.mjs";
+import { FileFormatError, parsePortfolioFile } from "../../src/services/transfer/parsers/index.mjs";
 
 describe("csvCell", () => {
 	it.each([

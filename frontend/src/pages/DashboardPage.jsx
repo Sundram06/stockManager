@@ -6,7 +6,7 @@ import PortfolioHeader from "../component/PortfolioHeader";
 import PortfolioSummary from "../component/PortfolioSummary";
 import ImportUndoSnackbar from "../component/ImportUndoSnackbar";
 import MobileActionSheet from "../component/MobileActionSheet";
-import useMarketData from "../hooks/useMarketData";
+import { MarketDataProvider } from "../context/MarketDataContext";
 import { Box, Typography, CircularProgress, Fab, useTheme, useMediaQuery, useScrollTrigger, Paper } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
@@ -23,7 +23,6 @@ export default function DashboardPage() {
 	const deferredSearch = useDeferredValue(search);
 	const [addOpen, setAddOpen] = useState(false);
 	const [sheetOpen, setSheetOpen] = useState(false);
-	const { ltpMap, isConnected } = useMarketData();
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 	const scrolled = useScrollTrigger({ disableHysteresis: true, threshold: 60 });
@@ -78,119 +77,119 @@ export default function DashboardPage() {
 	};
 
 	return (
-		<Box
-			sx={{
-				py: { xs: 2, sm: 3 },
-				px: { xs: 1.5, sm: 2.5 },
-				width: "100%",
-			}}
-		>
-			{/* ── Page heading ─────────────────────────────── */}
-			<Typography
-				variant="h4"
-				fontWeight={700}
+		<MarketDataProvider>
+			<Box
 				sx={{
-					fontSize: { xs: "1.2rem", sm: "1.6rem" },
-					lineHeight: 1.15,
-					mb: { xs: 1.5, sm: 2 },
+					py: { xs: 2, sm: 3 },
+					px: { xs: 1.5, sm: 2.5 },
+					width: "100%",
 				}}
 			>
-				{user?.name?.trim().split(/\s+/)[0]
-					? `${user.name.trim().split(/\s+/)[0]}'s Portfolio`
-					: "My Portfolio"}
-			</Typography>
-
-			{/* ── Summary strip ────────────────────────────── */}
-			<PortfolioSummary ltpMap={ltpMap} />
-
-			{/* ── Card: toolbar + table ────────────────────── */}
-			<Paper
-				elevation={0}
-				sx={{
-					bgcolor: "background.paper",
-					border: 1,
-					borderColor: "divider",
-					borderRadius: 2,
-					overflow: "hidden",
-					mb: 4,
-				}}
-			>
-				<PortfolioHeader
-					search={search}
-					onSearchChange={setSearch}
-					tab={tab}
-					onTabChange={setTab}
-					onAddStock={handleAddStock}
-				/>
-				<PortfolioTable
-					activeTab={tab}
-					search={deferredSearch}
-					addOpen={addOpen}
-					setAddOpen={setAddOpen}
-					ltpMap={ltpMap}
-					isConnected={isConnected}
-				/>
-			</Paper>
-
-			<ImportUndoSnackbar result={importResult} />
-
-			{isMobile && (
-				<MobileActionSheet
-					open={sheetOpen}
-					onOpen={() => setSheetOpen(true)}
-					onClose={() => setSheetOpen(false)}
-					onAddStock={handleAddStock}
-				/>
-			)}
-
-			{isMobile && (
-				<Fab
-					color="primary"
-					aria-label="Add stock, import or export"
-					aria-haspopup="dialog"
-					onClick={() => setSheetOpen(true)}
-					variant="extended"
+				{/* ── Page heading ─────────────────────────────── */}
+				<Typography
+					variant="h4"
+					fontWeight={700}
 					sx={{
-						position: "fixed",
-						bottom: 24,
-						right: 20,
-						boxShadow: 6,
-						fontWeight: 700,
-						fontSize: "0.875rem",
-						zIndex: 1200,
-						minWidth: "unset",
-						width: scrolled ? 56 : "auto",
-						height: 56,
-						borderRadius: scrolled ? "50%" : "28px",
-						px: scrolled ? 0 : 2,
-						transition: [
-							"width 0.4s cubic-bezier(0.4,0,0.2,1)",
-							"border-radius 0.4s cubic-bezier(0.4,0,0.2,1)",
-							"padding 0.4s cubic-bezier(0.4,0,0.2,1)",
-						].join(", "),
-						overflow: "hidden",
+						fontSize: { xs: "1.2rem", sm: "1.6rem" },
+						lineHeight: 1.15,
+						mb: { xs: 1.5, sm: 2 },
 					}}
 				>
-					<AddIcon sx={{ fontSize: "1.1rem", flexShrink: 0 }} />
-					<Box
-						component="span"
+					{user?.name?.trim().split(/\s+/)[0]
+						? `${user.name.trim().split(/\s+/)[0]}'s Portfolio`
+						: "My Portfolio"}
+				</Typography>
+
+				{/* ── Summary strip ────────────────────────────── */}
+				<PortfolioSummary />
+
+				{/* ── Card: toolbar + table ────────────────────── */}
+				<Paper
+					elevation={0}
+					sx={{
+						bgcolor: "background.paper",
+						border: 1,
+						borderColor: "divider",
+						borderRadius: 2,
+						overflow: "hidden",
+						mb: 4,
+					}}
+				>
+					<PortfolioHeader
+						search={search}
+						onSearchChange={setSearch}
+						tab={tab}
+						onTabChange={setTab}
+						onAddStock={handleAddStock}
+					/>
+					<PortfolioTable
+						activeTab={tab}
+						search={deferredSearch}
+						addOpen={addOpen}
+						setAddOpen={setAddOpen}
+					/>
+				</Paper>
+
+				<ImportUndoSnackbar result={importResult} />
+
+				{isMobile && (
+					<MobileActionSheet
+						open={sheetOpen}
+						onOpen={() => setSheetOpen(true)}
+						onClose={() => setSheetOpen(false)}
+						onAddStock={handleAddStock}
+					/>
+				)}
+
+				{isMobile && (
+					<Fab
+						color="primary"
+						aria-label="Add stock, import or export"
+						aria-haspopup="dialog"
+						onClick={() => setSheetOpen(true)}
+						variant="extended"
 						sx={{
-							maxWidth: scrolled ? 0 : 100,
-							opacity: scrolled ? 0 : 1,
-							overflow: "hidden",
-							whiteSpace: "nowrap",
-							ml: scrolled ? 0 : 0.75,
+							position: "fixed",
+							bottom: 24,
+							right: 20,
+							boxShadow: 6,
+							fontWeight: 700,
+							fontSize: "0.875rem",
+							zIndex: 1200,
+							minWidth: "unset",
+							width: scrolled ? 56 : "auto",
+							height: 56,
+							borderRadius: scrolled ? "50%" : "28px",
+							px: scrolled ? 0 : 2,
 							transition: [
-								"max-width 0.4s cubic-bezier(0.4,0,0.2,1)",
-								"opacity 0.25s ease",
-								"margin 0.4s cubic-bezier(0.4,0,0.2,1)",
+								"width 0.4s cubic-bezier(0.4,0,0.2,1)",
+								"border-radius 0.4s cubic-bezier(0.4,0,0.2,1)",
+								"padding 0.4s cubic-bezier(0.4,0,0.2,1)",
 							].join(", "),
+							overflow: "hidden",
 						}}
 					>
-						Add Stock
-					</Box>
-				</Fab>
-			)}
-		</Box>
+						<AddIcon sx={{ fontSize: "1.1rem", flexShrink: 0 }} />
+						<Box
+							component="span"
+							sx={{
+								maxWidth: scrolled ? 0 : 100,
+								opacity: scrolled ? 0 : 1,
+								overflow: "hidden",
+								whiteSpace: "nowrap",
+								ml: scrolled ? 0 : 0.75,
+								transition: [
+									"max-width 0.4s cubic-bezier(0.4,0,0.2,1)",
+									"opacity 0.25s ease",
+									"margin 0.4s cubic-bezier(0.4,0,0.2,1)",
+								].join(", "),
+							}}
+						>
+							Add Stock
+						</Box>
+					</Fab>
+				)}
+			</Box>
+		</MarketDataProvider>
 	);
 }

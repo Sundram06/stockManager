@@ -1,55 +1,37 @@
 import { useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useDispatch } from "react-redux";
-import { API_URL } from "../util/api/config.mjs";
 import { queryClient } from "../util/api/queryClient.mjs";
-import { createStock } from "../util/api/stocks.mjs";
+import { createStock, deleteStock } from "../util/api/stocks.mjs";
 import {
 	handleAddStockRowInHistory,
 	handleSellStockRowInHistory,
 } from "../util/api/history.mjs";
-import { addStockToPortfolio } from "../store/stocks-slice";
+
+const refreshPortfolio = () => {
+	queryClient.invalidateQueries({ queryKey: ["stocks"] });
+	queryClient.invalidateQueries({ queryKey: ["history"] });
+};
 
 export default function usePortfolioActions({ setDeleteModalOpen }) {
-	const dispatch = useDispatch();
-
 	const { mutate: mutateAdd } = useMutation({
 		mutationFn: createStock,
-		onSuccess: (data) => {
-			dispatch(addStockToPortfolio(data));
-			queryClient.invalidateQueries({ queryKey: ["stocks"] });
-			queryClient.invalidateQueries({ queryKey: ["history"] });
-		},
+		onSuccess: refreshPortfolio,
 	});
 
 	const { mutate: mutateAddToHistory } = useMutation({
 		mutationFn: handleAddStockRowInHistory,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["stocks"] });
-			queryClient.invalidateQueries({ queryKey: ["history"] });
-		},
+		onSuccess: refreshPortfolio,
 	});
 
 	const { mutate: mutateSell } = useMutation({
 		mutationFn: handleSellStockRowInHistory,
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["stocks"] });
-			queryClient.invalidateQueries({ queryKey: ["history"] });
-		},
+		onSuccess: refreshPortfolio,
 	});
 
 	const { mutate: mutateDelete } = useMutation({
-		mutationFn: async (stockId) => {
-			const token = localStorage.getItem("token");
-			const response = await fetch(`${API_URL}/stocks/${stockId}`, {
-				method: "DELETE",
-				headers: { Authorization: `Bearer ${token}` },
-			});
-			if (!response.ok) throw new Error("Failed to delete stock");
-		},
+		mutationFn: deleteStock,
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["stocks"] });
-			queryClient.invalidateQueries({ queryKey: ["history"] });
+			refreshPortfolio();
 			setDeleteModalOpen(false);
 		},
 	});
