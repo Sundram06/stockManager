@@ -13,18 +13,11 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { computeDormantMetrics } from "../util/portfolioMetrics.mjs";
+import { computeDormantMetrics, liveStockMetrics, priceDayChange } from "../util/portfolioMetrics.mjs";
+import { percent, rupee, signedRupee } from "../util/format.mjs";
 import { useMarketPrices } from "../context/MarketDataContext";
 
-const rupee = (num, decimals = 2) =>
-	typeof num === "number" && !isNaN(num)
-		? `₹${num.toLocaleString("en-IN", { maximumFractionDigits: decimals })}`
-		: "—";
-
-const pct = (num) =>
-	typeof num === "number" && !isNaN(num)
-		? `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`
-		: null;
+const pct = percent;
 
 // ─── Single stock row (Zerodha-style 3-line layout) ──────────────────────────
 
@@ -41,13 +34,12 @@ function ActiveStockRow({ stock, activeStockMetrics, onTap }) {
 	const ltp = live?.ltp ?? null;
 	const cp = live?.cp ?? null;
 
-	const pnl = ltp !== null ? (ltp - avgPrice) * stock.quantity : null;
-	const pnlPct = ltp !== null && avgPrice > 0
-		? ((ltp - avgPrice) / avgPrice) * 100
-		: null;
-	const dayChangePct = ltp !== null && cp != null && cp > 0
-		? ((ltp - cp) / cp) * 100
-		: null;
+	const { pnl, pnlPct, dayChangePct } = liveStockMetrics({
+		quantity: stock.quantity,
+		avgPrice,
+		totalInvested,
+		live,
+	});
 
 	const pnlColor = pnl === null ? "text.secondary" : pnl > 0 ? green : pnl < 0 ? red : "text.secondary";
 
@@ -79,14 +71,14 @@ function ActiveStockRow({ stock, activeStockMetrics, onTap }) {
 					{stock.stockName}
 				</Typography>
 				<Typography sx={{ fontSize: "0.95rem", fontWeight: 600, color: pnlColor }}>
-					{pnl !== null ? rupee(pnl) : "—"}
+					{signedRupee(pnl)}
 				</Typography>
 			</Box>
 
 			{/* Line 3: invested  |  LTP + day% */}
 			<Box sx={{ display: "flex", justifyContent: "space-between" }}>
 				<Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
-					Invested {rupee(totalInvested, 0)}
+					Invested {rupee(totalInvested, { decimals: 0 })}
 				</Typography>
 				<Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
 					LTP {ltp !== null ? rupee(ltp) : "—"}
@@ -144,14 +136,14 @@ function DormantStockRow({ stock, historyByStockId, onTap }) {
 					{stock.stockName}
 				</Typography>
 				<Typography sx={{ fontSize: "0.95rem", fontWeight: 600, color: pnlColor }}>
-					{rupee(d.totalPnl)}
+					{signedRupee(d.totalPnl)}
 				</Typography>
 			</Box>
 
 			{/* Line 3: invested  |  sold at */}
 			<Box sx={{ display: "flex", justifyContent: "space-between" }}>
 				<Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
-					Invested {rupee(d.totalSoldCost, 0)}
+					Invested {rupee(d.totalSoldCost, { decimals: 0 })}
 				</Typography>
 				<Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
 					Sold at {rupee(d.avgSellPrice)}
@@ -181,9 +173,7 @@ function ActionSheet({
 	const isActive = activeTab === 0;
 	const live = stock ? ltpMap[stock?.stockName] : null;
 	const ltp = live?.ltp ?? null;
-	const cp = live?.cp ?? null;
-	const dayChange = ltp !== null && cp !== null ? ltp - cp : null;
-	const dayChangePct = dayChange !== null && cp > 0 ? (dayChange / cp) * 100 : null;
+	const { change: dayChange, pct: dayChangePct } = priceDayChange(live);
 	const dayColor = dayChange === null ? "text.secondary" : dayChange >= 0 ? green : red;
 
 	const handleAdd = useCallback(() => { onClose(); onAdd(stock); }, [onClose, onAdd, stock]);
@@ -230,7 +220,7 @@ function ActionSheet({
 						</Typography>
 						{dayChange !== null && (
 							<Typography variant="body2" sx={{ color: dayColor }}>
-								{dayChange >= 0 ? "+" : ""}{rupee(dayChange)} ({pct(dayChangePct)})
+								{signedRupee(dayChange)} ({pct(dayChangePct)})
 							</Typography>
 						)}
 					</Box>
