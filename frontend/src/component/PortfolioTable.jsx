@@ -39,7 +39,6 @@ export default function PortfolioTable({
 	} = usePortfolioData({ activeTab, search });
 
 	const { submitStockAction, deleteStockById } = usePortfolioActions({
-		setAddOpen,
 		setDeleteModalOpen,
 	});
 
