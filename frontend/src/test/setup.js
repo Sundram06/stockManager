@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
-// jsdom has neither of these, and MUI's responsive components need matchMedia.
+// jsdom has no matchMedia or scrollTo, and MUI's responsive components need matchMedia.
 window.matchMedia = window.matchMedia || ((query) => ({
 	matches: false,
 	media: query,

@@ -27,11 +27,7 @@ const iconSx = {
 	mb: 0.5,
 };
 
-/**
- * Shown instead of the table when the account has no stocks at all: the two
- * ways to get started. The backup side takes a dropped or chosen file and
- * goes straight to its preview.
- */
+/** Shown instead of the table when the account has no stocks at all. */
 export default function EmptyPortfolio({ onAddStock }) {
 	const navigate = useNavigate();
 	const inputRef = useRef(null);

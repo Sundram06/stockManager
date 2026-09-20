@@ -7,8 +7,8 @@ import { configureStore } from "@reduxjs/toolkit";
 import { ThemeProvider } from "../theme/ThemeContext";
 import authSlice from "../store/auth-slice";
 
-// Renders a component with everything the app provides: a fresh store and
-// query cache per test, the theme, and a router.
+// Renders a component with everything the app provides, with a fresh store and
+// query cache for each test.
 export function renderWithProviders(ui, { route = "/", preloadedState, client } = {}) {
 	const store = configureStore({ reducer: { auth: authSlice.reducer }, preloadedState });
 	const queryClient =
@@ -32,7 +32,7 @@ export function renderWithProviders(ui, { route = "/", preloadedState, client } 
 	};
 }
 
-/** A signed-in user, as auth-slice stores one. */
+/** A signed-in user, in the shape auth-slice stores. */
 export const signedIn = (user = { _id: "u1", name: "Test User" }) => ({
 	auth: { user, token: "test-token", isAuthLoading: false, sessionActive: "active", logoutMessage: null },
 });

@@ -5,8 +5,6 @@ import { withTransaction } from "../ledger.service.mjs";
 import { subscriptionService } from "../subscription.service.mjs";
 import { fingerprint } from "./state.mjs";
 
-// Past imports, and undoing one.
-
 export const UNDO_WINDOW_DAYS = 7;
 const UNDO_WINDOW_MS = UNDO_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 const { ObjectId } = mongoose.Types;
@@ -46,9 +44,8 @@ export async function listImports(userId) {
 }
 
 /**
- * Puts every stock the import touched back the way it was. Refused if any of
- * them changed after the import (a later buy, sale, delete or import), since
- * restoring would silently throw that change away.
+ * Puts every stock the import touched back the way it was. Refused when a
+ * stock changed after the import, because restoring it would drop that change.
  */
 export async function undoImport(userId, batchId) {
 	if (!ObjectId.isValid(batchId)) throw new AppError("Import not found", 404);
@@ -74,7 +71,7 @@ export async function undoImport(userId, batchId) {
 			);
 		}
 
-		// Raw inserts, so restored documents keep their original _ids.
+		// Raw driver inserts, so restored documents keep their original _ids.
 		for (const entry of doc.entries) {
 			await SellEvent.deleteMany({ stockId: entry.stockId }, { session });
 			await History.deleteMany({ stockId: entry.stockId }, { session });
