@@ -23,12 +23,13 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import UploadFileIcon from "@mui/icons-material/UploadFileOutlined";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import { commitImport, listImports, previewImport, undoImport } from "../util/api/transfer.mjs";
+import { rupee, signedRupee } from "../util/format.mjs";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 
-const inr = new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 });
-const money = (n) => `₹${inr.format(n)}`;
-const signedMoney = (n) => `${n > 0 ? "+" : n < 0 ? "−" : ""}₹${inr.format(Math.abs(n))}`;
+const count = (n) => (typeof n === "number" ? n.toLocaleString("en-IN") : "—");
+const money = (n) => rupee(n);
+const signedMoney = (n) => signedRupee(n);
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const when = (iso) =>
 	new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
@@ -202,7 +203,7 @@ function StockRow({ stock, choice, onChoose, locked }) {
 			</Box>
 
 			<Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 2 }}>
-				<Metric label="QTY" before={before?.quantity} after={after?.quantity} format={inr.format} />
+				<Metric label="QTY" before={before?.quantity} after={after?.quantity} format={count} />
 				<Metric label="AVG PRICE" before={before?.avgPrice} after={after?.avgPrice} format={money} />
 				<Metric label="REALISED P&L" before={before?.realisedPnl} after={after?.realisedPnl} format={signedMoney} tone />
 			</Box>

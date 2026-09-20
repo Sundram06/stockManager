@@ -1,52 +1,11 @@
 ﻿/* eslint-disable react/prop-types */
-import { TableRow, TableCell, Box, Typography, useTheme } from "@mui/material";
+import { TableRow, TableCell, Box, Typography } from "@mui/material";
 import { memo, useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
 import StockActions from "./StockActions";
-import { computeDormantMetrics } from "../util/portfolioMetrics.mjs";
-
-// ─── P&L badge ───────────────────────────────────────────────────────────────
-function PnlBadge({ pnl, pct, theme }) {
-	const isPos = pnl > 0;
-	const isNeg = pnl < 0;
-	const accent = isPos
-		? theme.palette.success.main
-		: isNeg
-		? theme.palette.error.main
-		: theme.palette.text.secondary;
-
-	const absRupee = `₹${Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
-	const sign = isPos ? "+" : isNeg ? "−" : "";
-	const pctStr = pct != null ? `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%` : null;
-
-	return (
-		<Box
-			sx={{
-				display: "inline-flex",
-				flexDirection: "column",
-				alignItems: "flex-end",
-				bgcolor: `${accent}18`,
-				borderRadius: "6px",
-				px: 1,
-				py: 0.4,
-				minWidth: 80,
-			}}
-		>
-			<Typography
-				sx={{ fontSize: "0.8rem", fontWeight: 700, color: accent, lineHeight: 1.3 }}
-			>
-				{sign}{absRupee}
-			</Typography>
-			{pctStr && (
-				<Typography
-					sx={{ fontSize: "0.7rem", fontWeight: 600, color: accent, lineHeight: 1.2 }}
-				>
-					{pctStr}
-				</Typography>
-			)}
-		</Box>
-	);
-}
+import PnlBadge from "./ui/PnlBadge";
+import { computeDormantMetrics, liveStockMetrics } from "../util/portfolioMetrics.mjs";
+import { rupee } from "../util/format.mjs";
 
 // ─── Stock name cell ─────────────────────────────────────────────────────────
 function StockNameCell({ name }) {
@@ -85,7 +44,6 @@ function StockTableRow({
 	onChart,
 	onDelete,
 }) {
-	const theme = useTheme();
 	const handleAdd = useCallback(() => onAdd(stock), [onAdd, stock]);
 	const handleViewHistory = useCallback(
 		() => onViewHistory(stock),
@@ -94,11 +52,6 @@ function StockTableRow({
 	const handleChart = useCallback(() => onChart(stock), [onChart, stock]);
 	const handleDelete = useCallback(() => onDelete(stock), [onDelete, stock]);
 	const handleSell = useCallback(() => onSell(stock._id), [onSell, stock._id]);
-
-	const rupee = (num) =>
-		typeof num === "number" && !isNaN(num)
-			? `₹${num.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`
-			: "—";
 
 	const dormantMetrics = useMemo(
 		() =>
@@ -111,19 +64,12 @@ function StockTableRow({
 	const activeMetrics = useMemo(() => {
 		if (activeTab === 1) return null;
 		const metrics = activeStockMetrics[stock._id];
-		const totalInvested = metrics ? metrics.totalInvested : 0;
-		const avgPrice = metrics ? metrics.avgPrice : stock.avgPrice;
-		const ltp = liveData?.ltp ?? null;
-		const currVal = ltp !== null && stock.quantity > 0
-			? parseFloat((stock.quantity * ltp).toFixed(2))
-			: null;
-		const pnl = ltp !== null
-			? parseFloat(((ltp - avgPrice) * stock.quantity).toFixed(2))
-			: null;
-		const pct = ltp !== null && avgPrice > 0
-			? ((ltp - avgPrice) / avgPrice) * 100
-			: null;
-		return { totalInvested, currVal, pnl, pct, avgPrice, ltp };
+		return liveStockMetrics({
+			quantity: stock.quantity,
+			avgPrice: metrics?.avgPrice ?? stock.avgPrice,
+			totalInvested: metrics?.totalInvested ?? 0,
+			live: liveData,
+		});
 	}, [activeTab, stock, activeStockMetrics, liveData]);
 
 	if (activeTab === 1 && dormantMetrics) {
@@ -147,7 +93,7 @@ function StockTableRow({
 				<TableCell align="right">{rupee(avgSellPrice)}</TableCell>
 				<TableCell align="right">{rupee(totalSellValue)}</TableCell>
 				<TableCell align="right">
-					<PnlBadge pnl={totalPnl} pct={dormantPct} theme={theme} />
+					<PnlBadge value={totalPnl} pct={dormantPct} />
 				</TableCell>
 				<TableCell align="center">
 					<StockActions
@@ -162,7 +108,7 @@ function StockTableRow({
 		);
 	}
 
-	const { totalInvested, currVal, pnl, pct, avgPrice, ltp } = activeMetrics;
+	const { totalInvested, currentValue, pnl, pnlPct, avgPrice, ltp } = activeMetrics;
 
 	return (
 		<TableRow hover sx={{ "& td": { py: 1.2 } }}>
@@ -170,11 +116,11 @@ function StockTableRow({
 			<TableCell align="right">{stock.quantity}</TableCell>
 			<TableCell align="right">{rupee(avgPrice)}</TableCell>
 			<TableCell align="right">{rupee(totalInvested)}</TableCell>
-			<TableCell align="right">{ltp !== null ? rupee(ltp) : "—"}</TableCell>
-			<TableCell align="right">{currVal !== null ? rupee(currVal) : "—"}</TableCell>
+			<TableCell align="right">{rupee(ltp)}</TableCell>
+			<TableCell align="right">{rupee(currentValue)}</TableCell>
 			<TableCell align="right">
 				{pnl !== null
-					? <PnlBadge pnl={pnl} pct={pct} theme={theme} />
+					? <PnlBadge value={pnl} pct={pnlPct} />
 					: <Typography sx={{ fontSize: "0.875rem", color: "text.disabled" }}>—</Typography>
 				}
 			</TableCell>
