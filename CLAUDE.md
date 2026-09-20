@@ -39,6 +39,8 @@ npm run env:check             # Validate required env vars are present
 npm run dev        # Vite dev server (port 5173)
 npm run build      # Production build
 npm run lint       # ESLint (0 warnings allowed)
+npm test           # Vitest + Testing Library (jsdom)
+npm run test:watch # same, in watch mode
 npm run preview    # Preview production build
 ```
 
@@ -184,6 +186,16 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 **Mobile history** (`StockHistoryModal`): Responsive — on mobile renders `SwipeableDrawer` with compact per-lot cards (Lot N badge, buy row ↓, sell row ↑, "still held" line for partial lots) and a pinned summary footer (Total Sold + Total Unsold). Desktop shows the full table modal unchanged. Modal is always mounted (not conditionally rendered) to allow proper animation.
 
 ---
+
+### Conventions
+
+Worth knowing before adding code, because the codebase is not uniform yet:
+
+- **Server data lives in React Query; Redux holds only auth.** A dead `stocks` slice was removed in Sep 2026 — don't reintroduce client-side mirrors of server state. Mutations invalidate `["stocks"]` and `["history"]`.
+- **Every backend call goes through `util/api/request.mjs`** (`apiFetch` for the raw Response, `apiJson` for parsed JSON). It attaches the token, encodes the body, and turns a failed response into an Error carrying the server's `message` and `code`. Don't call `fetch` from a component. (Known exceptions not yet migrated: the auth pages — forgot/reset password, verify email — and the instrument search in `AddStock`.)
+- **Live prices come from context, not props.** `MarketDataProvider` (mounted in `DashboardPage`) opens the one WebSocket; components call `useMarketPrices()`. Outside the provider it returns an empty map instead of throwing.
+- **Tests:** `src/test/render.jsx` renders a component with store, query client, theme and router. Prefer asserting through roles and scoping queries (`within(table)`) — symbols appear in several places on the dashboard.
+- **Unresolved:** PropTypes are declared in 8 components and disabled in 12; hooks are split between `.js` and `.jsx`; `component/` is singular while `pages/` is plural. Pick one and apply it rather than following the nearest file.
 
 ### Instrument Token Mapping (transitional)
 
