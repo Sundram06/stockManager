@@ -1,5 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPriceHistory } from "../util/api/market.mjs";
 import {
 	ComposedChart,
 	Area,
@@ -18,6 +20,7 @@ import {
 	IconButton,
 	Divider,
 	Button,
+	CircularProgress,
 	useTheme,
 	useMediaQuery,
 } from "@mui/material";
@@ -35,39 +38,40 @@ const RANGES = [
 	{ label: "ALL", days: 9999 },
 ];
 
-// ─── Mock price data generator ────────────────────────────────────────────────
-// Uses stock name as seed so the chart looks consistent on re-renders.
-function seededRandom(seed) {
-	let s = seed;
-	return () => {
-		s = (s * 1664525 + 1013904223) & 0xffffffff;
-		return (s >>> 0) / 0xffffffff;
-	};
+// ─── Price data helpers ───────────────────────────────────────────────────────
+const todayIso = () => new Date().toISOString().split("T")[0];
+
+/**
+ * Candles from the API only include closed trading days. During market hours
+ * (or after close, before the next daily candle lands) append today's LTP so
+ * the chart tip matches the price shown in the header.
+ */
+function appendLivePoint(candles, ltp) {
+	if (!candles?.length || ltp == null) return candles ?? [];
+	const today = todayIso();
+	const last = candles[candles.length - 1];
+	if (last.date >= today) return candles;
+	return [...candles, { date: today, price: ltp, live: true }];
 }
 
-function generateMockPriceData(stockName, basePrice, endPrice, totalDays = 365) {
-	const rand = seededRandom(
-		stockName.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0),
-	);
-	const data = [];
-	const start = new Date();
-	start.setDate(start.getDate() - totalDays);
-
-	let price = basePrice;
-	const drift = endPrice != null ? Math.log(endPrice / basePrice) / totalDays : 0;
-
-	for (let i = 0; i <= totalDays; i++) {
-		const d = new Date(start);
-		d.setDate(start.getDate() + i);
-		if (d.getDay() === 0 || d.getDay() === 6) continue;
-		const daily = drift + (rand() - 0.48) * 0.03;
-		price = Math.max(price * (1 + daily), 1);
-		data.push({
-			date: d.toISOString().split("T")[0],
-			price: Math.round(price * 100) / 100,
-		});
+/**
+ * Snap an event date to the nearest trading day on or before it. Holidays and
+ * weekends have no candle, so an exact lookup would drop the marker.
+ */
+function findPriceOnOrBefore(sortedData, isoDate) {
+	let lo = 0;
+	let hi = sortedData.length - 1;
+	let best = null;
+	while (lo <= hi) {
+		const mid = (lo + hi) >> 1;
+		if (sortedData[mid].date <= isoDate) {
+			best = sortedData[mid];
+			lo = mid + 1;
+		} else {
+			hi = mid - 1;
+		}
 	}
-	return data;
+	return best;
 }
 
 // ─── Compute avg buy step line from history ───────────────────────────────────
@@ -463,6 +467,7 @@ function ChartArea({ filteredData, buyEvents, sellEvents, yDomain, gradientStop,
 				<Area
 					type="monotone"
 					dataKey="price"
+					isAnimationActive={false}
 					fill="url(#priceGradient)"
 					stroke={teal}
 					strokeWidth={2}
@@ -474,6 +479,7 @@ function ChartArea({ filteredData, buyEvents, sellEvents, yDomain, gradientStop,
 				<Line
 					type="stepAfter"
 					dataKey="avgBuy"
+					isAnimationActive={false}
 					stroke={theme.palette.text.secondary}
 					strokeWidth={1.5}
 					strokeDasharray="5 4"
@@ -514,6 +520,60 @@ function ChartArea({ filteredData, buyEvents, sellEvents, yDomain, gradientStop,
 	);
 }
 
+// ─── Chart body: loading / error / empty / chart ─────────────────────────────
+function ChartBody({ chartState, errorMessage, onRetry, theme, ...chartProps }) {
+	if (chartState === "ready") return <ChartArea theme={theme} {...chartProps} />;
+
+	const centered = {
+		height: "100%",
+		display: "flex",
+		flexDirection: "column",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 1,
+		px: 3,
+		textAlign: "center",
+	};
+
+	if (chartState === "loading") {
+		return (
+			<Box sx={centered}>
+				<CircularProgress size={22} thickness={4} sx={{ color: theme.palette.primary.main }} />
+				<Typography sx={{ fontSize: "0.7rem", color: "text.secondary", letterSpacing: "0.04em" }}>
+					Loading price history…
+				</Typography>
+			</Box>
+		);
+	}
+
+	if (chartState === "error") {
+		return (
+			<Box sx={centered}>
+				<Typography sx={{ fontSize: "0.8rem", fontWeight: 600, color: "text.primary" }}>
+					Couldn&apos;t load price history
+				</Typography>
+				<Typography sx={{ fontSize: "0.7rem", color: "text.secondary", maxWidth: 320 }}>
+					{errorMessage || "The market data provider did not respond."}
+				</Typography>
+				<Button size="small" variant="outlined" onClick={onRetry} sx={{ mt: 0.5, textTransform: "none", fontSize: "0.72rem" }}>
+					Retry
+				</Button>
+			</Box>
+		);
+	}
+
+	return (
+		<Box sx={centered}>
+			<Typography sx={{ fontSize: "0.8rem", fontWeight: 600, color: "text.primary" }}>
+				No price history available
+			</Typography>
+			<Typography sx={{ fontSize: "0.7rem", color: "text.secondary", maxWidth: 320 }}>
+				Upstox returned no daily candles for this instrument.
+			</Typography>
+		</Box>
+	);
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function StockChartModal({
 	open,
@@ -533,13 +593,31 @@ export default function StockChartModal({
 	const isActive = (stock?.quantity ?? 0) > 0;
 	const ltp = ltpMap?.[stockName]?.ltp ?? null;
 	const metrics = activeStockMetrics?.[stock?._id];
-	const avgPrice = metrics?.avgPrice ?? stock?.avgPrice ?? 100;
 
-	// Generate mock price data (1 year of trading days)
-	const allPriceData = useMemo(() => {
-		if (!stockName) return [];
-		return generateMockPriceData(stockName, avgPrice, ltp, 365);
-	}, [stockName, avgPrice, ltp]);
+	// Instrument identifier for the price-history API. Stocks added before
+	// Phase 1 have no instrumentKey; the backend resolves the symbol instead.
+	const instrument = stock?.instrumentKey || stockName || null;
+
+	// Fetch full 5Y daily closes once per stock; range pills filter client-side.
+	const {
+		data: historyResponse,
+		isLoading: isPriceLoading,
+		isError: isPriceError,
+		error: priceError,
+		refetch: refetchPrices,
+	} = useQuery({
+		queryKey: ["priceHistory", instrument],
+		queryFn: () => fetchPriceHistory(instrument, "ALL"),
+		enabled: open && !!instrument,
+		staleTime: 60 * 60 * 1000,
+		gcTime: 60 * 60 * 1000,
+		retry: 1,
+	});
+
+	const allPriceData = useMemo(
+		() => appendLivePoint(historyResponse?.candles, ltp),
+		[historyResponse, ltp],
+	);
 
 	// Compute avg buy step line from real history
 	const avgBuySteps = useMemo(() => computeAvgBuySteps(history ?? []), [history]);
@@ -573,21 +651,37 @@ export default function StockChartModal({
 		return { yDomain: [mn, mx], gradientStop: Math.max(0, Math.min(100, stop)) };
 	}, [filteredData]);
 
-	// Buy/sell marker events (find nearest price point for each event date)
+	// Buy/sell marker events — snap each event date to the last trading day on
+	// or before it so weekend/holiday transactions still get a marker.
 	const { buyEvents, sellEvents } = useMemo(() => {
-		const priceMap = Object.fromEntries(filteredData.map((d) => [d.date, d.price]));
+		if (!filteredData.length) return { buyEvents: [], sellEvents: [] };
+		const firstDate = filteredData[0].date;
 		const buys = [];
 		const sells = [];
 		for (const row of history ?? []) {
 			const bd = row.date?.split("T")[0];
-			if (bd && priceMap[bd]) buys.push({ date: bd, price: priceMap[bd] });
+			if (bd && bd >= firstDate) {
+				const pt = findPriceOnOrBefore(filteredData, bd);
+				if (pt) buys.push({ date: pt.date, price: pt.price });
+			}
 			if (row.dateSold && row.quantitySold > 0) {
 				const sd = row.dateSold.split("T")[0];
-				if (priceMap[sd]) sells.push({ date: sd, price: priceMap[sd] });
+				if (sd >= firstDate) {
+					const pt = findPriceOnOrBefore(filteredData, sd);
+					if (pt) sells.push({ date: pt.date, price: pt.price });
+				}
 			}
 		}
 		return { buyEvents: buys, sellEvents: sells };
 	}, [filteredData, history]);
+
+	const chartState = isPriceLoading
+		? "loading"
+		: isPriceError
+			? "error"
+			: !allPriceData.length
+				? "empty"
+				: "ready";
 
 	// ── Chart header (stock name + LTP + P&L) ────────────────────────────────
 	const pnl = ltp != null && (metrics?.avgPrice ?? stock?.avgPrice)
@@ -648,7 +742,10 @@ export default function StockChartModal({
 					<Box sx={{ flex: 1, overflowY: "auto" }}>
 						{/* Chart */}
 						<Box sx={{ height: "45vh", px: 0.5, pt: 1, pb: 0 }}>
-							<ChartArea
+							<ChartBody
+								chartState={chartState}
+								errorMessage={priceError?.message}
+								onRetry={refetchPrices}
 								filteredData={filteredData}
 								buyEvents={buyEvents}
 								sellEvents={sellEvents}
@@ -799,7 +896,10 @@ export default function StockChartModal({
 
 					{/* Chart */}
 					<Box sx={{ flex: 1, py: 1, pr: 1 }}>
-						<ChartArea
+						<ChartBody
+							chartState={chartState}
+							errorMessage={priceError?.message}
+							onRetry={refetchPrices}
 							filteredData={filteredData}
 							buyEvents={buyEvents}
 							sellEvents={sellEvents}
@@ -809,10 +909,13 @@ export default function StockChartModal({
 						/>
 					</Box>
 
-					{/* Mock data notice */}
+					{/* Data source footer */}
 					<Box sx={{ px: 3, py: 1, flexShrink: 0, borderTop: `1px solid ${theme.palette.divider}` }}>
 						<Typography sx={{ fontSize: "0.6rem", color: "text.disabled", letterSpacing: "0.04em" }}>
-							⚠ Price data is simulated — live historical data coming in Phase 5 (Upstox API integration)
+							Daily close prices via Upstox
+							{allPriceData.length > 0 && allPriceData[allPriceData.length - 1].live
+								? " · latest point is live LTP"
+								: ""}
 						</Typography>
 					</Box>
 				</Box>

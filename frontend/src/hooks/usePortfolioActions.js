@@ -10,7 +10,7 @@ import {
 } from "../util/api/history.mjs";
 import { addStockToPortfolio } from "../store/stocks-slice";
 
-export default function usePortfolioActions({ setAddOpen, setDeleteModalOpen }) {
+export default function usePortfolioActions({ setDeleteModalOpen }) {
 	const dispatch = useDispatch();
 
 	const { mutate: mutateAdd } = useMutation({
