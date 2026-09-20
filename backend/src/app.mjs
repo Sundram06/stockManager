@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth.routes.mjs";
 import stockRoutes from "./routes/stock.routes.mjs";
 import historyRoutes from "./routes/history.routes.mjs";
 import marketRoutes from "./routes/market.routes.mjs";
+import transferRoutes from "./routes/transfer.routes.mjs";
 import systemRoutes from "./routes/system.routes.mjs";
 import { errorHandler } from "./middlewares/error-handler.mjs";
 import { notFound } from "./middlewares/not-found.mjs";
@@ -21,9 +22,12 @@ export const createApp = () => {
 		cors({
 			origin: env.FE_URL,
 			credentials: true,
+			// Lets the browser read export file names.
+			exposedHeaders: ["Content-Disposition"],
 		}),
 	);
-	app.use(express.json());
+	// 5 MB: import requests carry a whole backup file.
+	app.use(express.json({ limit: "5mb" }));
 	app.use(
 		session({
 			secret: env.SESSION_SECRET,
@@ -45,6 +49,7 @@ export const createApp = () => {
 	app.use(stockRoutes);
 	app.use(historyRoutes);
 	app.use(marketRoutes);
+	app.use(transferRoutes);
 
 	app.use(notFound);
 	app.use(errorHandler);

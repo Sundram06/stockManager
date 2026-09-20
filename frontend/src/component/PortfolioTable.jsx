@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Typography } from "@mui/material";
 import PortfolioViewSwitch from "./PortfolioViewSwitch";
+import EmptyPortfolio from "./EmptyPortfolio";
 import AddStock from "./AddStock";
 import StockHistoryModal from "./StockHistoryModal";
 import DeleteStockModal from "./DeleteStockModal";
@@ -157,19 +158,23 @@ export default function PortfolioTable({
 				stockName={stockName}
 				lotHistory={actionType === "sell" ? sellHistory : []}
 			/>
-			<PortfolioViewSwitch
-				stocks={filteredStocks}
-				activeTab={activeTab}
-				historyByStockId={historyByStockId}
-				activeStockMetrics={activeStockMetrics}
-				ltpMap={ltpMap}
-				isConnected={isConnected}
-				onAdd={handleAddStock}
-				onSell={handleSellStock}
-				onViewHistory={handleViewHistory}
-				onChart={handleViewChart}
-				onDelete={handleDeleteStock}
-			/>
+			{stocks.length === 0 ? (
+				<EmptyPortfolio onAddStock={() => setAddOpen(true)} />
+			) : (
+				<PortfolioViewSwitch
+					stocks={filteredStocks}
+					activeTab={activeTab}
+					historyByStockId={historyByStockId}
+					activeStockMetrics={activeStockMetrics}
+					ltpMap={ltpMap}
+					isConnected={isConnected}
+					onAdd={handleAddStock}
+					onSell={handleSellStock}
+					onViewHistory={handleViewHistory}
+					onChart={handleViewChart}
+					onDelete={handleDeleteStock}
+				/>
+			)}
 			<StockHistoryModal
 				open={!!selectedStock}
 				onClose={handleCloseHistoryModal}

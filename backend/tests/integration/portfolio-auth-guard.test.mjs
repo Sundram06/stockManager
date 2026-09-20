@@ -19,4 +19,17 @@ describe("portfolio auth guards", () => {
 		const res = await request(app).post("/history/sell").send({});
 		expect(res.status).toBe(401);
 	});
+
+	it.each([
+		["get", "/api/export/json"],
+		["get", "/api/export/holdings.csv"],
+		["get", "/api/export/transactions.csv"],
+		["post", "/api/import/preview"],
+		["post", "/api/import/commit"],
+		["get", "/api/import/batches"],
+		["post", "/api/import/batches/abc/undo"],
+	])("%s %s returns 401 without bearer token", async (method, path) => {
+		const res = await request(app)[method](path).send({});
+		expect(res.status).toBe(401);
+	});
 });

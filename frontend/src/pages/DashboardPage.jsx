@@ -1,9 +1,11 @@
 import { useSelector } from "react-redux";
 import { useDeferredValue, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import PortfolioTable from "../component/PortfolioTable";
 import PortfolioHeader from "../component/PortfolioHeader";
 import PortfolioSummary from "../component/PortfolioSummary";
+import ImportUndoSnackbar from "../component/ImportUndoSnackbar";
+import MobileActionSheet from "../component/MobileActionSheet";
 import useMarketData from "../hooks/useMarketData";
 import { Box, Typography, CircularProgress, Fab, useTheme, useMediaQuery, useScrollTrigger, Paper } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -12,15 +14,23 @@ export default function DashboardPage() {
 	const user = useSelector((s) => s.auth.user);
 	const isAuthLoading = useSelector((s) => s.auth.isAuthLoading);
 	const navigate = useNavigate();
+	const location = useLocation();
+	// Set by the import page after a successful import; shown once as an Undo toast.
+	const [importResult] = useState(() => location.state?.importResult ?? null);
 
 	const [tab, setTab] = useState(0);
 	const [search, setSearch] = useState("");
 	const deferredSearch = useDeferredValue(search);
 	const [addOpen, setAddOpen] = useState(false);
+	const [sheetOpen, setSheetOpen] = useState(false);
 	const { ltpMap, isConnected } = useMarketData();
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 	const scrolled = useScrollTrigger({ disableHysteresis: true, threshold: 60 });
+
+	useEffect(() => {
+		if (location.state?.importResult) navigate(location.pathname, { replace: true, state: null });
+	}, [location, navigate]);
 
 	useEffect(() => {
 		if (!isAuthLoading && !user) {
@@ -122,11 +132,23 @@ export default function DashboardPage() {
 				/>
 			</Paper>
 
+			<ImportUndoSnackbar result={importResult} />
+
+			{isMobile && (
+				<MobileActionSheet
+					open={sheetOpen}
+					onOpen={() => setSheetOpen(true)}
+					onClose={() => setSheetOpen(false)}
+					onAddStock={handleAddStock}
+				/>
+			)}
+
 			{isMobile && (
 				<Fab
 					color="primary"
-					aria-label="add stock"
-					onClick={handleAddStock}
+					aria-label="Add stock, import or export"
+					aria-haspopup="dialog"
+					onClick={() => setSheetOpen(true)}
 					variant="extended"
 					sx={{
 						position: "fixed",

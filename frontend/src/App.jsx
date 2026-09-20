@@ -22,6 +22,7 @@ const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
 const DemoLandingPage = lazy(() => import("./pages/DemoLandingPage"));
+const ImportPage = lazy(() => import("./pages/ImportPage"));
 
 const renderLazy = (Component, props) => (
 	<Suspense fallback={null}>
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
 			{ path: "", element: renderLazy(DemoLandingPage) },
 			{ path: "/oauth-success", element: renderLazy(OAuthSuccessPage) },
 			{ path: "/dashboard", element: renderLazy(DashboardPage) },
+			{ path: "/import", element: renderLazy(ImportPage) },
 			{ path: "login", element: renderLazy(LoginPage) },
 			{ path: "register", element: renderLazy(RegisterPage) },
 			{ path: "/forgot-password", element: renderLazy(ForgotPasswordPage) },
