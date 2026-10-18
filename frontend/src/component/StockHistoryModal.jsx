@@ -22,6 +22,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import { dateFormatter } from "../util/util.mjs";
 import { useMarketPrices } from "../context/MarketDataContext";
+import { rupee as sharedRupee } from "../util/format.mjs";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 const fmtDate = (d) => {
@@ -33,10 +34,7 @@ const fmtDate = (d) => {
 	});
 };
 
-const rupee = (n, dec = 0) =>
-	typeof n === "number" && !isNaN(n)
-		? `₹${Math.abs(n).toLocaleString("en-IN", { maximumFractionDigits: dec })}`
-		: "—";
+const rupee = (n, dec = 0) => sharedRupee(n, { decimals: dec, absolute: true });
 
 // ─── Compute totals ───────────────────────────────────────────────────────────
 function computeHistoryTotals(historyRows) {
