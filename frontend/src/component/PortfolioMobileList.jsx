@@ -32,7 +32,6 @@ function ActiveStockRow({ stock, activeStockMetrics, onTap }) {
 	const avgPrice = metrics?.avgPrice ?? stock.avgPrice;
 	const live = ltpMap[stock.stockName];
 	const ltp = live?.ltp ?? null;
-	const cp = live?.cp ?? null;
 
 	const { pnl, pnlPct, dayChangePct } = liveStockMetrics({
 		quantity: stock.quantity,
