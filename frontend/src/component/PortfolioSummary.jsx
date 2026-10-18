@@ -9,21 +9,16 @@ import { fetchStockHistoryById } from "../util/api/history.mjs";
 import {
 	groupHistoryByStockId,
 	computeActiveStockMetrics,
+	portfolioTotals,
 } from "../util/portfolioMetrics.mjs";
+import { percent, rupee } from "../util/format.mjs";
 import { useMarketPrices } from "../context/MarketDataContext";
 
 const STALE = 60_000;
 const GC = 5 * 60_000;
 
-const fmt = (num) =>
-	typeof num === "number" && !isNaN(num)
-		? `₹${Math.abs(num).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-		: "—";
-
-const fmtPct = (num) =>
-	typeof num === "number" && !isNaN(num)
-		? `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`
-		: null;
+const fmt = (value) => rupee(value, { decimals: 0, absolute: true });
+const fmtPct = percent;
 
 // ─── Shared card shell ───────────────────────────────────────────────────────
 function SummaryCard({ accentColor, children, sx = {} }) {
@@ -106,8 +101,10 @@ function ValueCard({ label, value, prefix, accent, isPnl }) {
 }
 
 // ─── Stock card (Best / Worst performer) ────────────────────────────────────
-function StockCard({ label, stock, accent, isBest }) {
-	const Icon = isBest ? TrendingUpIcon : TrendingDownIcon;
+// Colour and arrow follow the stock's own return. In a portfolio where
+// everything is down, the best performer is still a loss and must read as one.
+function StockCard({ label, stock, accent }) {
+	const Icon = (stock?.pct ?? 0) >= 0 ? TrendingUpIcon : TrendingDownIcon;
 
 	return (
 		<SummaryCard accentColor={accent}>
@@ -183,48 +180,10 @@ export default function PortfolioSummary() {
 		[stocks, historyByStockId],
 	);
 
-	const summary = useMemo(() => {
-		const activeStocks = stocks.filter((s) => s.quantity > 0);
-
-		let totalInvested = 0;
-		let currentValue = 0;
-		let dayChange = 0;
-		let hasLiveData = false;
-
-		let bestStock = null;
-		let worstStock = null;
-		let bestPct = -Infinity;
-		let worstPct = Infinity;
-
-		for (const stock of activeStocks) {
-			const metrics = activeStockMetrics[stock._id];
-			if (metrics) totalInvested += metrics.totalInvested;
-
-			const live = ltpMap[stock.stockName];
-			if (live?.ltp != null) {
-				hasLiveData = true;
-				currentValue += live.ltp * stock.quantity;
-				if (live.cp != null) dayChange += (live.ltp - live.cp) * stock.quantity;
-
-				const avgPrice = metrics?.avgPrice ?? stock.avgPrice;
-				if (avgPrice > 0) {
-					const pct = ((live.ltp - avgPrice) / avgPrice) * 100;
-					const pnl = (live.ltp - avgPrice) * stock.quantity;
-					if (pct > bestPct) { bestPct = pct; bestStock = { name: stock.stockName, pct, pnl }; }
-					if (pct < worstPct) { worstPct = pct; worstStock = { name: stock.stockName, pct, pnl }; }
-				}
-			}
-		}
-
-		return {
-			totalInvested,
-			currentValue: hasLiveData ? currentValue : null,
-			unrealizedPnL: hasLiveData ? currentValue - totalInvested : null,
-			dayChange: hasLiveData ? dayChange : null,
-			bestStock,
-			worstStock,
-		};
-	}, [stocks, activeStockMetrics, ltpMap]);
+	const summary = useMemo(
+		() => portfolioTotals({ stocks, activeStockMetrics, ltpMap }),
+		[stocks, activeStockMetrics, ltpMap],
+	);
 
 	const green = theme.palette.success.main;
 	const red = theme.palette.error.main;
@@ -260,13 +219,13 @@ export default function PortfolioSummary() {
 			/>
 			<ValueCard
 				label="Unrealized P&L"
-				value={summary.unrealizedPnL !== null ? fmt(summary.unrealizedPnL) : "—"}
+				value={summary.unrealizedPnl !== null ? fmt(summary.unrealizedPnl) : "—"}
 				prefix={
-					summary.unrealizedPnL !== null
-						? summary.unrealizedPnL >= 0 ? "+" : "−"
+					summary.unrealizedPnl !== null
+						? summary.unrealizedPnl >= 0 ? "+" : "−"
 						: ""
 				}
-				accent={pnlAccent(summary.unrealizedPnL)}
+				accent={pnlAccent(summary.unrealizedPnl)}
 				isPnl
 			/>
 			<ValueCard
@@ -280,18 +239,8 @@ export default function PortfolioSummary() {
 				accent={pnlAccent(summary.dayChange)}
 				isPnl
 			/>
-			<StockCard
-				label="Best Performer"
-				stock={summary.bestStock}
-				accent={green}
-				isBest
-			/>
-			<StockCard
-				label="Worst Performer"
-				stock={summary.worstStock}
-				accent={red}
-				isBest={false}
-			/>
+			<StockCard label="Best Performer" stock={summary.best} accent={pnlAccent(summary.best?.pct)} />
+			<StockCard label="Worst Performer" stock={summary.worst} accent={pnlAccent(summary.worst?.pct)} />
 		</Box>
 	);
 }
