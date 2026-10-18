@@ -147,7 +147,7 @@ export default function VerifyEmailPage() {
 					) : (
 						<>
 							<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-								We'll send a new verification link to <strong>{resendEmail}</strong>.
+								We&apos;ll send a new verification link to <strong>{resendEmail}</strong>.
 							</Typography>
 							{resendError && <Alert severity="error" sx={{ mb: 2 }}>{resendError}</Alert>}
 							<Button
