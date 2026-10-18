@@ -61,8 +61,33 @@ const simulate = (lots, events) => {
 		: { ok: true, after: summarise(lots, events, result), lots, events, result };
 };
 
+/**
+ * Applies the broker's own figures to a row the user had entered by hand. The
+ * file is the record of what the exchange did, so its price and fill time win,
+ * and the trade id is kept so a re-import recognises the row immediately.
+ */
+const applyMatch = ({ stored, fills, price }, priceField) => {
+	const earliest = fills.reduce((a, b) => (a.date <= b.date ? a : b));
+	return {
+		...stored.toObject?.() ?? stored,
+		_id: stored._id,
+		date: earliest.date,
+		[priceField]: price,
+		externalTradeId: earliest.externalTradeId,
+	};
+};
+
+const describeMatch = ({ stored, fills, price }, priceField) => ({
+	stockName: fills[0].stockName,
+	side: fills[0].side,
+	quantity: fills.reduce((sum, f) => sum + f.quantity, 0),
+	fills: fills.length,
+	from: { date: stored.date, price: stored[priceField] },
+	to: { date: fills.reduce((a, b) => (a.date <= b.date ? a : b)).date, price },
+});
+
 /** What the file would do to one stock, under each option. */
-export function planStock({ stockName, trades, stored, importBatchId }) {
+export function planStock({ stockName, trades, stored, importBatchId, matching = "exact" }) {
 	const fileBuys = trades.filter((t) => t.side === "BUY");
 	const fileSells = trades.filter((t) => t.side === "SELL");
 	const withKey = trades.find((t) => t.instrumentKey);
@@ -92,13 +117,30 @@ export function planStock({ stockName, trades, stored, importBatchId }) {
 	const beforeResult = replayFor(stored);
 	const before = beforeResult.shortfall ? null : summarise(stored.lots, stored.events, beforeResult);
 
-	const buys = dedupe(fileBuys, stored.lots, (row) => tradeKey(row.date, row.quantity, row.avgPrice));
-	const sells = dedupe(fileSells, stored.events, (e) => tradeKey(e.date, e.quantity, e.price));
-	const nothingNew = buys.fresh.length === 0 && sells.fresh.length === 0;
+	const buys = dedupe(fileBuys, stored.lots, (row) => tradeKey(row.date, row.quantity, row.avgPrice), {
+		matching,
+		storedPrice: (row) => row.avgPrice,
+	});
+	const sells = dedupe(fileSells, stored.events, (e) => tradeKey(e.date, e.quantity, e.price), {
+		matching,
+		storedPrice: (e) => e.price,
+	});
+
+	const corrections = [
+		...buys.matched.map((m) => describeMatch(m, "avgPrice")),
+		...sells.matched.map((m) => describeMatch(m, "price")),
+	];
+	const nothingNew = buys.fresh.length === 0 && sells.fresh.length === 0 && corrections.length === 0;
+
+	// Rows the file corrected are replayed with the broker's figures.
+	const correctedLots = new Map(buys.matched.map((m) => [String(m.stored._id), applyMatch(m, "avgPrice")]));
+	const correctedSells = new Map(sells.matched.map((m) => [String(m.stored._id), applyMatch(m, "price")]));
+	const mergedLots = stored.lots.map((row) => correctedLots.get(String(row._id)) ?? row);
+	const mergedSells = stored.events.map((e) => correctedSells.get(String(e._id)) ?? e);
 
 	const merge = simulate(
-		sortLots([...stored.lots, ...buys.fresh.map((t) => toLot(t, importBatchId))]),
-		[...stored.events, ...sells.fresh.map((t) => toEvent(t, importBatchId))],
+		sortLots([...mergedLots, ...buys.fresh.map((t) => toLot(t, importBatchId))]),
+		[...mergedSells, ...sells.fresh.map((t) => toEvent(t, importBatchId))],
 	);
 	if (!before) {
 		merge.ok = false;
@@ -118,6 +160,10 @@ export function planStock({ stockName, trades, stored, importBatchId }) {
 		file: { lots: fileBuys.length, sells: fileSells.length },
 		duplicates: { lots: buys.duplicates, sells: sells.duplicates },
 		adds: { lots: buys.fresh.length, sells: sells.fresh.length },
+		corrections,
+		updates: [...correctedLots.values()].map((l) => ({ kind: "lot", doc: l })).concat(
+			[...correctedSells.values()].map((e) => ({ kind: "sell", doc: e })),
+		),
 		before,
 		options: { keep: { ok: true, after: before }, merge, replace },
 		defaultChoice: nothingNew ? "keep" : merge.ok ? "merge" : null,
@@ -150,14 +196,30 @@ export async function planImport(userId, content, { session = null, importBatchI
 	for (const [stockName, trades] of byName) {
 		const stock = storedByName.get(stockName);
 		const stored = stock ? { stock, ...(await loadLedger(stock._id, session)) } : null;
-		stocks.push(planStock({ stockName: stock?.stockName ?? stockName, trades, stored, importBatchId }));
+		stocks.push(
+			planStock({
+				stockName: stock?.stockName ?? stockName,
+				trades,
+				stored,
+				importBatchId,
+				matching: parsed.matching,
+			}),
+		);
 	}
 
 	const untouched = userStocks
 		.filter((s) => !byName.has(normalizeSymbol(s.stockName)))
 		.map((s) => ({ stockName: s.stockName, quantity: s.quantity ?? 0, stock: s }));
 
-	return { source: parsed.source, exportedAt: parsed.exportedAt, fileHash: hashContent(content), stocks, untouched };
+	return {
+		source: parsed.source,
+		exportedAt: parsed.exportedAt,
+		matching: parsed.matching,
+		skipped: parsed.skipped ?? null,
+		fileHash: hashContent(content),
+		stocks,
+		untouched,
+	};
 }
 
 // The plan holds Mongoose documents the commit needs, which must not reach
@@ -182,6 +244,7 @@ export async function previewImport(userId, { fileName, content }) {
 			file: s.file,
 			duplicates: s.duplicates,
 			adds: s.adds,
+			corrections: s.corrections ?? [],
 			before: s.before,
 			options: {
 				keep: publicOption(s.options.keep),
@@ -190,6 +253,7 @@ export async function previewImport(userId, { fileName, content }) {
 			},
 			defaultChoice: s.defaultChoice,
 		})),
+		skipped: plan.skipped,
 		untouched: plan.untouched.map(({ stockName, quantity }) => ({ stockName, quantity })),
 	};
 }

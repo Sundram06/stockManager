@@ -19,6 +19,7 @@ const entrySchema = new Schema(
 		fingerprintAfter: { type: String, required: true },
 		lotsAdded: { type: Number, default: 0 },
 		sellsAdded: { type: Number, default: 0 },
+		tradesCorrected: { type: Number, default: 0 },
 	},
 	{ _id: false },
 );

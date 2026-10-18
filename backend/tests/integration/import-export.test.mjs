@@ -245,8 +245,8 @@ describe("replace everything", () => {
 
 describe("file checks", () => {
 	it.each([
-		["not json", "hello", /isn't valid JSON/],
-		["another app", JSON.stringify({ app: "zerodha", stocks: [] }), /isn't a VittNest backup/],
+		["not json", "hello", /isn't a VittNest backup or a Zerodha tradebook/],
+		["another app", JSON.stringify({ app: "groww", stocks: [] }), /isn't a VittNest backup or a Zerodha tradebook/],
 		["newer version", JSON.stringify({ app: "vittnest", schemaVersion: 99, stocks: [] }), /newer version/],
 		[
 			"bad date",
