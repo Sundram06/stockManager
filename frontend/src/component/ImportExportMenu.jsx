@@ -79,11 +79,16 @@ export default function ImportExportMenu() {
 					</ListItemIcon>
 					<ListItemText primary="Restore a VittNest backup" secondary="Preview before anything changes" />
 				</MenuItem>
-				<MenuItem disabled>
+				<MenuItem
+					onClick={() => {
+						close();
+						navigate("/import");
+					}}
+				>
 					<ListItemIcon>
 						<AccountBalanceIcon fontSize="small" />
 					</ListItemIcon>
-					<ListItemText primary="From Zerodha, Groww, Upstox…" secondary="Coming soon" />
+					<ListItemText primary="Zerodha tradebook" secondary="CSV from Zerodha Console" />
 				</MenuItem>
 				<Divider />
 				<ListSubheader sx={subheaderSx}>Export</ListSubheader>

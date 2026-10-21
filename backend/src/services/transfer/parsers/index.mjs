@@ -1,43 +1,37 @@
 import { FileFormatError } from "../file-format.mjs";
 import * as vittnest from "./vittnest.parser.mjs";
+import * as zerodha from "./zerodha.parser.mjs";
 
 // Every importable file becomes the same thing: a list of CanonicalTrade.
-// Whatever the source, the rest of the pipeline (dedupe → simulate → preview →
+// Whatever the source, the rest of the pipeline (dedupe, simulate, preview,
 // commit) sees only this shape.
 //
 //   CanonicalTrade = {
 //     stockName,                      normalised symbol, e.g. "INFY"
-//     instrumentKey?, isin?,
+//     isin?, exchange?, instrumentKey?,
 //     side: "BUY" | "SELL",
 //     date: Date, quantity: number, price: number,
-//     source: string,                 "VITTNEST", later "ZERODHA", …
-//     externalTradeId?                the broker's own id, when the file has one
+//     source: "VITTNEST" | "ZERODHA",
+//     externalTradeId?,               the broker's own id
+//     externalOrderId?,               fills of one order share this
+//     isEstimatedDate?                true when the file gave a day, not a time
 //   }
 //
-// A parser exports `claims(data)` to say it recognises a file, and `parse(data)`
-// returning { source, exportedAt, trades }. Add a broker by writing one here and
-// listing it below; nothing downstream changes.
-const PARSERS = [vittnest];
+// A parser exports claims(content) to say it recognises the raw file text, and
+// parse(content) returning { source, exportedAt, trades, matching }. `matching`
+// is "exact" when the file came from this app and timestamps line up, or "day"
+// for a broker file, where the same trade typed in by hand sits at midnight
+// with a rounded price.
+const PARSERS = [vittnest, zerodha];
 
-/**
- * Parses file text into { source, exportedAt, trades }. Throws FileFormatError
- * with a message fit to show the user.
- */
 export function parsePortfolioFile(content) {
-	let data;
-	try {
-		data = JSON.parse(content);
-	} catch {
+	const parser = PARSERS.find((p) => p.claims(content));
+	if (!parser) {
 		throw new FileFormatError(
-			"This file isn't a VittNest backup (it isn't valid JSON). Broker files are coming soon.",
+			"This file isn't a VittNest backup or a Zerodha tradebook. Download the tradebook from Zerodha Console as CSV, or use a backup file from Import / Export.",
 		);
 	}
-
-	const parser = PARSERS.find((p) => p.claims(data));
-	if (!parser) {
-		throw new FileFormatError("This file isn't a VittNest backup. Broker files are coming soon.");
-	}
-	return parser.parse(data);
+	return parser.parse(content);
 }
 
 export { FileFormatError };

@@ -124,11 +124,13 @@ Sells are their own records: one `SellEvent` per sale (`date, quantity, price, s
 
 `GET /api/export/json` builds the VittNest backup: `{app:"vittnest", schemaVersion:1, stocks:[{stockName, instrumentKey, lots[], sells[]}]}` with full ISO timestamps and no database ids, so a restore replays to identical numbers. `holdings.csv` and `transactions.csv` are read-only reports (not importable); `csvCell` prefixes `'` on text starting with `= + - @` so a symbol can't execute as a formula.
 
-Import is one pipeline — parse → dedupe → simulate → preview → commit:
-- `utils/portfolio-file.mjs` parses a file into `CanonicalTrade[]` (`stockName, side, date, quantity, price, source, externalTradeId?`). Broker parsers plug in here.
-- `import.service.mjs` loads the stored ledger per stock, removes trades it already has (multiset on timestamp+qty+price, or `externalTradeId`), and simulates **every** option with `replayLedger`: keep, merge, replace. Nothing is written; the preview shows the numbers the commit would write.
-- `commitImport` re-plans inside `withTransaction` and refuses any stock whose chosen option no longer replays. A changed-but-still-valid portfolio writes the re-planned result, which can differ from what the preview showed.
-- Each commit writes an `ImportBatch` with `before` snapshots plus a per-stock `fingerprintAfter`. `undoImport` restores the raw documents (same `_id`s) for 7 days, refusing when a fingerprint no longer matches — the stock changed since, and undo would drop that change.
+Import is one pipeline, in `services/transfer/`: parse, dedupe, simulate, preview, commit.
+- `parsers/` turns a file into `CanonicalTrade[]` (`stockName, side, date, quantity, price, source, externalTradeId?, externalOrderId?`). Each parser exports `claims(content)` and `parse(content)`; `parsers/index.mjs` picks the first that claims the raw text. Current parsers: `vittnest.parser.mjs` (the backup JSON) and `zerodha.parser.mjs` (the tradebook CSV from Zerodha Console).
+- The Zerodha parser reads columns by header name, not position, because Zerodha has reordered them between versions. Execution times are read as IST. Rows outside delivery equity (F&O, currency) are counted as skipped and shown in the preview, never imported.
+- `matching.mjs` decides which file trades the ledger already has. A parser declares its rule: `exact` (backup: same timestamp, quantity and price, or same `externalTradeId`) or `day` (broker: same calendar day, broker fills grouped by order id, quantity equal, price within 1%). A stored row with two candidates on the same day is never matched; the trade is shown as new.
+- A `day` match is a correction: the broker's price and fill time overwrite the hand-typed row, and its trade id is stored so a re-import recognises it exactly. Corrections appear per stock in the preview and are only written when the user chooses merge.
+- `plan.service.mjs` simulates every option (keep, merge, replace) with `replayLedger` without writing. `commit.service.mjs` re-plans inside `withTransaction` and refuses any stock whose chosen option no longer replays.
+- Each commit writes an `ImportBatch` with `before` snapshots plus a per-stock `fingerprintAfter`. `batches.service.mjs` undoes it for 7 days, restoring the raw documents with their original `_id`s, and refuses when a fingerprint no longer matches.
 
 Frontend: `util/api/transfer.mjs`, `ImportExportMenu` (desktop), `MobileActionSheet` (behind the mobile FAB), `EmptyPortfolio` (start card; a dropped file is handed to `/import` via router state), `ImportPage`, `ImportUndoSnackbar`.
 
@@ -215,7 +217,7 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 
 **Phase 6 — Polish: done.** Teal theme on auth pages (shared `AuthShell`), no navy header in dark mode, a11y/Lighthouse pass.
 
-**Next — broker import (Zerodha/Groww/Upstox).** The pipeline is built; only parsers and trade matching are missing. Decisions already made:
+**Broker import.** Zerodha tradebook CSV is supported. Groww and Upstox need their own parsers in `services/transfer/parsers/`. Kite Connect cannot replace the CSV: its trades endpoint covers the current day only, it is licensed for the developer's own account, and tokens expire daily. Rules the parsers follow:
 - A broker file is parsed into the same `CanonicalTrade[]` the VittNest backup produces, then reuses dedupe → simulate → preview → commit unchanged.
 - Matching a broker trade against one the user typed in by hand: same calendar day (not timestamp), same side, same quantity **after grouping the broker's fills** by order id (or by day+symbol+side when the file has none), and price within 1%. Ambiguous matches are never merged silently — the preview asks.
 - The broker file is the source of truth for a matched trade: its price **and its trade time** replace the manual values (manual entries store midnight, so ordering of same-day lots can change, which the preview must show as a P&L delta).
@@ -264,7 +266,9 @@ Run the same commands locally before pushing. Use `npm run lint`, not `npx eslin
 Tests live in `backend/tests/`. Run with Vitest in Node environment.
 
 - `ledger.test.mjs` — replayLedger unit tests incl. 500 randomized ledgers vs the legacy algorithm
-- `portfolio-file.test.mjs` — backup parsing and CSV escaping (formula-injection guard)
+- `transfer-file.test.mjs`: backup parsing and CSV escaping (formula-injection guard)
+- `zerodha-parser.test.mjs`: tradebook columns in either order, IST times, skipped segments, missing columns
+- `zerodha-import.test.mjs`: tradebook over a hand-typed portfolio: corrections, split fills, ambiguity, re-import, undo
 - `import-export.test.mjs` — export→import round trip, dedupe, conflicts, undo, replace-all (memory replica set)
 - `transfer-routes.test.mjs` — download headers, 413 on oversized upload, undo routing
 - `ledger-service.test.mjs` — service tests against in-memory Mongo replica set (mongodb-memory-server)

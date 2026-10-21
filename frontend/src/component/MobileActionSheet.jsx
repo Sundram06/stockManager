@@ -84,7 +84,7 @@ export default function MobileActionSheet({ open, onOpen, onClose, onAddStock })
 						<ListItemIcon sx={{ minWidth: 48, pl: 0.5 }}>
 							<RestoreIcon fontSize="small" />
 						</ListItemIcon>
-						<ListItemText primary="Restore a VittNest backup" secondary="Preview before anything changes" />
+						<ListItemText primary="Restore or import trades" secondary="VittNest backup or Zerodha tradebook" />
 					</ListItemButton>
 
 					<Typography sx={groupLabelSx}>Download</Typography>
