@@ -94,9 +94,9 @@ export default function EmptyPortfolio({ onAddStock }) {
 					<Box sx={{ ...iconSx, border: 1, borderColor: "divider", color: "primary.main" }}>
 						<RestoreIcon fontSize="small" />
 					</Box>
-					<Typography fontWeight={700}>Restore a backup</Typography>
+					<Typography fontWeight={700}>Restore or import</Typography>
 					<Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
-						Choose or drop a <code>vittnest-backup</code> file to bring back every buy and sale. You&apos;ll see a
+						Choose or drop a VittNest backup, or a tradebook exported from Zerodha Console. You&apos;ll see a
 						preview before anything is added.
 					</Typography>
 					<Button variant="outlined" onClick={() => inputRef.current?.click()} sx={{ mt: 1 }}>
@@ -106,7 +106,7 @@ export default function EmptyPortfolio({ onAddStock }) {
 						ref={inputRef}
 						id="empty-portfolio-backup"
 						type="file"
-						accept=".json,application/json"
+						accept=".json,.csv,application/json,text/csv"
 						hidden
 						onChange={(e) => {
 							restore(e.target.files?.[0]);
@@ -117,7 +117,7 @@ export default function EmptyPortfolio({ onAddStock }) {
 			</Box>
 
 			<Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-				Importing from Zerodha, Groww or Upstox is coming soon.
+				Groww and Upstox files are coming soon.
 			</Typography>
 		</Box>
 	);

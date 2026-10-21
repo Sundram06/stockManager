@@ -21,6 +21,23 @@ async function insertLots(lots, { userId, stockId, session }) {
 	if (docs.length) await History.insertMany(docs, { session });
 }
 
+/**
+ * Writes the broker's price and fill time onto rows the user had entered by
+ * hand. Replacing the row rather than adding one keeps the ledger free of the
+ * duplicate the trade would otherwise become.
+ */
+async function applyCorrections(updates = [], { importBatchId, session }) {
+	for (const { kind, doc } of updates) {
+		const Model = kind === "lot" ? History : SellEvent;
+		const price = kind === "lot" ? { avgPrice: doc.avgPrice } : { price: doc.price };
+		await Model.updateOne(
+			{ _id: doc._id },
+			{ $set: { date: doc.date, ...price, externalTradeId: doc.externalTradeId, importBatchId } },
+			{ session },
+		);
+	}
+}
+
 export async function commitImport(userId, { fileName, content, choices = {}, replaceAll = false, confirmReplaceAll }) {
 	if (replaceAll && confirmReplaceAll !== "REPLACE") {
 		throw new AppError("Type REPLACE to confirm replacing your whole portfolio.", 400);
@@ -73,6 +90,7 @@ export async function commitImport(userId, { fileName, content, choices = {}, re
 
 				const newLots = fromBatch(option.lots, importBatchId);
 				await insertLots(newLots, { userId, stockId: stock._id, session });
+				if (choice === "merge") await applyCorrections(s.updates, { importBatchId, session });
 				await persistReplay({
 					stock,
 					userId,
@@ -89,6 +107,7 @@ export async function commitImport(userId, { fileName, content, choices = {}, re
 					before,
 					lotsAdded: newLots.length,
 					sellsAdded: fromBatch(option.events, importBatchId).length,
+					tradesCorrected: choice === "merge" ? (s.updates?.length ?? 0) : 0,
 				});
 			}
 

@@ -29,6 +29,7 @@ export function describeBatch(b) {
 		},
 		lotsAdded: b.entries.reduce((n, e) => n + (e.lotsAdded ?? 0), 0),
 		sellsAdded: b.entries.reduce((n, e) => n + (e.sellsAdded ?? 0), 0),
+		tradesCorrected: b.entries.reduce((n, e) => n + (e.tradesCorrected ?? 0), 0),
 		undoExpiresAt,
 		canUndo: b.status === "COMMITTED" && Date.now() < undoExpiresAt.getTime(),
 	};

@@ -53,10 +53,18 @@ const describeIssue = (issue) => {
 	return `${issue.message}${where}`;
 };
 
-/** True when this parser recognises the file, so the registry can pick it. */
-export const claims = (data) => Boolean(data) && typeof data === "object" && data.app === APP_ID;
+const asJson = (content) => {
+	try {
+		return JSON.parse(content);
+	} catch {
+		return null;
+	}
+};
 
-export function parse(data) {
+export const claims = (content) => asJson(content)?.app === APP_ID;
+
+export function parse(content) {
+	const data = asJson(content);
 	if (typeof data.schemaVersion === "number" && data.schemaVersion > SCHEMA_VERSION) {
 		throw new FileFormatError(
 			"This backup was made by a newer version of VittNest. Refresh the page and try again.",
@@ -79,5 +87,5 @@ export function parse(data) {
 		for (const lot of stock.lots) trades.push({ ...base, side: "BUY", ...lot });
 		for (const sell of stock.sells) trades.push({ ...base, side: "SELL", ...sell });
 	}
-	return { source: "VITTNEST", exportedAt: parsed.data.exportedAt ?? null, trades };
+	return { source: "VITTNEST", exportedAt: parsed.data.exportedAt ?? null, trades, matching: "exact" };
 }

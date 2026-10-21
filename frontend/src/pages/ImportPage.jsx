@@ -31,6 +31,7 @@ const count = (n) => (typeof n === "number" ? n.toLocaleString("en-IN") : "—")
 const money = (n) => rupee(n);
 const signedMoney = (n) => signedRupee(n);
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const day = (iso) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 const when = (iso) =>
 	new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
@@ -105,9 +106,9 @@ function DropZone({ onFile, busy }) {
 			) : (
 				<UploadFileIcon sx={{ fontSize: 40, color: "primary.main" }} />
 			)}
-			<Typography fontWeight={600}>{busy ? "Reading your file…" : "Drop your VittNest backup here"}</Typography>
+			<Typography fontWeight={600}>{busy ? "Reading your file…" : "Drop your backup or tradebook here"}</Typography>
 			<Typography variant="body2" color="text.secondary">
-				The <code>vittnest-backup-….json</code> file from Import / Export → Backup.
+				A VittNest backup, or the tradebook CSV from Zerodha Console.
 			</Typography>
 			<Button variant="contained" onClick={() => inputRef.current?.click()} disabled={busy} sx={{ mt: 1 }}>
 				Choose file
@@ -116,7 +117,7 @@ function DropZone({ onFile, busy }) {
 				ref={inputRef}
 				id="import-file"
 				type="file"
-				accept=".json,application/json"
+				accept=".json,.csv,application/json,text/csv"
 				hidden
 				onChange={(e) => {
 					take(e.target.files);
@@ -162,11 +163,13 @@ function StockRow({ stock, choice, onChoose, locked }) {
 	const after = !choice || choice === "keep" ? stock.before : option?.after ?? null;
 	const before = stock.before;
 
+	const corrections = stock.corrections ?? [];
 	const detail = [
 		`${plural(stock.file.lots, "buy")}, ${plural(stock.file.sells, "sale")} in file`,
 		stock.exists && stock.duplicates.lots + stock.duplicates.sells > 0
 			? `${stock.duplicates.lots + stock.duplicates.sells} already here`
 			: null,
+		corrections.length ? `${plural(corrections.length, "trade")} matched` : null,
 	]
 		.filter(Boolean)
 		.join(" · ");
@@ -195,6 +198,17 @@ function StockRow({ stock, choice, onChoose, locked }) {
 				<Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
 					{detail}
 				</Typography>
+				{corrections.length > 0 && choice !== "keep" && (
+					<Box sx={{ mt: 0.75 }}>
+						{corrections.map((c, i) => (
+							<Typography key={i} variant="caption" color="text.secondary" sx={{ display: "block" }}>
+								{c.side === "BUY" ? "Bought" : "Sold"} {c.quantity} on {day(c.to.date)}:
+								{" "}price {money(c.from.price)} to {money(c.to.price)}
+								{c.fills > 1 ? ` (${c.fills} fills)` : ""}
+							</Typography>
+						))}
+					</Box>
+				)}
 				{(stock.status === "conflict" || stock.status === "invalid") && failedReason && (
 					<Typography variant="body2" color="warning.main" sx={{ mt: 0.5 }}>
 						{failedReason}
@@ -432,7 +446,7 @@ export default function ImportPage() {
 				<ArrowBackIcon sx={{ fontSize: "1rem" }} /> Portfolio
 			</Link>
 			<Typography variant="h4" fontWeight={700} sx={{ fontSize: { xs: "1.2rem", sm: "1.6rem" }, mb: 0.75 }}>
-				Restore a backup
+				Import trades
 			</Typography>
 			<Typography color="text.secondary" sx={{ mb: 3, maxWidth: 640 }}>
 				Nothing in your portfolio changes until you confirm. Trades you already have are skipped, and you can undo
@@ -468,6 +482,18 @@ export default function ImportPage() {
 
 					{data && (
 						<>
+							{data.skipped?.segment > 0 && (
+								<Alert severity="info">
+									{plural(data.skipped.segment, "trade")} in this file {data.skipped.segment === 1 ? "is" : "are"} not
+									delivery equity and {data.skipped.segment === 1 ? "was" : "were"} left out. VittNest tracks equity
+									holdings only.
+								</Alert>
+							)}
+							{data.skipped?.unreadable > 0 && (
+								<Alert severity="warning">
+									{plural(data.skipped.unreadable, "row")} could not be read and {data.skipped.unreadable === 1 ? "was" : "were"} skipped.
+								</Alert>
+							)}
 							{data.alreadyImported && (
 								<Alert severity="info">
 									You imported this file on {when(data.alreadyImported.createdAt)}. Trades already in your
