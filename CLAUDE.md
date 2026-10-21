@@ -252,6 +252,15 @@ VITE_API_URL=http://localhost:3000
 
 ---
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to master. Two jobs, both must pass:
+
+- **Backend:** `npm ci`, `npm test`. The tests start an in-memory MongoDB replica set, so no database or env file is needed. The MongoDB binary is cached between runs.
+- **Frontend:** `npm ci`, `npm run lint`, `npm test`, `npm run build`.
+
+Run the same commands locally before pushing. Use `npm run lint`, not `npx eslint src`: on ESLint 8 a bare directory lints only `.js` files and silently skips every `.jsx`.
+
 ## Testing
 
 Tests live in `backend/tests/`. Run with Vitest in Node environment.

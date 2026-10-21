@@ -71,7 +71,7 @@ const RegistrationForm = () => {
 								We sent a verification link to <strong>{registeredEmail}</strong>. Click it to activate your account.
 							</Alert>
 							<Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 2 }}>
-								Didn't receive it? Check your spam folder or{" "}
+								Didn&apos;t receive it? Check your spam folder or{" "}
 								<Link
 									to={`/verify-email?resend=1&email=${encodeURIComponent(registeredEmail)}`}
 									style={{ color: "inherit", textDecoration: "underline" }}
