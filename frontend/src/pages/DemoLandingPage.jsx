@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PropTypes from "prop-types";
 import { useTheme } from "@mui/material/styles";
 import { Box, Button, Typography, useMediaQuery } from "@mui/material";
 import PublicNav from "../component/PublicNav";
@@ -47,6 +48,11 @@ function RevealSection({ children, style, ...props }) {
     </Box>
   );
 }
+
+RevealSection.propTypes = {
+  children: PropTypes.node,
+  style: PropTypes.object,
+};
 
 export default function DemoLandingPage() {
   const navigate = useNavigate();

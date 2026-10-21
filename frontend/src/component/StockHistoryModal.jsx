@@ -680,7 +680,7 @@ export default function StockHistoryModal({ open, onClose, stock, stockName, his
 												? <Typography component="span" sx={{ fontSize: "0.82rem", fontVariantNumeric: "tabular-nums" }}>
 													<Typography component="span" sx={{ fontWeight: 700, color: "warning.main", fontSize: "inherit" }}>{soldQty}</Typography>
 													<Typography component="span" sx={{ color: "text.disabled", fontSize: "inherit" }}>/{buyQty}</Typography>
-												  </Typography>
+													</Typography>
 												: buyQty
 											}
 										</TableCell>
