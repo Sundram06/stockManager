@@ -12,7 +12,8 @@
 		"merge:duplicate-stocks": "node --env-file=.env.development scripts/merge-duplicate-stocks.mjs",
 		"migrate:sell-events": "node --env-file=.env.development scripts/migrate-sell-events.mjs",
 		"smoke": "npm test",
-		"test": "vitest run"
+		"test": "vitest run",
+		"fix:instrument-keys": "node --env-file=.env.development scripts/fix-instrument-keys.mjs"
 	},
 	"author": "",
 	"license": "ISC",
