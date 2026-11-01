@@ -48,7 +48,7 @@ export async function buildBackup(userId) {
 			return {
 				ref: `S${i + 1}`,
 				stockName: stock.stockName,
-				instrumentKey: stock.instrumentKey || subscriptionService.keyForSymbol(stock.stockName),
+				instrumentKey: subscriptionService.resolveKey(stock.stockName, stock.instrumentKey),
 				lots: lots.map((lot) => ({
 					ref: lotRef.get(String(lot._id)),
 					date: new Date(lot.date).toISOString(),
@@ -91,7 +91,7 @@ export async function buildHoldingsCsv(userId) {
 	];
 	const rows = portfolio.map(({ stock, result }) => {
 		const { quantity, avgPrice, realisedPnl } = summarise(result);
-		const key = stock.instrumentKey || subscriptionService.keyForSymbol(stock.stockName);
+		const key = subscriptionService.resolveKey(stock.stockName, stock.instrumentKey);
 		const ltp = key ? marketCache.getLTP(key)?.ltp : null;
 		const invested = round2(result.remainingCost);
 		const value = ltp != null && quantity > 0 ? round2(ltp * quantity) : null;

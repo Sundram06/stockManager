@@ -1,12 +1,24 @@
-import instruments from "../../assets/instruments.json" with { type: "json" };
 import { Stock } from "../models/stock.model.mjs";
+import { instrumentMaster } from "./instrument-master.service.mjs";
 
-// Fallback maps built from instruments.json for stocks that pre-date Phase 1 (no instrumentKey in DB)
-const symbolToKeyFallback = new Map(instruments.map((i) => [i.trading_symbol, i.instrument_key]));
-const keyToSymbol = new Map(instruments.map((i) => [i.instrument_key, i.trading_symbol]));
+// Keys learned from stocks in the database, for symbols the instrument list
+// does not know.
+const keyToSymbol = new Map();
 
 const activeInstrumentKeys = new Set();
 let onChangeCallback = null;
+
+/**
+ * The key to price a stock with. A stored key wins, unless Upstox's live list
+ * no longer has it: that happens after a split changes the ISIN, and the old
+ * key then returns no price at all. The override only applies when the list
+ * really came from Upstox; the bundled fallback is older than most stored keys.
+ */
+function resolveKey(symbol, storedKey) {
+	const live = instrumentMaster.status().source === "upstox";
+	if (storedKey && (!live || instrumentMaster.hasKey(storedKey))) return storedKey;
+	return instrumentMaster.keyForSymbol(symbol) ?? storedKey ?? null;
+}
 
 export const subscriptionService = {
 	async syncFromDB() {
@@ -21,15 +33,11 @@ export const subscriptionService = {
 			if (seen.has(stock.stockName)) continue;
 			seen.add(stock.stockName);
 
-			// Prefer DB-stored instrumentKey (Phase 1); fall back to instruments.json for old stocks
-			const key = stock.instrumentKey || symbolToKeyFallback.get(stock.stockName);
+			const key = resolveKey(stock.stockName, stock.instrumentKey);
 			if (!key) continue;
 
 			activeInstrumentKeys.add(key);
-			// Keep keyToSymbol up to date for DB-sourced keys not in instruments.json
-			if (!keyToSymbol.has(key)) {
-				keyToSymbol.set(key, stock.stockName);
-			}
+			if (!instrumentMaster.symbolForKey(key)) keyToSymbol.set(key, stock.stockName);
 		}
 
 		return [...activeInstrumentKeys];
@@ -39,29 +47,24 @@ export const subscriptionService = {
 		return [...activeInstrumentKeys];
 	},
 
-	// Called after creating a new stock. instrumentKey comes from the DB-saved stock (Phase 1)
-	// or falls back to instruments.json lookup for old flow.
 	addSymbol(symbol, instrumentKey) {
-		const key = instrumentKey || symbolToKeyFallback.get(symbol);
+		const key = resolveKey(symbol, instrumentKey);
 		if (!key || activeInstrumentKeys.has(key)) return;
 		activeInstrumentKeys.add(key);
-		if (!keyToSymbol.has(key)) {
-			keyToSymbol.set(key, symbol);
-		}
+		if (!instrumentMaster.symbolForKey(key)) keyToSymbol.set(key, symbol);
 		onChangeCallback?.([key]);
 	},
 
 	symbolForKey(instrumentKey) {
-		return keyToSymbol.get(instrumentKey) ?? instrumentKey;
+		return keyToSymbol.get(instrumentKey) ?? instrumentMaster.symbolForKey(instrumentKey) ?? instrumentKey;
 	},
 
-	// Resolve a trading symbol (e.g. "INFY") to its instrument key via instruments.json.
-	// Used for stocks that pre-date Phase 1 and have no instrumentKey in DB.
 	keyForSymbol(symbol) {
-		return symbolToKeyFallback.get(symbol) ?? null;
+		return instrumentMaster.keyForSymbol(symbol);
 	},
 
-	// Set by server.mjs to wire subscription changes → Upstox subscribe call
+	resolveKey,
+
 	onSubscriptionChange(callback) {
 		onChangeCallback = callback;
 	},

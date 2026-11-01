@@ -92,7 +92,7 @@ export function planStock({ stockName, trades, stored, importBatchId, matching =
 	const fileSells = trades.filter((t) => t.side === "SELL");
 	const withKey = trades.find((t) => t.instrumentKey);
 	const instrumentKey =
-		stored?.stock.instrumentKey || withKey?.instrumentKey || subscriptionService.keyForSymbol(stockName) || undefined;
+		subscriptionService.resolveKey(stockName, stored?.stock.instrumentKey || withKey?.instrumentKey) || undefined;
 
 	const replace = simulate(
 		sortLots(fileBuys.map((t) => toLot(t, importBatchId))),

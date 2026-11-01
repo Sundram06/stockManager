@@ -15,6 +15,7 @@ import {
 	closeInternalWebSocket,
 } from "./websocket/market-data.websocket.mjs";
 import { subscriptionService } from "./services/subscription.service.mjs";
+import { refreshFromUpstox, startDailyRefresh } from "./services/instrument-master.service.mjs";
 import { fetchAndCacheLTP } from "./services/market-quote.service.mjs";
 import { logInfo, logError } from "./utils/logger.mjs";
 
@@ -22,6 +23,9 @@ const start = async () => {
 	if (preferIPv4()) logInfo("Outbound requests prefer IPv4");
 	await connectMongo();
 	extractData();
+	// Before subscribing: the stocks' keys are resolved against this list.
+	await refreshFromUpstox();
+	startDailyRefresh();
 
 	const app = createApp();
 	const httpServer = createServer(app);
