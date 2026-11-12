@@ -1,59 +1,30 @@
-import { useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { login, setAuthLoading } from "../store/auth-slice";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
-import { API_URL } from "../util/api/config.mjs";
+import useCompleteSignIn from "../hooks/useCompleteSignIn";
+import { exchangeGoogleCode } from "../util/api/auth.mjs";
 
+// The backend redirects here with a one-time code in the fragment
+// (#code=...). Nothing is trusted from the URL itself: the code only becomes
+// a session once the backend accepts it. Every exit navigates with replace,
+// so the code never stays in the browser history.
 export default function OAuthSuccessPage() {
-	const dispatch = useDispatch();
 	const navigate = useNavigate();
-	const user = useSelector((s) => s.auth.user);
-	// Capture the token ONCE, at mount. Reading window.location.search on every
-	// render is a bug: as soon as we navigate to /dashboard the query string is
-	// gone, this component re-renders with token === null before it unmounts,
-	// and the effect below re-runs into its `else` branch and bounces the user
-	// to /login — undoing the successful login.
-	const [token] = useState(() =>
-		new URLSearchParams(window.location.search).get("token"),
-	);
-	const hasHandledToken = useRef(false);
+	const completeSignIn = useCompleteSignIn();
+	// Effects run twice in development; the code is single-use.
+	const started = useRef(false);
 
 	useEffect(() => {
-		if (hasHandledToken.current) return;
-		hasHandledToken.current = true;
+		if (started.current) return;
+		started.current = true;
 
-		if (token) {
-			localStorage.setItem("token", token);
-			localStorage.setItem("sessionActive", "active");
-			dispatch(setAuthLoading(true));
-
-			const decoded = jwtDecode(token);
-			const fetchProfile = async () => {
-				try {
-					const res = await fetch(`${API_URL}/api/me`, {
-						headers: { Authorization: `Bearer ${token}` },
-					});
-					if (!res.ok) throw new Error("Failed to fetch user");
-					const userProfile = await res.json();
-					dispatch(login({ user: userProfile, token }));
-					dispatch(setAuthLoading(false));
-				} catch (error) {
-					dispatch(login({ user: { _id: decoded.userId }, token }));
-					dispatch(setAuthLoading(false));
-				}
-			};
-			fetchProfile();
-		} else {
-			navigate("/login", { replace: true });
+		const failSignIn = () => navigate("/login?error=google", { replace: true });
+		const code = new URLSearchParams(window.location.hash.slice(1)).get("code");
+		if (!code) {
+			failSignIn();
+			return;
 		}
-	}, [dispatch, token, navigate]);
-
-	useEffect(() => {
-		if (user && token) {
-			navigate("/dashboard", { replace: true });
-		}
-	}, [user, token, navigate]);
+		exchangeGoogleCode(code).then(completeSignIn, failSignIn);
+	}, [completeSignIn, navigate]);
 
 	return <div>Logging you in...</div>;
 }

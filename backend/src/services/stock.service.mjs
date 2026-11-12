@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { History, SellEvent, Stock } from "../models/index.mjs";
 import { subscriptionService } from "./subscription.service.mjs";
+import { portfolioEvents } from "./portfolio-events.mjs";
 import { addLotAndRebuild, withTransaction } from "./ledger.service.mjs";
 import { checkTradingDate } from "./market-calendar.service.mjs";
 
@@ -35,6 +36,7 @@ export const createStockForUser = async (userId, stockInput) => {
 		if (stockInput.instrumentKey) {
 			subscriptionService.addSymbol(stockInput.stockName, stockInput.instrumentKey);
 		}
+		portfolioEvents.holdingsChanged(userId);
 		return { history: history.toObject(), stock: existingStock.toObject() };
 	}
 
@@ -51,10 +53,15 @@ export const createStockForUser = async (userId, stockInput) => {
 	await stock.save();
 	await history.save();
 	subscriptionService.addSymbol(stockInput.stockName, stockInput.instrumentKey);
+	portfolioEvents.holdingsChanged(userId);
 	return historyPayload;
 };
 
 // ─── Other exports (unchanged) ────────────────────────────────────────────────
+
+/** Symbols the user currently holds (quantity above zero). */
+export const listHeldSymbols = async (userId) =>
+	Stock.distinct("stockName", { userId: new mongoose.Types.ObjectId(userId), quantity: { $gt: 0 } });
 
 export const listStocksForUser = async (userId) => {
 	const userObjectId = new mongoose.Types.ObjectId(userId);

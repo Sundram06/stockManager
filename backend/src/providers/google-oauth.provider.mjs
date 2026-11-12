@@ -1,11 +1,11 @@
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { env } from "../config/env.mjs";
+import { env, isProduction } from "../config/env.mjs";
 import { User } from "../models/index.mjs";
+import { createCookieStateStore } from "./oauth-state-store.mjs";
 
+// No server sessions: the callback hands the browser a one-time login code,
+// and the OAuth state lives in a cookie.
 export const configureGooglePassport = (passport) => {
-	passport.serializeUser((user, done) => done(null, user));
-	passport.deserializeUser((obj, done) => done(null, obj));
-
 	if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.GOOGLE_REDIRECT_URI) {
 		return;
 	}
@@ -16,6 +16,7 @@ export const configureGooglePassport = (passport) => {
 				clientID: env.GOOGLE_CLIENT_ID,
 				clientSecret: env.GOOGLE_CLIENT_SECRET,
 				callbackURL: env.GOOGLE_REDIRECT_URI,
+				store: createCookieStateStore({ secure: isProduction }),
 			},
 			async (accessToken, refreshToken, profile, done) => {
 				try {

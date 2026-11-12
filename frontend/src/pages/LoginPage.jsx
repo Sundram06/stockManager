@@ -10,23 +10,23 @@ import {
 	Container,
 	Paper,
 } from "@mui/material";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import PublicNav from "../component/PublicNav";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import { login, clearLogoutMessage } from "../store/auth-slice";
+import { clearLogoutMessage } from "../store/auth-slice";
 import { useMutation } from "@tanstack/react-query";
 import { loginUser } from "../util/api/auth.mjs";
+import useCompleteSignIn from "../hooks/useCompleteSignIn";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function LoginPage() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [emailError, setEmailError] = useState("");
 	const [passwordError, setPasswordError] = useState("");
 	const [alertError, setAlertError] = useState({ message: "", code: "" });
 	const dispatch = useDispatch();
-	const navigate = useNavigate();
+	const completeSignIn = useCompleteSignIn();
 	const [searchParams, setSearchParams] = useSearchParams();
 
 	const sessionActive = useSelector((state) => state.auth.sessionActive);
@@ -57,32 +57,18 @@ export default function LoginPage() {
 		}
 	}, [dispatch, logoutMessage]);
 
-	const clearErrors = () => {
-		setEmailError("");
-		setPasswordError("");
-		setAlertError({ message: "", code: "" });
-	};
-
 	const { mutate } = useMutation({
 		mutationKey: ["login"],
 		mutationFn: loginUser,
-		onSuccess: (data) => {
-			clearErrors();
-			localStorage.setItem("token", data.token);
-			localStorage.setItem("sessionActive", true);
-			dispatch(login(data.user));
-			navigate("/dashboard");
-		},
+		onSuccess: completeSignIn,
 		onError: (error) => {
 			const code = error.code || "";
 			const message = error.message || "Login failed, please try again.";
-			setEmailError("");
 			setPasswordError("");
 			setAlertError({ message: "", code: "" });
 
-			if (code === "USER_NOT_FOUND") {
-				setEmailError(message);
-			} else if (code === "WRONG_PASSWORD") {
+			// The server gives one answer for an unknown email and a wrong password.
+			if (code === "INVALID_CREDENTIALS") {
 				setPasswordError(message);
 			} else {
 				setAlertError({ message, code });
@@ -159,21 +145,7 @@ export default function LoginPage() {
 							autoComplete="email"
 							autoFocus
 							value={email}
-							error={!!emailError}
-							helperText={
-								emailError ? (
-									<>
-										{emailError}{" "}
-										<Link
-											to="/register"
-											style={{ color: "inherit", fontWeight: "bold" }}
-										>
-											Create an account?
-										</Link>
-									</>
-								) : null
-							}
-							onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
+							onChange={(e) => { setEmail(e.target.value); setPasswordError(""); }}
 						/>
 						<TextField
 							margin="normal"
@@ -222,16 +194,6 @@ export default function LoginPage() {
 								}}
 							>
 								Continue with Google
-							</Button>
-							<Button
-								fullWidth
-								variant="outlined"
-								color="secondary"
-								onClick={() => {
-									window.location.href = `${API_URL}/api/upstox/login`;
-								}}
-							>
-								Continue with Upstox
 							</Button>
 						</Box>
 						{/* --- OAUTH BUTTONS END HERE --- */}

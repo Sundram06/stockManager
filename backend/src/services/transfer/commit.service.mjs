@@ -3,6 +3,7 @@ import { AppError } from "../../errors/app-error.mjs";
 import { History, ImportBatch, SellEvent, Stock } from "../../models/index.mjs";
 import { persistReplay, withTransaction } from "../ledger.service.mjs";
 import { subscriptionService } from "../subscription.service.mjs";
+import { portfolioEvents } from "../portfolio-events.mjs";
 import { planImport } from "./plan.service.mjs";
 import { fingerprint, snapshot } from "./state.mjs";
 import { describeBatch } from "./batches.service.mjs";
@@ -145,6 +146,7 @@ export async function commitImport(userId, { fileName, content, choices = {}, re
 	}
 
 	for (const [symbol, key] of createdSymbols) subscriptionService.addSymbol(symbol, key);
+	if (batch) portfolioEvents.holdingsChanged(userId);
 
 	if (!batch) return { batch: null, message: "Nothing to import: everything in this file is already in your portfolio." };
 	return { batch: describeBatch(batch.toObject()) };

@@ -1,14 +1,16 @@
 import { env } from "../config/env.mjs";
 import {
-	createUserToken,
 	forgotPassword,
 	getUserProfile,
 	loginUser,
 	registerUser,
 	resendVerification,
 	resetPassword,
+	signInWithLoginCode,
 	verifyEmail,
 } from "../services/auth.service.mjs";
+import { revokeAuthTokens } from "../services/auth-token.service.mjs";
+import { createLoginCode } from "../services/login-code.service.mjs";
 
 export const register = async (req, res) => {
 	const payload = req.validated || req.body;
@@ -28,7 +30,10 @@ export const login = async (req, res) => {
 	return res.json({ user: result.user, token: result.token });
 };
 
+// Ends every session of this user, not only the caller's: a token carries no
+// per-device id, so revocation works per account.
 export const logout = async (req, res) => {
+	await revokeAuthTokens(req.userId);
 	return res.json({ message: "Logout successful" });
 };
 
@@ -76,7 +81,18 @@ export const resetPasswordHandler = async (req, res) => {
 	return res.json(result);
 };
 
+// The redirect carries a one-minute, single-use code rather than the session
+// token, and in the fragment: browsers never send a fragment to a server, so
+// it stays out of access logs and Referer headers.
 export const googleOAuthCallback = async (req, res) => {
-	const token = createUserToken(req.user._id);
-	return res.redirect(`${env.FE_URL}/oauth-success?token=${token}`);
+	const code = await createLoginCode(req.user._id);
+	return res.redirect(`${env.FE_URL}/oauth-success#code=${code}`);
+};
+
+export const exchangeGoogleCode = async (req, res) => {
+	const result = await signInWithLoginCode(req.validated.code);
+	if (result.error) {
+		return res.status(result.statusCode).json({ message: result.error, code: result.code });
+	}
+	return res.json({ user: result.user, token: result.token });
 };

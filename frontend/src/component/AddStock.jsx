@@ -19,7 +19,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
-import { API_URL } from "../util/api/config.mjs";
+import { searchInstruments } from "../util/api/market.mjs";
 
 // Computes how many unsold shares were available as of a given date string "YYYY-MM-DD".
 function computeAvailableQty(lotHistory, dateStr) {
@@ -59,9 +59,6 @@ export default function AddStock({
 		: maxSellQuantity;
 	const debounceTimeout = useRef();
 	const justSelected = useRef(false);
-	const searchEndpoint = API_URL
-		? `${API_URL}/api/instruments/search`
-		: "/api/instruments/search";
 
 	const handleClickClose = () => {
 		setQuery("");
@@ -80,8 +77,7 @@ export default function AddStock({
 		if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 		if (query && query.length >= 2) {
 			debounceTimeout.current = setTimeout(() => {
-				fetch(`${searchEndpoint}?q=${encodeURIComponent(query)}`)
-					.then((res) => res.ok ? res.json() : [])
+				searchInstruments(query)
 					.then((data) => setSuggestions(Array.isArray(data) ? data : []))
 					.catch(() => setSuggestions([]));
 			}, 300);
@@ -89,7 +85,7 @@ export default function AddStock({
 			setSuggestions([]);
 		}
 		return () => clearTimeout(debounceTimeout.current);
-	}, [query, searchEndpoint]);
+	}, [query]);
 
 	const validate = (data) => {
 		const newErrors = {};

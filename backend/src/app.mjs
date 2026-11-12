@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
-import session from "express-session";
+import helmet from "helmet";
 import passport from "passport";
-import { env, isProduction } from "./config/env.mjs";
+import { env } from "./config/env.mjs";
 import { configureGooglePassport } from "./providers/google-oauth.provider.mjs";
 import authRoutes from "./routes/auth.routes.mjs";
 import stockRoutes from "./routes/stock.routes.mjs";
@@ -13,10 +13,16 @@ import systemRoutes from "./routes/system.routes.mjs";
 import { errorHandler } from "./middlewares/error-handler.mjs";
 import { notFound } from "./middlewares/not-found.mjs";
 import { requestId } from "./middlewares/request-id.mjs";
+import { jsonBody } from "./middlewares/json-body.mjs";
 
 export const createApp = () => {
 	const app = express();
+	// Without this, behind a proxy every request appears to come from the proxy,
+	// and per-IP rate limits would be shared by all users.
+	app.set("trust proxy", env.TRUST_PROXY);
+
 	app.use(requestId);
+	app.use(helmet());
 
 	app.use(
 		cors({
@@ -26,23 +32,10 @@ export const createApp = () => {
 			exposedHeaders: ["Content-Disposition"],
 		}),
 	);
-	// 5 MB: import requests carry a whole backup file.
-	app.use(express.json({ limit: "5mb" }));
-	app.use(
-		session({
-			secret: env.SESSION_SECRET,
-			resave: false,
-			saveUninitialized: true,
-			cookie: {
-				secure: isProduction,
-				sameSite: isProduction ? "none" : "lax",
-			},
-		}),
-	);
+	app.use(jsonBody);
 
 	configureGooglePassport(passport);
 	app.use(passport.initialize());
-	app.use(passport.session());
 
 	app.use(systemRoutes);
 	app.use(authRoutes);

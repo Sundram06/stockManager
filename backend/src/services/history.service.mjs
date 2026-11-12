@@ -4,10 +4,6 @@ import { toDateOrNow } from "../utils/date.mjs";
 import { addLotAndRebuild, recordSell, withTransaction } from "./ledger.service.mjs";
 import { checkTradingDate } from "./market-calendar.service.mjs";
 
-export const listHistory = async () => {
-	return History.find();
-};
-
 export const listHistoryForUser = async (userId) => {
 	const stocks = await Stock.find({ userId }).select("_id");
 	const stockIds = stocks.map((stock) => stock._id);

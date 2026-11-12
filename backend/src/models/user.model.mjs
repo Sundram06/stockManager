@@ -15,6 +15,26 @@ const userSchema = new Schema({
 	isEmailVerified: { type: Boolean },  // undefined = existing user (treated as verified), false = new unverified
 	emailVerificationToken: String,
 	emailVerificationExpires: Date,
+	// Bumped on logout and password reset; tokens carrying an older value are rejected.
+	tokenVersion: { type: Number, default: 0 },
+});
+
+const PRIVATE_FIELDS = [
+	"password",
+	"resetPasswordToken",
+	"resetPasswordExpires",
+	"emailVerificationToken",
+	"emailVerificationExpires",
+	"tokenVersion",
+	"__v",
+];
+
+// Every response that serialises a user goes through toJSON, so secrets can never reach a client.
+userSchema.set("toJSON", {
+	transform: (doc, ret) => {
+		for (const field of PRIVATE_FIELDS) delete ret[field];
+		return ret;
+	},
 });
 
 userSchema.pre("save", async function userPreSave(next) {

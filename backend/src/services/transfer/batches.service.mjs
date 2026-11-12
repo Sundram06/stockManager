@@ -3,6 +3,7 @@ import { AppError } from "../../errors/app-error.mjs";
 import { History, ImportBatch, SellEvent, Stock } from "../../models/index.mjs";
 import { withTransaction } from "../ledger.service.mjs";
 import { subscriptionService } from "../subscription.service.mjs";
+import { portfolioEvents } from "../portfolio-events.mjs";
 import { fingerprint } from "./state.mjs";
 
 export const UNDO_WINDOW_DAYS = 7;
@@ -93,5 +94,6 @@ export async function undoImport(userId, batchId) {
 	for (const entry of batch.entries) {
 		if (entry.before?.stock) subscriptionService.addSymbol(entry.stockName, entry.before.stock.instrumentKey);
 	}
+	portfolioEvents.holdingsChanged(userId);
 	return { batch: describeBatch(batch.toObject()) };
 }

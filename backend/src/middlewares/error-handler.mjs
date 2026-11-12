@@ -1,6 +1,7 @@
 import { AppError } from "../errors/app-error.mjs";
 import { isProduction } from "../config/env.mjs";
 import { logError } from "../utils/logger.mjs";
+import { IMPORT_PATH_PREFIX } from "./json-body.mjs";
 
 export const errorHandler = (err, req, res, next) => {
 	if (res.headersSent) {
@@ -11,6 +12,7 @@ export const errorHandler = (err, req, res, next) => {
 		return res.status(err.statusCode).json({
 			success: false,
 			message: err.message,
+			...(err.code && { code: err.code }),
 			error: {
 				message: err.message,
 				details: err.details,
@@ -20,7 +22,9 @@ export const errorHandler = (err, req, res, next) => {
 	}
 
 	if (err?.type === "entity.too.large") {
-		const message = "The file is too large to import (5 MB max).";
+		const message = req.path.startsWith(IMPORT_PATH_PREFIX)
+			? "The file is too large to import (5 MB max)."
+			: "The request is too large.";
 		return res.status(413).json({ success: false, message, error: { message, requestId: req.requestId } });
 	}
 
