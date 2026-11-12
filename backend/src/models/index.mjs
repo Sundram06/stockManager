@@ -3,3 +3,4 @@ export { Stock } from "./stock.model.mjs";
 export { History } from "./history.model.mjs";
 export { SellEvent } from "./sell-event.model.mjs";
 export { ImportBatch } from "./import-batch.model.mjs";
+export { LoginCode } from "./login-code.model.mjs";

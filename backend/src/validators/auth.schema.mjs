@@ -31,3 +31,7 @@ export const verifyEmailSchema = z.object({
 export const resendVerificationSchema = z.object({
 	email: emailField,
 });
+
+export const googleCodeSchema = z.object({
+	code: z.string().regex(/^[a-f0-9]{64}$/, "Invalid sign-in code"),
+});

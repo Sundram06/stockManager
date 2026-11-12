@@ -1,10 +1,13 @@
 import { Router } from "express";
+import cookieParser from "cookie-parser";
 import passport from "passport";
 import { asyncHandler } from "../utils/async-handler.mjs";
 import { logError } from "../utils/logger.mjs";
 import { validateRequest } from "../middlewares/validate-request.mjs";
+import { rateLimit } from "../middlewares/rate-limit.mjs";
 import {
 	forgotPasswordSchema,
+	googleCodeSchema,
 	loginSchema,
 	registerSchema,
 	resendVerificationSchema,
@@ -12,6 +15,7 @@ import {
 	verifyEmailSchema,
 } from "../validators/auth.schema.mjs";
 import {
+	exchangeGoogleCode,
 	forgotPasswordHandler,
 	googleOAuthCallback,
 	login,
@@ -30,41 +34,72 @@ const googleAuthEnabled = Boolean(
 	env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REDIRECT_URI,
 );
 
-router.post("/register", validateRequest(registerSchema), asyncHandler(register));
-router.post("/login", validateRequest(loginSchema), asyncHandler(login));
-router.post("/logout", asyncHandler(logout));
+// Login counts only failures per account, so a user who types the password
+// right is never locked out by their own sign-ins. Emails cost real sends from
+// the Gmail account, so those routes are the tightest.
+const limits = {
+	loginPerIp: rateLimit({ windowMinutes: 15, limit: 50 }),
+	loginPerAccount: rateLimit({ windowMinutes: 15, limit: 10, by: "email", countFailuresOnly: true }),
+	register: rateLimit({ windowMinutes: 60, limit: 10 }),
+	emailPerIp: rateLimit({ windowMinutes: 60, limit: 10 }),
+	emailPerAccount: rateLimit({ windowMinutes: 60, limit: 3, by: "email" }),
+	tokenCheck: rateLimit({ windowMinutes: 15, limit: 30 }),
+};
+
+router.post("/register", limits.register, validateRequest(registerSchema), asyncHandler(register));
+router.post(
+	"/login",
+	limits.loginPerIp,
+	limits.loginPerAccount,
+	validateRequest(loginSchema),
+	asyncHandler(login),
+);
+router.post("/logout", authenticateJWT, asyncHandler(logout));
 router.get("/api/me", authenticateJWT, asyncHandler(me));
 router.post(
 	"/api/forgot-password",
+	limits.emailPerIp,
+	limits.emailPerAccount,
 	validateRequest(forgotPasswordSchema),
 	asyncHandler(forgotPasswordHandler),
 );
 router.post(
 	"/api/reset-password",
+	limits.tokenCheck,
 	validateRequest(resetPasswordSchema),
 	asyncHandler(resetPasswordHandler),
 );
 router.post(
 	"/api/verify-email",
+	limits.tokenCheck,
 	validateRequest(verifyEmailSchema),
 	asyncHandler(verifyEmailHandler),
 );
 router.post(
 	"/api/resend-verification",
+	limits.emailPerIp,
+	limits.emailPerAccount,
 	validateRequest(resendVerificationSchema),
 	asyncHandler(resendVerificationHandler),
+);
+router.post(
+	"/api/auth/google/exchange",
+	limits.tokenCheck,
+	validateRequest(googleCodeSchema),
+	asyncHandler(exchangeGoogleCode),
 );
 
 if (googleAuthEnabled) {
 	router.get(
 		"/api/auth/google",
-		passport.authenticate("google", { scope: ["profile", "email"] }),
+		passport.authenticate("google", { scope: ["profile", "email"], session: false }),
 	);
 	router.get(
 		"/api/auth/google/callback",
+		cookieParser(),
 		passport.authenticate("google", {
-			failureRedirect: `${env.FE_URL}/login`,
-			session: true,
+			failureRedirect: `${env.FE_URL}/login?error=google`,
+			session: false,
 		}),
 		asyncHandler(googleOAuthCallback),
 		// failureRedirect covers a declined sign-in, not a thrown one: if the

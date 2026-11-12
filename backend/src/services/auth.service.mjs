@@ -1,10 +1,24 @@
 import bcrypt from "bcrypt";
-import crypto from "crypto";
-import jwt from "jsonwebtoken";
-import { AUTH_TOKEN_EXPIRY } from "../config/constants.mjs";
 import { env } from "../config/env.mjs";
 import { User } from "../models/index.mjs";
-import { sendPasswordResetEmail, sendVerificationEmail } from "../utils/email.mjs";
+import { randomToken, sha256 } from "../utils/crypto.mjs";
+import { sendGoogleAccountNotice, sendPasswordResetEmail, sendVerificationEmail } from "../utils/email.mjs";
+import { issueAuthToken } from "./auth-token.service.mjs";
+import { redeemLoginCode } from "./login-code.service.mjs";
+
+// One answer for an unknown email, a Google-only account and a wrong password,
+// so the login form cannot be used to find out which emails are registered.
+const INVALID_CREDENTIALS = {
+	error: "Incorrect email or password. If you signed up with Google, use Continue with Google.",
+	statusCode: 401,
+	code: "INVALID_CREDENTIALS",
+};
+
+// Compared against when there is no password hash, so a missing account takes
+// as long to reject as a wrong password.
+const UNMATCHABLE_HASH = "$2b$10$6A0pNjisUHdZh1lNN.wttee8dBVh.rL5V.AJmPmUvYfnZS0epu7Si";
+
+const NEUTRAL_RESET_MESSAGE = "If an account with that email exists, we have sent instructions to it.";
 
 export const registerUser = async ({ name, email, password }) => {
 	const existingUser = await User.findOne({ email });
@@ -12,8 +26,8 @@ export const registerUser = async ({ name, email, password }) => {
 		return { error: "Email already exists", statusCode: 400 };
 	}
 
-	const rawToken = crypto.randomBytes(32).toString("hex");
-	const hashed = crypto.createHash("sha256").update(rawToken).digest("hex");
+	const rawToken = randomToken();
+	const hashed = sha256(rawToken);
 
 	const newUser = new User({
 		name,
@@ -35,18 +49,11 @@ export const registerUser = async ({ name, email, password }) => {
 
 export const loginUser = async ({ email, password }) => {
 	const user = await User.findOne({ email });
-	if (!user) {
-		return { error: "No account found with this email.", statusCode: 401, code: "USER_NOT_FOUND" };
-	}
+	const passwordHash = user?.provider === "local" ? user.password : null;
+	const isPasswordValid = await bcrypt.compare(password, passwordHash || UNMATCHABLE_HASH);
+	if (!passwordHash || !isPasswordValid) return INVALID_CREDENTIALS;
 
-	if (user.provider !== "local" || !user.password) {
-		return {
-			error: "This account uses Google sign-in. Use 'Forgot Password' to set a password if you want to log in with email.",
-			statusCode: 401,
-			code: "GOOGLE_ACCOUNT",
-		};
-	}
-
+	// Checked only after the password matches, so it reveals nothing to a guesser.
 	// isEmailVerified === false means explicitly unverified (new users). undefined = legacy user, treated as verified.
 	if (user.isEmailVerified === false) {
 		return {
@@ -56,45 +63,39 @@ export const loginUser = async ({ email, password }) => {
 		};
 	}
 
-	const isPasswordValid = await bcrypt.compare(password, user.password);
-	if (!isPasswordValid) {
-		return { error: "Incorrect password.", statusCode: 401, code: "WRONG_PASSWORD" };
-	}
-
-	const token = jwt.sign({ userId: user._id }, env.JWT_SECRET, {
-		expiresIn: AUTH_TOKEN_EXPIRY,
-	});
-	return { user, token };
+	return { user, token: issueAuthToken(user) };
 };
 
-export const createUserToken = (userId) => {
-	return jwt.sign({ userId }, env.JWT_SECRET, {
-		expiresIn: AUTH_TOKEN_EXPIRY,
-	});
+/** Completes a Google sign-in: trades the one-time code from the redirect for a session. */
+export const signInWithLoginCode = async (code) => {
+	const userId = await redeemLoginCode(code);
+	const user = userId ? await User.findById(userId) : null;
+	if (!user) {
+		return {
+			error: "This sign-in link has expired or was already used. Sign in again.",
+			statusCode: 400,
+			code: "INVALID_LOGIN_CODE",
+		};
+	}
+	return { user, token: issueAuthToken(user) };
 };
 
 export const getUserProfile = async (userId) => {
-	return User.findById(userId).select("-password");
+	return User.findById(userId);
 };
 
 export const forgotPassword = async (email) => {
 	const user = await User.findOne({ email });
 
-	if (!user) {
-		return {
-			message: "If an account with that email exists, a reset link has been sent.",
-		};
-	}
+	if (!user) return { message: NEUTRAL_RESET_MESSAGE };
 
 	if (user.provider !== "local") {
-		return {
-			error: "This account uses Google sign-in. Please log in with Google.",
-			statusCode: 400,
-		};
+		await sendGoogleAccountNotice({ to: email, loginUrl: `${env.APP_URL}/login` });
+		return { message: NEUTRAL_RESET_MESSAGE };
 	}
 
-	const rawToken = crypto.randomBytes(32).toString("hex");
-	const hashed = crypto.createHash("sha256").update(rawToken).digest("hex");
+	const rawToken = randomToken();
+	const hashed = sha256(rawToken);
 
 	user.resetPasswordToken = hashed;
 	user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
@@ -104,13 +105,11 @@ export const forgotPassword = async (email) => {
 
 	await sendPasswordResetEmail({ to: email, resetUrl });
 
-	return {
-		message: "If an account with that email exists, a reset link has been sent.",
-	};
+	return { message: NEUTRAL_RESET_MESSAGE };
 };
 
 export const verifyEmail = async ({ email, token }) => {
-	const hashed = crypto.createHash("sha256").update(token).digest("hex");
+	const hashed = sha256(token);
 
 	const user = await User.findOne({
 		email,
@@ -147,8 +146,8 @@ export const resendVerification = async (email) => {
 		};
 	}
 
-	const rawToken = crypto.randomBytes(32).toString("hex");
-	const hashed = crypto.createHash("sha256").update(rawToken).digest("hex");
+	const rawToken = randomToken();
+	const hashed = sha256(rawToken);
 
 	user.emailVerificationToken = hashed;
 	user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -161,7 +160,7 @@ export const resendVerification = async (email) => {
 };
 
 export const resetPassword = async ({ email, token, newPassword }) => {
-	const hashed = crypto.createHash("sha256").update(token).digest("hex");
+	const hashed = sha256(token);
 
 	const user = await User.findOne({
 		email,
@@ -176,6 +175,8 @@ export const resetPassword = async ({ email, token, newPassword }) => {
 	user.password = newPassword; // pre-save hook hashes it
 	user.resetPasswordToken = undefined;
 	user.resetPasswordExpires = undefined;
+	// Whoever knew the old password may hold a session; end every one of them.
+	user.tokenVersion = (user.tokenVersion ?? 0) + 1;
 	await user.save();
 
 	return { message: "Password reset successfully. You can now log in." };
