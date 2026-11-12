@@ -41,6 +41,13 @@ jobs:
           key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('backend/package-lock.json') }}
 
       - run: npm ci
+
+      # The test files run in parallel and each starts its own MongoDB. On a
+      # cold cache they all download the binary at once and race on its lock
+      # file, so fetch it once before the tests start.
+      - name: Download MongoDB test binary
+        run: node -e "import('mongodb-memory-server-core').then(({ MongoBinary }) => MongoBinary.getPath())"
+
       - run: npm test
 
   frontend:

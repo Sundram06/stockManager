@@ -16,11 +16,11 @@ const dateField = z
 	.transform((s, ctx) => {
 		const d = new Date(s);
 		if (Number.isNaN(d.getTime())) {
-			ctx.addIssue({ code: z.ZodIssueCode.custom, message: `"${s}" is not a valid date` });
+			ctx.addIssue({ code: "custom", message: `"${s}" is not a valid date` });
 			return z.NEVER;
 		}
 		if (d.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
-			ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${s} is in the future` });
+			ctx.addIssue({ code: "custom", message: `${s} is in the future` });
 			return z.NEVER;
 		}
 		return d;
