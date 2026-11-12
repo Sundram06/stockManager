@@ -49,7 +49,7 @@ describe("summary cards", () => {
 		renderSummary(losing);
 
 		const best = await cardFor("Best Performer");
-		expect(within(best).getByText("FORCEMOT")).toBeInTheDocument();
+		expect(await within(best).findByText("FORCEMOT")).toBeInTheDocument();
 		// A falling stock is still a fall, even when it is the best one held.
 		expect(within(best).getByTestId("TrendingDownIcon")).toBeInTheDocument();
 		expect(within(best).getByText(/-3\.71%/)).toBeInTheDocument();
@@ -62,6 +62,6 @@ describe("summary cards", () => {
 		});
 
 		const best = await cardFor("Best Performer");
-		expect(within(best).getByTestId("TrendingUpIcon")).toBeInTheDocument();
+		expect(await within(best).findByTestId("TrendingUpIcon")).toBeInTheDocument();
 	});
 });
