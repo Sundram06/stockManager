@@ -10,6 +10,3 @@ export const deleteStock = (stockId) =>
 
 export const deleteAllStocks = () =>
 	apiJson("/stocks", { method: "DELETE", fallback: "Failed to delete all stocks and history" });
-
-export const fetchUpstoxData = () =>
-	apiJson("/api/upstox/login", { fallback: "Unable to fetch upstox data" });

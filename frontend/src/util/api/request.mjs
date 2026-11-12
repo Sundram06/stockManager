@@ -4,7 +4,7 @@ import { getValidTokenOrThrow } from "./session.mjs";
 async function toError(response, fallback) {
 	const data = await response.json().catch(() => ({}));
 	const error = new Error(data?.message || fallback);
-	// Codes like EMAIL_NOT_VERIFIED and GOOGLE_ACCOUNT are what the UI branches on.
+	// Codes like EMAIL_NOT_VERIFIED and INVALID_CREDENTIALS are what the UI branches on.
 	if (data?.code) error.code = data.code;
 	error.status = response.status;
 	return error;
