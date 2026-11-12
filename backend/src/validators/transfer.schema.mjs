@@ -13,7 +13,7 @@ export const importPreviewSchema = z.object({
 export const importCommitSchema = z.object({
 	fileName: z.string().max(255).optional(),
 	content,
-	choices: z.record(z.enum(["keep", "merge", "replace"])).optional(),
+	choices: z.record(z.string(), z.enum(["keep", "merge", "replace"])).optional(),
 	replaceAll: z.boolean().optional(),
 	confirmReplaceAll: z.string().optional(),
 });
