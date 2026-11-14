@@ -50,8 +50,10 @@ export const createStockForUser = async (userId, stockInput) => {
 	};
 
 	const history = new History(historyPayload);
-	await stock.save();
-	await history.save();
+	await withTransaction(async (session) => {
+		await stock.save({ session });
+		await history.save({ session });
+	});
 	subscriptionService.addSymbol(stockInput.stockName, stockInput.instrumentKey);
 	portfolioEvents.holdingsChanged(userId);
 	return historyPayload;
