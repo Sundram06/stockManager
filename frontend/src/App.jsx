@@ -8,21 +8,22 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import RootLayout from "./pages/Root";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./util/api/queryClient.mjs";
-import { useEffect, lazy, Suspense } from "react";
+import { useEffect, Suspense } from "react";
+import { lazyWithReload } from "./util/lazyWithReload.mjs";
 
 import { useDispatch, useSelector } from "react-redux";
 import { login } from "./store/auth-slice";
 import { jwtDecode } from "jwt-decode";
 
-const DashboardPage = lazy(() => import("./pages/DashboardPage"));
-const LoginPage = lazy(() => import("./pages/LoginPage"));
-const RegisterPage = lazy(() => import("./pages/RegisterPage"));
-const OAuthSuccessPage = lazy(() => import("./pages/OAuthSuccessPage"));
-const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
-const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
-const VerifyEmailPage = lazy(() => import("./pages/VerifyEmailPage"));
-const DemoLandingPage = lazy(() => import("./pages/DemoLandingPage"));
-const ImportPage = lazy(() => import("./pages/ImportPage"));
+const DashboardPage = lazyWithReload(() => import("./pages/DashboardPage"));
+const LoginPage = lazyWithReload(() => import("./pages/LoginPage"));
+const RegisterPage = lazyWithReload(() => import("./pages/RegisterPage"));
+const OAuthSuccessPage = lazyWithReload(() => import("./pages/OAuthSuccessPage"));
+const ForgotPasswordPage = lazyWithReload(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazyWithReload(() => import("./pages/ResetPasswordPage"));
+const VerifyEmailPage = lazyWithReload(() => import("./pages/VerifyEmailPage"));
+const DemoLandingPage = lazyWithReload(() => import("./pages/DemoLandingPage"));
+const ImportPage = lazyWithReload(() => import("./pages/ImportPage"));
 
 const renderLazy = (Component, props) => (
 	<Suspense fallback={null}>
@@ -84,7 +85,7 @@ function App() {
 
 	return (
 		<QueryClientProvider client={queryClient}>
-			<RouterProvider router={router} />
+			<RouterProvider router={router} future={{ v7_startTransition: true }} />
 		</QueryClientProvider>
 	);
 }

@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { Typography } from "@mui/material";
 import PortfolioViewSwitch from "./PortfolioViewSwitch";
 import EmptyPortfolio from "./EmptyPortfolio";
 import AddStock from "./AddStock";
 import StockHistoryModal from "./StockHistoryModal";
 import DeleteStockModal from "./DeleteStockModal";
+import { lazyWithReload } from "../util/lazyWithReload.mjs";
 
 // Lazy-loaded: Recharts (~350 KB) only downloads when a chart is first opened
-const StockChartModal = lazy(() => import("./StockChartModal"));
+const StockChartModal = lazyWithReload(() => import("./StockChartModal"));
 import PropTypes from "prop-types";
 import usePortfolioData from "../hooks/usePortfolioData";
 import usePortfolioActions from "../hooks/usePortfolioActions";
