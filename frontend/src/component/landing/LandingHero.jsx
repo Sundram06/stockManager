@@ -27,7 +27,9 @@ export default function LandingHero() {
 		<Box
 			component="header"
 			sx={{
-				minHeight: { xs: "auto", md: "92vh" },
+				// Full height on desktop: anything less shows an empty strip of the next
+				// section, whose content only fades in once scrolled to.
+				minHeight: { xs: "auto", md: "100vh" },
 				display: "flex",
 				alignItems: "center",
 				justifyContent: "center",
