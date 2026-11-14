@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { env, isProduction } from "../config/env.mjs";
 import { logError, logInfo } from "./logger.mjs";
+import { escapeHtml } from "./html.mjs";
 
 function createTransport() {
 	if (!env.GMAIL_USER || !env.GMAIL_APP_PASSWORD) return null;
@@ -19,7 +20,7 @@ function createTransport() {
  * the link is logged so sign-up and reset can still be tested locally. Links
  * carry live tokens, so they are never logged in production.
  */
-async function sendEmail({ to, subject, html, link }) {
+async function sendEmail({ to, subject, html, link, replyTo }) {
 	const transporter = createTransport();
 
 	if (!transporter) {
@@ -32,7 +33,7 @@ async function sendEmail({ to, subject, html, link }) {
 	}
 
 	try {
-		const info = await transporter.sendMail({ from: `VittNest <${env.GMAIL_USER}>`, to, subject, html });
+		const info = await transporter.sendMail({ from: `VittNest <${env.GMAIL_USER}>`, to, subject, html, replyTo });
 		logInfo("Email sent", { subject, messageId: info.messageId });
 	} catch (err) {
 		logError("Email failed", { subject, errorMessage: err.message });
@@ -78,5 +79,18 @@ export const sendGoogleAccountNotice = ({ to, loginUrl }) =>
 			<p>Someone asked to reset the password for this email address. Your VittNest account signs in with Google, so there is no password to reset.</p>
 			<p>Use <strong>Continue with Google</strong> on the <a href="${loginUrl}">sign-in page</a>.</p>
 			<p>If you did not request this, ignore this email.</p>
+		`,
+	});
+
+// Visitor input goes into HTML, so every field is escaped. Replying to the
+// email answers the visitor directly.
+export const sendContactMessage = ({ to, name, email, message }) =>
+	sendEmail({
+		to,
+		replyTo: email,
+		subject: `VittNest contact: ${name}`,
+		html: `
+			<p><strong>From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p>
+			<p style="white-space: pre-wrap">${escapeHtml(message)}</p>
 		`,
 	});
