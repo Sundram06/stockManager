@@ -199,3 +199,15 @@ describe("ledger service", () => {
 		expect(await SellEvent.countDocuments()).toBe(0);
 	});
 });
+
+describe("adding a new stock", () => {
+	it("leaves no stock behind when its first lot fails to save", async () => {
+		const save = vi.spyOn(History.prototype, "save").mockRejectedValueOnce(new Error("write failed"));
+
+		await expect(newStock("INFY", "2025-01-01", 10, 100)).rejects.toThrow("write failed");
+		save.mockRestore();
+
+		expect(await Stock.countDocuments()).toBe(0);
+		expect(await History.countDocuments()).toBe(0);
+	});
+});
