@@ -10,6 +10,7 @@ import historyRoutes from "./routes/history.routes.mjs";
 import marketRoutes from "./routes/market.routes.mjs";
 import transferRoutes from "./routes/transfer.routes.mjs";
 import systemRoutes from "./routes/system.routes.mjs";
+import contactRoutes from "./routes/contact.routes.mjs";
 import { errorHandler } from "./middlewares/error-handler.mjs";
 import { notFound } from "./middlewares/not-found.mjs";
 import { requestId } from "./middlewares/request-id.mjs";
@@ -43,6 +44,7 @@ export const createApp = () => {
 	app.use(historyRoutes);
 	app.use(marketRoutes);
 	app.use(transferRoutes);
+	app.use(contactRoutes);
 
 	app.use(notFound);
 	app.use(errorHandler);

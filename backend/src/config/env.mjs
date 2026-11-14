@@ -35,6 +35,8 @@ export const env = {
 	GMAIL_USER: process.env.GMAIL_USER || "",
 	GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD || "",
 	APP_URL: process.env.APP_URL || "http://localhost:5173",
+	// Where contact-form messages are delivered. Never sent to the browser.
+	CONTACT_EMAIL: process.env.CONTACT_EMAIL || "",
 };
 
 export const isProduction = env.NODE_ENV === "production";

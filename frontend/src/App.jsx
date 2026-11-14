@@ -22,7 +22,10 @@ const OAuthSuccessPage = lazyWithReload(() => import("./pages/OAuthSuccessPage")
 const ForgotPasswordPage = lazyWithReload(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazyWithReload(() => import("./pages/ResetPasswordPage"));
 const VerifyEmailPage = lazyWithReload(() => import("./pages/VerifyEmailPage"));
-const DemoLandingPage = lazyWithReload(() => import("./pages/DemoLandingPage"));
+const LandingPage = lazyWithReload(() => import("./pages/LandingPage"));
+const PrivacyPage = lazyWithReload(() => import("./pages/PrivacyPage"));
+const TermsPage = lazyWithReload(() => import("./pages/TermsPage"));
+const ContactPage = lazyWithReload(() => import("./pages/ContactPage"));
 const ImportPage = lazyWithReload(() => import("./pages/ImportPage"));
 
 const renderLazy = (Component, props) => (
@@ -36,7 +39,7 @@ const router = createBrowserRouter([
 		path: "/",
 		element: <RootLayout />,
 		children: [
-			{ path: "", element: renderLazy(DemoLandingPage) },
+			{ path: "", element: renderLazy(LandingPage) },
 			{ path: "/oauth-success", element: renderLazy(OAuthSuccessPage) },
 			{ path: "/dashboard", element: renderLazy(DashboardPage) },
 			{ path: "/import", element: renderLazy(ImportPage) },
@@ -45,6 +48,9 @@ const router = createBrowserRouter([
 			{ path: "/forgot-password", element: renderLazy(ForgotPasswordPage) },
 			{ path: "/reset-password", element: renderLazy(ResetPasswordPage) },
 			{ path: "/verify-email", element: renderLazy(VerifyEmailPage) },
+			{ path: "/privacy", element: renderLazy(PrivacyPage) },
+			{ path: "/terms", element: renderLazy(TermsPage) },
+			{ path: "/contact", element: renderLazy(ContactPage) },
 		],
 	},
 ]);
