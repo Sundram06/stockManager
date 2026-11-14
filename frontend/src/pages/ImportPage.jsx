@@ -18,6 +18,7 @@ import {
 	ToggleButtonGroup,
 	Tooltip,
 	Typography,
+	alpha,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import UploadFileIcon from "@mui/icons-material/UploadFileOutlined";
@@ -130,31 +131,78 @@ function DropZone({ onFile, busy }) {
 
 // ─── Preview rows ────────────────────────────────────────────────────────────
 
+// Every row and the header share these columns, so the figures line up down
+// the page whatever choice buttons a row has.
+const PREVIEW_COLUMNS = "minmax(200px, 1fr) 96px 132px 132px 264px";
+
+const columnLabelSx = { fontSize: "0.75rem", fontWeight: 600, color: "text.secondary" };
+
+function PreviewHeader() {
+	return (
+		<Box
+			sx={{
+				display: { xs: "none", md: "grid" },
+				gridTemplateColumns: PREVIEW_COLUMNS,
+				columnGap: 3,
+				px: 2.5,
+				py: 1,
+				borderBottom: 1,
+				borderColor: "divider",
+			}}
+		>
+			<Typography sx={columnLabelSx}>Stock</Typography>
+			<Typography sx={{ ...columnLabelSx, textAlign: "right" }}>Quantity</Typography>
+			<Typography sx={{ ...columnLabelSx, textAlign: "right" }}>Avg price</Typography>
+			<Typography sx={{ ...columnLabelSx, textAlign: "right" }}>Realised P&amp;L</Typography>
+			<Typography sx={columnLabelSx}>Choice</Typography>
+		</Box>
+	);
+}
+
 function Metric({ label, before, after, format, tone }) {
 	const changed = before != null && after != null && before !== after;
 	return (
-		<Box sx={{ minWidth: 0 }}>
-			<Typography variant="caption" color="text.secondary" sx={{ letterSpacing: "0.04em" }}>
-				{label}
-			</Typography>
+		<Box sx={{ minWidth: 0, textAlign: { md: "right" } }}>
+			<Typography sx={{ ...columnLabelSx, display: { md: "none" }, mb: 0.25 }}>{label}</Typography>
 			<Typography
 				sx={{
 					fontVariantNumeric: "tabular-nums",
 					fontWeight: 600,
 					fontSize: "0.9rem",
+					lineHeight: 1.4,
 					color: tone && after ? (after > 0 ? "success.main" : after < 0 ? "error.main" : undefined) : undefined,
 				}}
 			>
 				{after == null ? "—" : format(after)}
 			</Typography>
 			{changed && (
-				<Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: "tabular-nums" }}>
+				<Typography
+					variant="caption"
+					color="text.secondary"
+					sx={{ display: "block", fontVariantNumeric: "tabular-nums", lineHeight: 1.3 }}
+				>
 					was {format(before)}
 				</Typography>
 			)}
 		</Box>
 	);
 }
+
+const choiceButtonSx = {
+	flex: 1,
+	textTransform: "none",
+	fontWeight: 600,
+	fontSize: "0.8rem",
+	lineHeight: 1.4,
+	whiteSpace: "nowrap",
+	px: 1.25,
+	py: 0.5,
+	// The selected choice decides what gets written, so it carries the accent.
+	"&.Mui-selected, &.Mui-selected:hover": {
+		color: "primary.main",
+		bgcolor: (theme) => alpha(theme.palette.primary.main, 0.14),
+	},
+};
 
 function StockRow({ stock, choice, onChoose, locked }) {
 	const status = STATUS[stock.status];
@@ -180,11 +228,12 @@ function StockRow({ stock, choice, onChoose, locked }) {
 		<Box
 			sx={{
 				display: "grid",
-				gridTemplateColumns: { xs: "1fr", md: "minmax(180px, 1.2fr) minmax(260px, 1.6fr) auto" },
-				gap: { xs: 1.5, md: 3 },
-				alignItems: "center",
+				gridTemplateColumns: { xs: "1fr", md: PREVIEW_COLUMNS },
+				columnGap: 3,
+				rowGap: 1.5,
+				alignItems: { md: "start" },
 				px: { xs: 2, sm: 2.5 },
-				py: 2,
+				py: { xs: 1.75, md: 1.5 },
 				borderBottom: 1,
 				borderColor: "divider",
 				"&:last-of-type": { borderBottom: 0 },
@@ -216,10 +265,16 @@ function StockRow({ stock, choice, onChoose, locked }) {
 				)}
 			</Box>
 
-			<Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 2 }}>
-				<Metric label="QTY" before={before?.quantity} after={after?.quantity} format={count} />
-				<Metric label="AVG PRICE" before={before?.avgPrice} after={after?.avgPrice} format={money} />
-				<Metric label="REALISED P&L" before={before?.realisedPnl} after={after?.realisedPnl} format={signedMoney} tone />
+			<Box
+				sx={{
+					display: { xs: "grid", md: "contents" },
+					gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+					gap: 2,
+				}}
+			>
+				<Metric label="Quantity" before={before?.quantity} after={after?.quantity} format={count} />
+				<Metric label="Avg price" before={before?.avgPrice} after={after?.avgPrice} format={money} />
+				<Metric label="Realised P&L" before={before?.realisedPnl} after={after?.realisedPnl} format={signedMoney} tone />
 			</Box>
 
 			<ToggleButtonGroup
@@ -228,7 +283,7 @@ function StockRow({ stock, choice, onChoose, locked }) {
 				value={choice ?? null}
 				onChange={(_e, value) => value && onChoose(value)}
 				aria-label={`What to do with ${stock.stockName}`}
-				sx={{ justifySelf: { xs: "start", md: "end" } }}
+				sx={{ display: "flex", width: "100%" }}
 			>
 				{optionsFor(stock).map(({ value, label }) => {
 					const ok = stock.options[value]?.ok;
@@ -237,7 +292,7 @@ function StockRow({ stock, choice, onChoose, locked }) {
 							key={value}
 							value={value}
 							disabled={locked || !ok}
-							sx={{ textTransform: "none", px: 1.5, fontWeight: 600, whiteSpace: "nowrap" }}
+							sx={choiceButtonSx}
 						>
 							{label}
 						</ToggleButton>
@@ -246,7 +301,9 @@ function StockRow({ stock, choice, onChoose, locked }) {
 						button
 					) : (
 						<Tooltip key={value} title={stock.options[value]?.reason ?? ""}>
-							<span>{button}</span>
+							<Box component="span" sx={{ display: "flex", flex: 1 }}>
+								{button}
+							</Box>
 						</Tooltip>
 					);
 				})}
@@ -462,18 +519,27 @@ export default function ImportPage() {
 
 			{file && (
 				<Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-					<Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+					<Box
+						sx={{
+							display: "grid",
+							gridTemplateColumns: "auto minmax(0, 1fr) auto",
+							alignItems: "center",
+							gap: 1.5,
+						}}
+					>
 						<InsertDriveFileIcon color="primary" />
-						<Typography fontWeight={600} sx={{ wordBreak: "break-all" }}>
-							{file.name}
-						</Typography>
-						{data?.exportedAt && (
-							<Typography variant="body2" color="text.secondary">
-								exported {when(data.exportedAt)}
+						<Box sx={{ minWidth: 0 }}>
+							<Typography fontWeight={600} noWrap title={file.name}>
+								{file.name}
 							</Typography>
-						)}
-						<Button size="small" onClick={reset} sx={{ ml: "auto" }}>
-							Choose another file
+							{data?.exportedAt && (
+								<Typography variant="body2" color="text.secondary" noWrap>
+									Exported {when(data.exportedAt)}
+								</Typography>
+							)}
+						</Box>
+						<Button size="small" variant="outlined" onClick={reset} sx={{ whiteSpace: "nowrap", py: 0.25 }}>
+							Change file
 						</Button>
 					</Box>
 
@@ -520,6 +586,7 @@ export default function ImportPage() {
 											{summary}
 										</Typography>
 									</Box>
+									<PreviewHeader />
 									{stocks.map((stock) => (
 										<StockRow
 											key={stock.stockName}
