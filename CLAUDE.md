@@ -64,7 +64,7 @@ npm run preview    # Preview production build
 
 **Middleware order** (in `app.mjs`): `requestId` → `helmet` → `cors` → `jsonBody` (100 KB; import routes parse their own 5 MB body after authentication, see `middlewares/json-body.mjs`) → `passport` (no sessions) → routes → `notFound` → `errorHandler`. `trust proxy` comes from `TRUST_PROXY`.
 
-**Route files**: `system.routes.mjs`, `auth.routes.mjs`, `stock.routes.mjs`, `history.routes.mjs`, `market.routes.mjs` (instrument search lives here: `GET /api/instruments/search`), `transfer.routes.mjs` (backup/restore, see below)
+**Route files**: `system.routes.mjs`, `auth.routes.mjs`, `stock.routes.mjs`, `history.routes.mjs`, `market.routes.mjs` (instrument search lives here: `GET /api/instruments/search`), `transfer.routes.mjs` (backup/restore, see below), `contact.routes.mjs` (`POST /api/contact`: the public contact form, emailed to `CONTACT_EMAIL` with the sender as reply-to; the address never reaches the browser. Validated first, then limited to 10 per IP and 3 per sender per hour; every field is HTML-escaped with `utils/html.mjs`)
 
 **Pattern**: Routes → Controllers (thin, only HTTP) → Services (all logic) → Models (Mongoose).
 
@@ -183,7 +183,9 @@ Adding a lot to an existing stock (`history.service.createHistory`, or `stock.se
 
 **API layer** (`util/api/`): `request.mjs` attaches the token via `session.getValidTokenOrThrow()` (throws if the JWT expired). Token stored in `localStorage`. Session expiry timer scheduled in `App.jsx` on mount. Logout calls `POST /logout` so the server revokes the token, then clears it locally.
 
-**Routing** (`App.jsx`): `/` landing, `/dashboard`, `/import`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/oauth-success` (exchanges the Google one-time code). Every page and the chart modal load through `util/lazyWithReload.mjs`: when a chunk is missing after a deploy, the tab reloads once (at most once per 10 s, never offline) instead of showing the router's error page.
+**Routing** (`App.jsx`): `/` landing, `/dashboard`, `/import`, `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/oauth-success` (exchanges the Google one-time code), `/privacy`, `/terms`, `/contact`. Public pages must also be listed in `Root.jsx` so the signed-in header is hidden. Every page and the chart modal load through `util/lazyWithReload.mjs`: when a chunk is missing after a deploy, the tab reloads once (at most once per 10 s, never offline) instead of showing the router's error page.
+
+**Landing and public pages**: `pages/LandingPage.jsx` only composes sections from `component/landing/`. All copy is data in `component/landing/landingContent.js` and `component/legal/legalContent.js`; every statement there must stay true of the shipped app, so update them with any feature change. The FIFO example's numbers are computed from its trades (`landing/fifoMath.js`). `PublicPageLayout` (nav, column, `SiteFooter`) frames the legal and contact pages.
 
 **Theme** (`theme/`): MUI theme with dark/light toggle. Mode persisted to `localStorage` under key `vittnest-theme-mode`. Brand accent: teal `#0A7B7B` (light) / `#0fb3af` (dark). Dark bg `#0a0a0a`. Fonts: DM Sans (UI), Newsreader italic (logo/display). Orange `#df6035` is retired; never use.
 
@@ -260,6 +262,7 @@ JWT_SECRET
 TRUST_PROXY                      ← number of proxies in front of the app (e.g. 1); unset = none
 UPSTOX_ANALYTICS_TOKEN           ← single 1-year token for all market data
 GMAIL_USER, GMAIL_APP_PASSWORD, APP_URL
+CONTACT_EMAIL                    ← where contact-form messages go; without it the form answers 503
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
 ```
 
@@ -297,7 +300,8 @@ Backend tests live in `backend/tests/` (`unit/`, `integration/`). Run with Vites
 - `http-security.test.mjs`: security headers, body limits, removed Upstox login routes
 - `instrument-search-route.test.mjs`: search requires a token and validates `q`
 - `market-data-websocket.test.mjs`: 4 KB frame limit, revoked tokens, per-user price feeds
-- `ttl-cache.test.mjs`, `oauth-state-store.test.mjs`: unit tests
+- `contact-route.test.mjs`: contact form delivery, validation, header-injection guard, rate limit, 503 when unconfigured
+- `ttl-cache.test.mjs`, `oauth-state-store.test.mjs`, `html.test.mjs`: unit tests
 - `portfolio-routes.test.mjs`: Route integration tests with mocked services
 - `portfolio-auth-guard.test.mjs`: 401 without bearer token
 - `frontend-contract.test.mjs`: Response envelope shape assertions

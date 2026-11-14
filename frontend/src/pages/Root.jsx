@@ -18,6 +18,9 @@ export default function RootLayout() {
 		"/reset-password",
 		"/verify-email",
 		"/oauth-success",
+		"/privacy",
+		"/terms",
+		"/contact",
 	].includes(location.pathname);
 
 	return (
