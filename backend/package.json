@@ -18,29 +18,31 @@
 	"license": "ISC",
 	"description": "",
 	"dependencies": {
-		"bcrypt": "^5.1.1",
+		"bcrypt": "^6.0.0",
 		"body-parser": "^1.20.2",
+		"cookie-parser": "^1.4.7",
 		"cors": "^2.8.5",
 		"dotenv": "^16.5.0",
 		"express": "^4.19.2",
-		"express-session": "^1.18.1",
+		"express-rate-limit": "^8.7.4",
+		"helmet": "^8.3.0",
 		"jsonwebtoken": "^9.0.2",
 		"mongodb": "^6.8.0",
 		"mongoose": "^8.5.1",
 		"node-fetch": "^3.3.2",
-		"nodemailer": "^8.0.4",
+		"nodemailer": "^10.5.0",
 		"passport": "^0.7.0",
 		"passport-google-oauth20": "^2.0.0",
 		"protobufjs": "^7.2.5",
 		"resend": "^6.10.0",
 		"upstox-js-sdk": "^2.8.0",
 		"ws": "^8.18.0",
-		"zod": "^3.24.1"
+		"zod": "^4.6.7"
 	},
 	"devDependencies": {
 		"cross-env": "^7.0.3",
 		"mongodb-memory-server-core": "^10.4.3",
 		"supertest": "^7.1.0",
-		"vitest": "^2.1.8"
+		"vitest": "^5.1.0"
 	}
 }

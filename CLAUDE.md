@@ -62,20 +62,25 @@ npm run preview    # Preview production build
 7. `fetchAndCacheLTP(keys)` — seeds last-known prices via REST (works when market is closed)
 8. `connectUpstox()` — opens Upstox WebSocket V3, subscribes to all active keys
 
-**Middleware order** (in `app.mjs`): `requestId` → `cors` → `json` → `session` → `passport` → routes → `notFound` → `errorHandler`
+**Middleware order** (in `app.mjs`): `requestId` → `helmet` → `cors` → `jsonBody` (100 KB; import routes parse their own 5 MB body after authentication, see `middlewares/json-body.mjs`) → `passport` (no sessions) → routes → `notFound` → `errorHandler`. `trust proxy` comes from `TRUST_PROXY`.
 
 **Route files**: `system.routes.mjs`, `auth.routes.mjs`, `stock.routes.mjs`, `history.routes.mjs`, `market.routes.mjs` (instrument search lives here: `GET /api/instruments/search`), `transfer.routes.mjs` (backup/restore, see below)
 
 **Pattern**: Routes → Controllers (thin, only HTTP) → Services (all logic) → Models (Mongoose).
 
-**Error handling**: Throw `AppError(message, statusCode)` anywhere; `asyncHandler` wraps all route handlers and forwards errors to the global `errorHandler` middleware. Response shape:
+**Error handling**: Throw `AppError(message, statusCode, { code })` anywhere (`code` is optional and is sent as a top-level `code` the frontend branches on); `asyncHandler` wraps all route handlers and forwards errors to the global `errorHandler` middleware. Response shape:
 ```json
 { "success": false, "message": "...", "error": { "message": "...", "requestId": "..." } }
 ```
 
 **Request validation**: `validateRequest(zodSchema)` middleware populates `req.validated`. Controllers always read from `req.validated`, never `req.body`.
 
-**Auth**: `authenticateJwt` middleware extracts `userId` from `Authorization: Bearer <token>` header and sets `req.userId`. All `/stocks`, `/history`, `/api/me` routes require it.
+**Auth**: `authenticateJWT` resolves `Authorization: Bearer <token>` through `services/auth-token.service.mjs` and sets `req.userId`. Every route that reads or changes user data requires it, including instrument search and `POST /logout`.
+- Tokens are signed and verified only in `utils/jwt.mjs` (HS256 pinned). Each carries `ver`, which must equal the user's `tokenVersion`; `POST /logout` and a password reset increment it, so every earlier token of that user stops working (logout is per account, not per device). Checking it costs one indexed User read per request.
+- The User model's `toJSON` strips the password, reset and verification token hashes, and `tokenVersion`. Return user documents, not `.lean()` objects, so this always applies.
+- Login gives one answer (401 `INVALID_CREDENTIALS`) for an unknown email, a wrong password and a Google-only account, and compares against a fixed hash when there is no password so timing matches. `EMAIL_NOT_VERIFIED` is only returned after the password matches. Forgot-password answers the same for every address; Google accounts are emailed a notice instead of a reset link. Registering an existing email still says so.
+- Rate limits (`middlewares/rate-limit.mjs`, in memory, per process) are set in `auth.routes.mjs`: login 10 failures per account and 50 requests per IP per 15 min; password and verification emails 3 per address and 10 per IP per hour; register 10 per IP per hour; token checks 30 per IP per 15 min. Over the limit: 429 `RATE_LIMITED`. Behind a proxy, set `TRUST_PROXY` or all users share one IP budget.
+- Google sign-in has no server session. `/api/auth/google` sets the OAuth `state` in a 10-minute httpOnly cookie (`providers/oauth-state-store.mjs`), so a callback only completes in the browser that started it. The callback stores a one-minute single-use code (`LoginCode`, hashed, TTL index) and redirects to `/oauth-success#code=…`; the page posts it to `POST /api/auth/google/exchange` for `{ user, token }`. The session token never appears in a URL.
 
 ---
 
@@ -85,7 +90,8 @@ Single Upstox Analytics Token (1-year, server-side only) → Upstox WebSocket V3
 
 - **Upstox WS** uses protobuf (LTPC mode). Binary frames = price data (`initial_feed` / `live_feed`). Text frames = `market_info` JSON (logged only).
 - **REST seed** (`market-quote.service.mjs`): `GET /v3/market-quote/ltp` called on startup and on new stock added — ensures prices show even when market is closed.
-- **Internal WS auth**: first message must be `{ type: "auth", token }` (JWT). No token in URL.
+- **Internal WS auth**: first message must be `{ type: "auth", token }`, checked like any request (revoked tokens are refused). No token in URL. Frames over 4 KB close the socket.
+- **Per-user feeds**: a client only receives prices for symbols its user holds (`stock.service.listHeldSymbols`). Services that change holdings call `portfolioEvents.holdingsChanged(userId)` (`services/portfolio-events.mjs`), which reloads that user's symbols and sends a fresh snapshot.
 - **Cache keys**: `NSE_EQ|ISIN` (pipe format) internally. Converted to trading symbols before sending to frontend.
 - **Provider**: `analytics-token.provider.mjs` — reads `UPSTOX_ANALYTICS_TOKEN` from env, throws if missing.
 
@@ -193,7 +199,7 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 
 - **Comments.** Comment only what is genuinely hard to follow: a non-obvious rule, a constraint that is not visible in the code, a reason a safe-looking change would break something. Readers are coders, so ordinary code needs no narration. No em dashes, no notes left over from writing the code, no references to past discussions or reviews.
 - **Server data lives in React Query. Redux holds only auth.** Mutations invalidate `["stocks"]` and `["history"]`. Do not keep a second copy of server data in Redux.
-- **Every backend call goes through `util/api/request.mjs`.** `apiFetch` returns the Response, `apiJson` returns parsed JSON. Both attach the token, encode the body, and throw an Error carrying the server's `message` and `code`. Components should not call `fetch`. Not yet migrated: the auth pages and the instrument search in `AddStock`.
+- **Every backend call goes through `util/api/request.mjs`.** `apiFetch` returns the Response, `apiJson` returns parsed JSON. Both attach the token, encode the body, and throw an Error carrying the server's `message` and `code`. Components should not call `fetch`. Not yet migrated: the verify, forgot-password and reset-password pages, and `useHydrateAuth`.
 - **Live prices come from context.** `MarketDataProvider` owns the single WebSocket; components call `useMarketPrices()`. Outside the provider it returns an empty map instead of throwing.
 - **Tests.** `src/test/render.jsx` renders a component with store, query client, theme and router. Scope queries with `within(...)`: a symbol appears in both the summary cards and the table.
 - **Not settled yet:** PropTypes are declared in 8 components and disabled in 12; hooks are split between `.js` and `.jsx`; `component/` is singular while `pages/` is plural.
@@ -228,7 +234,8 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 
 ## Key Limitations (Current State)
 
-- **Email sender**: Gmail SMTP via personal `GMAIL_USER`; needs dedicated account or Resend + custom domain for production.
+- **Email sender**: Gmail SMTP via personal `GMAIL_USER`; needs dedicated account or Resend + custom domain for production. All mail goes through `sendEmail` in `utils/email.mjs`; without credentials nothing is sent, and the link is logged only outside production.
+- **Caches** (`utils/ttl-cache.mjs`) are in memory per process and capped: 500 search queries, 200 price-history series.
 - **Stale ISINs**: `instruments.json` may have stale ISINs (e.g. ADANIPOWER); affects only stocks added before Phase 1. Re-adding a stock via the autocomplete search fixes it permanently.
 - **Upstox account must be active**: if Upstox segments deactivate (error `UDAPI100058`), WS feed 401s while REST LTP still works. Reactivate from Upstox app.
 
@@ -239,9 +246,10 @@ This means `Stock.quantity` and `Stock.avgPrice` are always derived/recomputed f
 Backend `.env.development` / `.env.production`:
 ```
 PORT, DB_URI, FE_URL
-JWT_SECRET, SESSION_SECRET, AUTH_TOKEN_EXPIRY
+JWT_SECRET
+TRUST_PROXY                      ← number of proxies in front of the app (e.g. 1); unset = none
 UPSTOX_ANALYTICS_TOKEN           ← single 1-year token for all market data
-UPSTOX_API_KEY, UPSTOX_API_SECRET, UPSTOX_REDIRECT_URI
+GMAIL_USER, GMAIL_APP_PASSWORD, APP_URL
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
 ```
 
@@ -256,7 +264,7 @@ VITE_API_URL=http://localhost:3000
 
 `.github/workflows/ci.yml` runs on every pull request and on pushes to master. Two jobs, both must pass:
 
-- **Backend:** `npm ci`, `npm test`. The tests start an in-memory MongoDB replica set, so no database or env file is needed. The MongoDB binary is cached between runs.
+- **Backend:** `npm ci`, `npm test`. The tests start an in-memory MongoDB replica set, so no database or env file is needed. The MongoDB binary is cached between runs and downloaded in its own step before the tests: the test files run in parallel, and on a cold cache they raced on the download's lock file.
 - **Frontend:** `npm ci`, `npm run lint`, `npm test`, `npm run build`.
 
 Run the same commands locally before pushing. Use `npm run lint`, not `npx eslint src`: on ESLint 8 a bare directory lints only `.js` files and silently skips every `.jsx`.
@@ -273,6 +281,11 @@ Tests live in `backend/tests/`. Run with Vitest in Node environment.
 - `transfer-routes.test.mjs` — download headers, 413 on oversized upload, undo routing
 - `ledger-service.test.mjs` — service tests against in-memory Mongo replica set (mongodb-memory-server)
 - `auth-validation.test.mjs` — 400 responses for invalid auth inputs
+- `auth-security.test.mjs`: no secrets in user responses, one login answer, rate limits, logout and reset revocation, algorithm pinning, Google code exchange
+- `http-security.test.mjs`: security headers, body limits, removed Upstox login routes
+- `instrument-search-route.test.mjs`: search requires a token and validates `q`
+- `market-data-websocket.test.mjs`: 4 KB frame limit, revoked tokens, per-user price feeds
+- `ttl-cache.test.mjs`, `oauth-state-store.test.mjs`: unit tests
 - `portfolio-routes.test.mjs` — Route integration tests with mocked services
 - `portfolio-auth-guard.test.mjs` — 401 without bearer token
 - `frontend-contract.test.mjs` — Response envelope shape assertions

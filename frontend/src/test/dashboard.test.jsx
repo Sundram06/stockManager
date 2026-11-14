@@ -9,7 +9,6 @@ vi.mock("../util/api/stocks.mjs", () => ({
 	createStock: vi.fn(),
 	deleteStock: vi.fn(),
 	deleteAllStocks: vi.fn(),
-	fetchUpstoxData: vi.fn(),
 }));
 
 vi.mock("../util/api/history.mjs", () => ({

@@ -2,6 +2,7 @@ import fetch from "node-fetch";
 import { getAnalyticsToken } from "../providers/analytics-token.provider.mjs";
 import { AppError } from "../errors/app-error.mjs";
 import { logError, logInfo } from "../utils/logger.mjs";
+import { TtlCache } from "../utils/ttl-cache.mjs";
 
 const CANDLE_URL = "https://api.upstox.com/v3/historical-candle";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour — daily candles change once per trading day
@@ -16,8 +17,8 @@ export const RANGE_DAYS = {
 	ALL: 365 * 5,
 };
 
-// instrumentKey|range → { data, expiresAt }
-const historyCache = new Map();
+// instrumentKey|range → candles. Capped: an ALL series is ~1,240 candles.
+const historyCache = new TtlCache({ maxEntries: 200, ttlMs: CACHE_TTL_MS });
 
 const toIsoDate = (d) => d.toISOString().split("T")[0];
 
@@ -54,7 +55,7 @@ export const fetchPriceHistory = async (instrumentKey, range = "ALL", opts = {})
 
 	const cacheKey = `${instrumentKey}|${range}`;
 	const cached = historyCache.get(cacheKey);
-	if (cached && Date.now() < cached.expiresAt) return cached.data;
+	if (cached) return cached;
 
 	const now = opts.now ?? new Date();
 	const from = new Date(now);
@@ -95,7 +96,7 @@ export const fetchPriceHistory = async (instrumentKey, range = "ALL", opts = {})
 
 	const data = normalizeCandles(json.data.candles);
 	logInfo("Price history fetched", { instrumentKey, range, count: data.length });
-	historyCache.set(cacheKey, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+	historyCache.set(cacheKey, data);
 	return data;
 };
 

@@ -12,3 +12,7 @@ export const fetchPriceHistory = (instrument, range = "ALL") =>
 	apiJson(`/api/market/history/${encodeURIComponent(instrument)}?range=${range}`, {
 		fallback: "Unable to load price history",
 	});
+
+/** Instrument suggestions for the add-stock search box. `query` must be at least 2 characters. */
+export const searchInstruments = (query) =>
+	apiJson(`/api/instruments/search?q=${encodeURIComponent(query)}`, { fallback: "Unable to search stocks" });

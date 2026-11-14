@@ -2,12 +2,13 @@ import fetch from "node-fetch";
 import instruments from "../../assets/instruments.json" with { type: "json" };
 import { getAnalyticsToken } from "../providers/analytics-token.provider.mjs";
 import { logError, logInfo } from "../utils/logger.mjs";
+import { TtlCache } from "../utils/ttl-cache.mjs";
 
 const SEARCH_URL = "https://api.upstox.com/v2/instruments/search";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-// Per-query cache: normalizedQuery → { data, expiresAt }
-const searchCache = new Map();
+// Per-query cache: normalizedQuery → results. Capped so distinct queries cannot grow memory without bound.
+const searchCache = new TtlCache({ maxEntries: 500, ttlMs: CACHE_TTL_MS });
 
 /**
  * Search instruments via Upstox Instrument Search API (v2).
@@ -18,9 +19,7 @@ export const searchInstruments = async (query) => {
 	const key = query.toLowerCase().trim();
 
 	const cached = searchCache.get(key);
-	if (cached && Date.now() < cached.expiresAt) {
-		return cached.data;
-	}
+	if (cached) return cached;
 
 	try {
 		const token = getAnalyticsToken();
@@ -52,7 +51,7 @@ export const searchInstruments = async (query) => {
 		}));
 
 		logInfo("Instrument search API success", { query: key, count: data.length });
-		searchCache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+		searchCache.set(key, data);
 		return data;
 	} catch (err) {
 		logError("Instrument search error, falling back to local", { message: err.message, query: key });
