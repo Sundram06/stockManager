@@ -1,11 +1,10 @@
 /* eslint-disable react/prop-types */
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Skeleton, Typography, useTheme } from "@mui/material";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
-import { fetchStocks } from "../util/api/stocks.mjs";
-import { fetchStockHistoryById } from "../util/api/history.mjs";
+import { historyQuery, stocksQuery } from "../util/api/portfolioQueries.mjs";
 import {
 	groupHistoryByStockId,
 	computeActiveStockMetrics,
@@ -14,10 +13,16 @@ import {
 import { percent, rupee } from "../util/format.mjs";
 import { useMarketPrices } from "../context/MarketDataContext";
 
-const STALE = 60_000;
-const GC = 5 * 60_000;
-
 const fmt = (value) => rupee(value, { decimals: 0, absolute: true });
+
+const SUMMARY_GRID_SX = {
+	display: "grid",
+	gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", lg: "repeat(6, 1fr)" },
+	gap: { xs: 1, sm: 1.25 },
+	mb: { xs: 1.5, sm: 2 },
+};
+
+const SUMMARY_LABELS = ["Total Invested", "Current Value", "Unrealized P&L", "Day Change", "Best Performer", "Worst Performer"];
 const fmtPct = percent;
 
 // ─── Shared card shell ───────────────────────────────────────────────────────
@@ -154,21 +159,8 @@ export default function PortfolioSummary() {
 	const { ltpMap } = useMarketPrices();
 	const theme = useTheme();
 
-	const { data: stocks = [] } = useQuery({
-		queryKey: ["stocks"],
-		queryFn: fetchStocks,
-		staleTime: STALE,
-		gcTime: GC,
-		refetchOnWindowFocus: false,
-	});
-
-	const { data: historyRows = [] } = useQuery({
-		queryKey: ["history"],
-		queryFn: fetchStockHistoryById,
-		staleTime: STALE,
-		gcTime: GC,
-		refetchOnWindowFocus: false,
-	});
+	const { data: stocks = [], isPending: stocksPending } = useQuery(stocksQuery);
+	const { data: historyRows = [], isPending: historyPending } = useQuery(historyQuery);
 
 	const historyByStockId = useMemo(
 		() => groupHistoryByStockId(historyRows),
@@ -194,18 +186,22 @@ export default function PortfolioSummary() {
 		return val > 0 ? green : val < 0 ? red : theme.palette.text.secondary;
 	};
 
+	if (stocksPending || historyPending) {
+		return (
+			<Box sx={SUMMARY_GRID_SX} role="status" aria-label="Loading your summary" aria-busy="true">
+				{SUMMARY_LABELS.map((label) => (
+					<SummaryCard key={label} accentColor={theme.palette.divider}>
+						<CardLabel>{label}</CardLabel>
+						<Skeleton variant="text" width="65%" sx={{ fontSize: "1.3rem" }} />
+					</SummaryCard>
+				))}
+			</Box>
+		);
+	}
+
 	return (
 		<Box
-			sx={{
-				display: "grid",
-				gridTemplateColumns: {
-					xs: "repeat(2, 1fr)",
-					sm: "repeat(3, 1fr)",
-					lg: "repeat(6, 1fr)",
-				},
-				gap: { xs: 1, sm: 1.25 },
-				mb: { xs: 1.5, sm: 2 },
-			}}
+			sx={SUMMARY_GRID_SX}
 		>
 			<ValueCard
 				label="Total Invested"

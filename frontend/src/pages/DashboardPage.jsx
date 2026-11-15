@@ -7,7 +7,8 @@ import PortfolioSummary from "../component/PortfolioSummary";
 import ImportUndoSnackbar from "../component/ImportUndoSnackbar";
 import MobileActionSheet from "../component/MobileActionSheet";
 import { MarketDataProvider } from "../context/MarketDataContext";
-import { Box, Typography, CircularProgress, Fab, useTheme, useMediaQuery, useScrollTrigger, Paper } from "@mui/material";
+import FullPageLoader from "../component/FullPageLoader";
+import { Box, Typography, Fab, useTheme, useMediaQuery, useScrollTrigger, Paper } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 export default function DashboardPage() {
@@ -37,39 +38,8 @@ export default function DashboardPage() {
 		}
 	}, [user, isAuthLoading, navigate]);
 
-	if (isAuthLoading) {
-		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "100vh",
-					flexDirection: "column",
-					gap: 2,
-				}}
-			>
-				<CircularProgress />
-				<Typography variant="h6" color="text.secondary">
-					Loading your portfolio...
-				</Typography>
-			</Box>
-		);
-	}
-
-	if (!user) {
-		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "100vh",
-				}}
-			>
-				<CircularProgress />
-			</Box>
-		);
+	if (isAuthLoading || !user) {
+		return <FullPageLoader title="Loading your portfolio" />;
 	}
 
 	const handleAddStock = () => {

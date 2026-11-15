@@ -11,6 +11,7 @@ import { lazyWithReload } from "../util/lazyWithReload.mjs";
 const StockChartModal = lazyWithReload(() => import("./StockChartModal"));
 import PropTypes from "prop-types";
 import usePortfolioData from "../hooks/usePortfolioData";
+import PortfolioSkeleton from "./PortfolioSkeleton";
 import usePortfolioActions from "../hooks/usePortfolioActions";
 
 export default function PortfolioTable({
@@ -142,7 +143,7 @@ export default function PortfolioTable({
 		setDeleteModalOpen(false);
 	}, []);
 
-	if (isLoading) return <Typography>Loading...</Typography>;
+	if (isLoading) return <PortfolioSkeleton activeTab={activeTab} />;
 	if (error) return <Typography>Error loading stocks.</Typography>;
 
 	return (

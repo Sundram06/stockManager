@@ -5,6 +5,10 @@ import { renderWithProviders, screen } from "./render.jsx";
 
 const exchangeGoogleCode = vi.fn();
 const loginUser = vi.fn();
+const fetchStocks = vi.fn(async () => []);
+const fetchStockHistoryById = vi.fn(async () => []);
+vi.mock("../util/api/stocks.mjs", () => ({ fetchStocks: (...a) => fetchStocks(...a) }));
+vi.mock("../util/api/history.mjs", () => ({ fetchStockHistoryById: (...a) => fetchStockHistoryById(...a) }));
 vi.mock("../util/api/auth.mjs", () => ({
 	exchangeGoogleCode: (...a) => exchangeGoogleCode(...a),
 	loginUser: (...a) => loginUser(...a),
@@ -14,6 +18,10 @@ const OAuthSuccessPage = (await import("../pages/OAuthSuccessPage")).default;
 const LoginPage = (await import("../pages/LoginPage")).default;
 
 const CODE = "a".repeat(64);
+
+// Decodable and unexpired: the auth store discards a token it cannot decode.
+const b64 = (obj) => btoa(JSON.stringify(obj)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+const SESSION_TOKEN = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ userId: "u1", exp: Math.floor(Date.now() / 1000) + 3600 })}.sig`;
 
 function Probe() {
 	const location = useLocation();
@@ -38,14 +46,36 @@ describe("Google sign-in landing page", () => {
 
 	it("exchanges the code from the fragment and opens the dashboard", async () => {
 		window.history.replaceState(null, "", `/oauth-success#code=${CODE}`);
-		exchangeGoogleCode.mockResolvedValueOnce({ user: { _id: "u1", email: "g@example.com" }, token: "session-token" });
+		exchangeGoogleCode.mockResolvedValueOnce({ user: { _id: "u1", email: "g@example.com" }, token: SESSION_TOKEN });
 
 		const { store } = renderOAuth();
 
 		expect(await screen.findByTestId("location")).toHaveTextContent("/dashboard");
 		expect(exchangeGoogleCode).toHaveBeenCalledWith(CODE);
-		expect(localStorage.getItem("token")).toBe("session-token");
+		expect(localStorage.getItem("token")).toBe(SESSION_TOKEN);
 		expect(store.getState().auth.user.email).toBe("g@example.com");
+	});
+
+	it("shows the sign-in screen while the code is exchanged", async () => {
+		window.history.replaceState(null, "", `/oauth-success#code=${CODE}`);
+		exchangeGoogleCode.mockReturnValueOnce(new Promise(() => {}));
+
+		renderOAuth();
+
+		expect(await screen.findByRole("status")).toHaveTextContent("Signing you in with Google");
+	});
+
+	it("starts loading the portfolio as soon as sign-in completes", async () => {
+		window.history.replaceState(null, "", `/oauth-success#code=${CODE}`);
+		exchangeGoogleCode.mockResolvedValueOnce({ user: { _id: "u1", email: "g@example.com" }, token: SESSION_TOKEN });
+		fetchStocks.mockClear();
+		fetchStockHistoryById.mockClear();
+
+		renderOAuth();
+
+		expect(await screen.findByTestId("location")).toHaveTextContent("/dashboard");
+		expect(fetchStocks).toHaveBeenCalledTimes(1);
+		expect(fetchStockHistoryById).toHaveBeenCalledTimes(1);
 	});
 
 	it("does not sign in when the server refuses the code", async () => {

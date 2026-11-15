@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { render } from "@testing-library/react";
+import { expect } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -30,6 +31,11 @@ export function renderWithProviders(ui, { route = "/", preloadedState, client } 
 			</Provider>,
 		),
 	};
+}
+
+/** Waits until the portfolio's loading skeletons have been replaced by data. */
+export async function waitForPortfolio() {
+	await waitFor(() => expect(screen.queryAllByRole("status", { name: /^Loading your/ })).toHaveLength(0));
 }
 
 /** A signed-in user, in the shape auth-slice stores. */
