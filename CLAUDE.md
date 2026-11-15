@@ -195,7 +195,7 @@ Adding a lot to an existing stock (`history.service.createHistory`, or `stock.se
 
 **Responsive**: `PortfolioViewSwitch` uses `useMediaQuery(theme.breakpoints.down('md'))`: mobile renders `PortfolioMobileList`, desktop renders `StockTable`.
 
-**Mobile portfolio list** (`PortfolioMobileList`): Zerodha-style compact 3-line rows in a flat Paper list. Tapping a row opens a `SwipeableDrawer` action sheet (Add/Sell/History/Delete). FAB (Floating Action Button) handles "Add Stock" on mobile and collapses from pill to circle on scroll.
+**Mobile portfolio list** (`PortfolioMobileList`): Zerodha-style compact 3-line rows in a flat Paper list. Tapping a row opens a `SwipeableDrawer` action sheet (Add/Sell/History/Delete). On phones a 48 px round "+" FAB opens `MobileActionSheet` (add, import, export); the dashboard adds bottom padding so the last row scrolls clear of it.
 
 **Mobile history** (`StockHistoryModal`): On mobile it renders `SwipeableDrawer` with compact per-lot cards (Lot N badge, buy row ↓, sell row ↑, "still held" line for partial lots) and a pinned summary footer (Total Sold + Total Unsold). Desktop shows the full table modal unchanged. Modal is always mounted (not conditionally rendered) to allow proper animation.
 
