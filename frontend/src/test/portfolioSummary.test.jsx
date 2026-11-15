@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, within } from "./render.jsx";
+import { renderWithProviders, screen, waitForPortfolio, within } from "./render.jsx";
 
 const fetchStocks = vi.fn();
 const fetchStockHistoryById = vi.fn();
@@ -35,7 +35,10 @@ function renderSummary({ stocks, history, ltpMap }) {
 	);
 }
 
-const cardFor = async (label) => (await screen.findByText(label)).closest("div");
+const cardFor = async (label) => {
+	await waitForPortfolio();
+	return screen.getByText(label).closest("div");
+};
 
 describe("summary cards", () => {
 	const losing = {

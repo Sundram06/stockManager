@@ -15,28 +15,7 @@ import StockTableRow from "./StockTableRow";
 import PropTypes from "prop-types";
 import { computeDormantMetrics } from "../util/portfolioMetrics.mjs";
 import { useMarketPrices } from "../context/MarketDataContext";
-
-// ─── Column definitions per tab ─────────────────────────────────────────────
-
-const ACTIVE_COLS = [
-	{ id: "name",     label: "Stock",         align: "left"   },
-	{ id: "qty",      label: "Quantity",       align: "right"  },
-	{ id: "avgPrice", label: "Avg. Buy Price", align: "right"  },
-	{ id: "invested", label: "Total Invested", align: "right"  },
-	{ id: "ltp",      label: "LTP",            align: "right"  },
-	{ id: "currVal",  label: "Current Value",  align: "right"  },
-	{ id: "pnl",      label: "P&L",            align: "right"  },
-];
-
-const DORMANT_COLS = [
-	{ id: "name",      label: "Stock",           align: "left"  },
-	{ id: "qty",       label: "Qty Sold",         align: "right" },
-	{ id: "avgPrice",  label: "Avg. Buy Price",   align: "right" },
-	{ id: "invested",  label: "Total Invested",   align: "right" },
-	{ id: "sellPrice", label: "Avg. Sell Price",  align: "right" },
-	{ id: "sellVal",   label: "Sell Value",       align: "right" },
-	{ id: "pnl",       label: "P&L",              align: "right" },
-];
+import { ACTIVE_COLS, COL_WIDTHS, DORMANT_COLS } from "./stockTableColumns";
 
 // Null values always sort to the bottom regardless of direction
 const nullLast = (val, dir) =>
@@ -45,18 +24,6 @@ const nullLast = (val, dir) =>
 		: val;
 
 // ─── Column widths ───────────────────────────────────────────────────────────
-const COL_WIDTHS = {
-	name:      "20%",
-	qty:       "7%",
-	avgPrice:  "11%",
-	invested:  "12%",
-	ltp:       "9%",
-	currVal:   "12%",
-	sellPrice: "11%",
-	sellVal:   "12%",
-	pnl:       "11%",
-	actions:   "88px",
-};
 
 // ─── Component ───────────────────────────────────────────────────────────────
 

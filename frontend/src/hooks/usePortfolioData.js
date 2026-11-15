@@ -1,35 +1,19 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchStocks } from "../util/api/stocks.mjs";
-import { fetchStockHistoryById } from "../util/api/history.mjs";
+import { historyQuery, stocksQuery } from "../util/api/portfolioQueries.mjs";
 import {
 	groupHistoryByStockId,
 	computeActiveStockMetrics,
 } from "../util/portfolioMetrics.mjs";
-
-const QUERY_STALE_TIME = 60 * 1000;
-const QUERY_GC_TIME = 5 * 60 * 1000;
 
 export default function usePortfolioData({ activeTab, search }) {
 	const {
 		data: stocks = [],
 		isLoading,
 		error,
-	} = useQuery({
-		queryKey: ["stocks"],
-		queryFn: fetchStocks,
-		staleTime: QUERY_STALE_TIME,
-		gcTime: QUERY_GC_TIME,
-		refetchOnWindowFocus: false,
-	});
+	} = useQuery(stocksQuery);
 
-	const { data: historyRows = [] } = useQuery({
-		queryKey: ["history"],
-		queryFn: fetchStockHistoryById,
-		staleTime: QUERY_STALE_TIME,
-		gcTime: QUERY_GC_TIME,
-		refetchOnWindowFocus: false,
-	});
+	const { data: historyRows = [] } = useQuery(historyQuery);
 
 	const historyByStockId = useMemo(
 		() => groupHistoryByStockId(historyRows),

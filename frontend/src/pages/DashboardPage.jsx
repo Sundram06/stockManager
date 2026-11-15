@@ -7,8 +7,13 @@ import PortfolioSummary from "../component/PortfolioSummary";
 import ImportUndoSnackbar from "../component/ImportUndoSnackbar";
 import MobileActionSheet from "../component/MobileActionSheet";
 import { MarketDataProvider } from "../context/MarketDataContext";
-import { Box, Typography, CircularProgress, Fab, useTheme, useMediaQuery, useScrollTrigger, Paper } from "@mui/material";
+import FullPageLoader from "../component/FullPageLoader";
+import { Box, Typography, Fab, useTheme, useMediaQuery, Paper } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+
+// Mobile floating "+" button: size and its distance from the screen edge.
+const FAB_SIZE = 48;
+const FAB_GAP = 20;
 
 export default function DashboardPage() {
 	const user = useSelector((s) => s.auth.user);
@@ -25,7 +30,6 @@ export default function DashboardPage() {
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-	const scrolled = useScrollTrigger({ disableHysteresis: true, threshold: 60 });
 
 	useEffect(() => {
 		if (location.state?.importResult) navigate(location.pathname, { replace: true, state: null });
@@ -37,39 +41,8 @@ export default function DashboardPage() {
 		}
 	}, [user, isAuthLoading, navigate]);
 
-	if (isAuthLoading) {
-		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "100vh",
-					flexDirection: "column",
-					gap: 2,
-				}}
-			>
-				<CircularProgress />
-				<Typography variant="h6" color="text.secondary">
-					Loading your portfolio...
-				</Typography>
-			</Box>
-		);
-	}
-
-	if (!user) {
-		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "100vh",
-				}}
-			>
-				<CircularProgress />
-			</Box>
-		);
+	if (isAuthLoading || !user) {
+		return <FullPageLoader title="Loading your portfolio" />;
 	}
 
 	const handleAddStock = () => {
@@ -80,7 +53,9 @@ export default function DashboardPage() {
 		<MarketDataProvider>
 			<Box
 				sx={{
-					py: { xs: 2, sm: 3 },
+					pt: { xs: 2, sm: 3 },
+					// On phones the last row must scroll clear of the floating button.
+					pb: { xs: `calc(${FAB_SIZE + FAB_GAP * 2}px + env(safe-area-inset-bottom))`, sm: 3 },
 					px: { xs: 1.5, sm: 2.5 },
 					width: "100%",
 				}}
@@ -147,46 +122,17 @@ export default function DashboardPage() {
 						aria-label="Add stock, import or export"
 						aria-haspopup="dialog"
 						onClick={() => setSheetOpen(true)}
-						variant="extended"
 						sx={{
 							position: "fixed",
-							bottom: 24,
-							right: 20,
-							boxShadow: 6,
-							fontWeight: 700,
-							fontSize: "0.875rem",
+							width: FAB_SIZE,
+							height: FAB_SIZE,
+							right: 16,
+							bottom: `calc(${FAB_GAP}px + env(safe-area-inset-bottom))`,
+							boxShadow: 4,
 							zIndex: 1200,
-							minWidth: "unset",
-							width: scrolled ? 56 : "auto",
-							height: 56,
-							borderRadius: scrolled ? "50%" : "28px",
-							px: scrolled ? 0 : 2,
-							transition: [
-								"width 0.4s cubic-bezier(0.4,0,0.2,1)",
-								"border-radius 0.4s cubic-bezier(0.4,0,0.2,1)",
-								"padding 0.4s cubic-bezier(0.4,0,0.2,1)",
-							].join(", "),
-							overflow: "hidden",
 						}}
 					>
-						<AddIcon sx={{ fontSize: "1.1rem", flexShrink: 0 }} />
-						<Box
-							component="span"
-							sx={{
-								maxWidth: scrolled ? 0 : 100,
-								opacity: scrolled ? 0 : 1,
-								overflow: "hidden",
-								whiteSpace: "nowrap",
-								ml: scrolled ? 0 : 0.75,
-								transition: [
-									"max-width 0.4s cubic-bezier(0.4,0,0.2,1)",
-									"opacity 0.25s ease",
-									"margin 0.4s cubic-bezier(0.4,0,0.2,1)",
-								].join(", "),
-							}}
-						>
-							Add Stock
-						</Box>
+						<AddIcon />
 					</Fab>
 				)}
 			</Box>

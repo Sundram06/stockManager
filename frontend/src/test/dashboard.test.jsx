@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { renderWithProviders, screen, signedIn, within } from "./render.jsx";
+import { renderWithProviders, screen, signedIn, waitForPortfolio, within } from "./render.jsx";
 
 const fetchStocks = vi.fn();
 const fetchStockHistoryById = vi.fn();
@@ -39,12 +39,28 @@ describe("dashboard", () => {
 
 		expect(screen.getByText("Asha's Portfolio")).toBeInTheDocument();
 
+		await waitForPortfolio();
 		// Scope to the table: the symbol also appears in the summary cards.
-		const row = within(await screen.findByRole("table")).getByText("INFY").closest("tr");
+		const row = within(screen.getByRole("table")).getByText("INFY").closest("tr");
 		expect(within(row).getByText("10")).toBeInTheDocument();
 		expect(within(row).getByText("₹1,500")).toBeInTheDocument();
 		// The live price, not the cost price.
 		expect(within(row).getByText("₹1,600")).toBeInTheDocument();
+	});
+
+	it("shows skeletons, not empty values, while the portfolio loads", async () => {
+		let release;
+		fetchStocks.mockReturnValueOnce(new Promise((resolve) => (release = resolve)));
+		renderWithProviders(<DashboardPage />, { preloadedState: signedIn() });
+
+		expect(await screen.findByRole("status", { name: "Loading your holdings" })).toBeInTheDocument();
+		expect(screen.getByRole("status", { name: "Loading your summary" })).toBeInTheDocument();
+		expect(screen.queryByText("₹0")).not.toBeInTheDocument();
+		expect(screen.queryByText(/^Loading\.\.\.$/)).not.toBeInTheDocument();
+
+		release([stock]);
+		await waitForPortfolio();
+		expect(within(screen.getByRole("table")).getByText("INFY")).toBeInTheDocument();
 	});
 
 	it("offers both ways to start when the portfolio is empty", async () => {

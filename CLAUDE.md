@@ -161,6 +161,8 @@ Frontend: `util/api/transfer.mjs`, `ImportExportMenu` (desktop), `MobileActionSh
 
 Adding a lot to an existing stock (`history.service.createHistory`, or `stock.service` when the symbol is already held) goes through `ledger.addLotAndRebuild`, which replays the ledger and writes `quantity` (unsold shares) and `avgPrice` (weighted average of unsold lots) back to the Stock. They are never maintained independently.
 
+`GET /stocks` (`stock.service.listStocksForUser`) recomputes quantity and average from the unsold lots in two queries whatever the portfolio size: all the user's stocks, then all their lots in one `$in` query sorted `{stockId, date, _id}`, grouped in memory. The sort matches the old per-stock queries so the floating-point sums are identical; `tests/fixtures/legacy-list-stocks.mjs` is the oracle.
+
 ---
 
 ### Frontend (`frontend/src/`)
@@ -169,12 +171,14 @@ Adding a lot to an existing stock (`history.service.createHistory`, or `stock.se
 
 **Custom hooks**:
 - `useHydrateAuth`: On mount, reads localStorage token → `GET /api/me` → dispatches `login`. Sets `isAuthLoading` false when done. Run in `App.jsx`.
-- `useCompleteSignIn`: the one place password and Google sign-in finish: stores the token, dispatches `login`, navigates to `/dashboard`.
-- `usePortfolioData({ activeTab, search })`: Fetches stocks + history via React Query, computes `historyByStockId`, `activeStockMetrics`, `filteredStocks` with `useMemo`.
+- `useCompleteSignIn`: the one place password and Google sign-in finish: stores the token, dispatches `login`, starts loading the dashboard (`util/preloadDashboard.mjs`: its code chunk plus the stocks and history queries) and navigates to `/dashboard`.
+- `usePortfolioData({ activeTab, search })`: Fetches stocks + history via React Query (query definitions shared in `util/api/portfolioQueries.mjs`, also used by `PortfolioSummary` and the sign-in prefetch), computes `historyByStockId`, `activeStockMetrics`, `filteredStocks` with `useMemo`.
 - `usePortfolioActions({ setAddOpen, setDeleteModalOpen })`: All mutations (create stock, add to position, sell, delete). Calls `queryClient.invalidateQueries` on success to trigger refetch.
 - `useMarketData()`: Connects to `/ws/market-data`, sends `{ type: "auth", token }` as first message, handles `snapshot` and `ltp_update` messages, exponential backoff reconnect. Returns `{ ltpMap, isConnected }`. Called only by `MarketDataProvider` (`context/MarketDataContext.jsx`), mounted on the dashboard; components use `useMarketPrices()`.
 
 **`activeTab`**: `0` = active stocks (`quantity > 0`), `1` = dormant stocks (`quantity ≤ 0`).
+
+**Loading states**: `FullPageLoader` (wordmark, spinner, message) covers sign-in and the auth check. While the first stocks and history load, `PortfolioSummary` shows skeleton cards and `PortfolioTable` shows `PortfolioSkeleton` (table columns from `stockTableColumns.js` on desktop, compact rows on mobile), never zero values. Both skeletons are `role="status"` regions named "Loading your …"; tests call `waitForPortfolio()` from `render.jsx` before reading data.
 
 **Portfolio metrics** (`util/portfolioMetrics.mjs`):
 - `computeActiveStockMetrics(stocks, historyByStockId)`: per-stock `totalInvested` and `avgPrice` from active history rows
@@ -191,7 +195,7 @@ Adding a lot to an existing stock (`history.service.createHistory`, or `stock.se
 
 **Responsive**: `PortfolioViewSwitch` uses `useMediaQuery(theme.breakpoints.down('md'))`: mobile renders `PortfolioMobileList`, desktop renders `StockTable`.
 
-**Mobile portfolio list** (`PortfolioMobileList`): Zerodha-style compact 3-line rows in a flat Paper list. Tapping a row opens a `SwipeableDrawer` action sheet (Add/Sell/History/Delete). FAB (Floating Action Button) handles "Add Stock" on mobile and collapses from pill to circle on scroll.
+**Mobile portfolio list** (`PortfolioMobileList`): Zerodha-style compact 3-line rows in a flat Paper list. Tapping a row opens a `SwipeableDrawer` action sheet (Add/Sell/History/Delete). On phones a 48 px round "+" FAB opens `MobileActionSheet` (add, import, export); the dashboard adds bottom padding so the last row scrolls clear of it.
 
 **Mobile history** (`StockHistoryModal`): On mobile it renders `SwipeableDrawer` with compact per-lot cards (Lot N badge, buy row ↓, sell row ↑, "still held" line for partial lots) and a pinned summary footer (Total Sold + Total Unsold). Desktop shows the full table modal unchanged. Modal is always mounted (not conditionally rendered) to allow proper animation.
 
@@ -294,6 +298,7 @@ Backend tests live in `backend/tests/` (`unit/`, `integration/`). Run with Vites
 - `zerodha-import.test.mjs`: tradebook over a hand-typed portfolio: corrections, split fills, ambiguity, re-import, undo
 - `import-export.test.mjs`: export→import round trip, dedupe, conflicts, undo, replace-all (memory replica set)
 - `transfer-routes.test.mjs`: download headers, 413 on oversized upload, undo routing
+- `list-stocks.test.mjs`: batched holdings list matches the per-stock oracle on 20 random portfolios and issues one History query
 - `ledger-service.test.mjs`: service tests against in-memory Mongo replica set (mongodb-memory-server)
 - `auth-validation.test.mjs`: 400 responses for invalid auth inputs
 - `auth-security.test.mjs`: no secrets in user responses, one login answer, rate limits, logout and reset revocation, algorithm pinning, Google code exchange
