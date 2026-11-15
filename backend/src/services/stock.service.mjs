@@ -65,44 +65,45 @@ export const createStockForUser = async (userId, stockInput) => {
 export const listHeldSymbols = async (userId) =>
 	Stock.distinct("stockName", { userId: new mongoose.Types.ObjectId(userId), quantity: { $gt: 0 } });
 
-export const listStocksForUser = async (userId) => {
-	const userObjectId = new mongoose.Types.ObjectId(userId);
-	const stocks = await Stock.find({ userId: userObjectId });
-	const stocksList = [];
-
-	for (const stock of stocks) {
-		const historyRows = await History.find({ stockId: stock._id }).sort({ date: 1 });
-
-		let totalRemainingQty = 0;
-		let totalRemainingCost = 0;
-
-		for (const row of historyRows) {
-			const quantitySold = row.quantitySold || 0;
-			const remainingQty = row.quantity - quantitySold;
-			if (remainingQty > 0) {
-				totalRemainingQty += remainingQty;
-				totalRemainingCost += remainingQty * row.avgPrice;
-			}
+/** Remaining quantity, weighted average cost and total cost of a stock's unsold lots. */
+const summariseOpenLots = (lots) => {
+	let remainingQty = 0;
+	let remainingCost = 0;
+	for (const lot of lots) {
+		const unsold = lot.quantity - (lot.quantitySold || 0);
+		if (unsold > 0) {
+			remainingQty += unsold;
+			remainingCost += unsold * lot.avgPrice;
 		}
+	}
+	if (remainingQty === 0) return { quantity: 0, avgPrice: 0, totalCostOfStock: 0 };
 
-		const isDormant = totalRemainingQty === 0;
-		const avgPrice = isDormant
-			? 0
-			: Number((totalRemainingCost / totalRemainingQty).toFixed(2));
-		const totalCostOfStock = isDormant
-			? 0
-			: parseFloat((totalRemainingQty * avgPrice).toFixed(2));
-		const quantity = isDormant ? 0 : totalRemainingQty;
+	const avgPrice = Number((remainingCost / remainingQty).toFixed(2));
+	return { quantity: remainingQty, avgPrice, totalCostOfStock: parseFloat((remainingQty * avgPrice).toFixed(2)) };
+};
 
-		stocksList.push({
-			...stock.toObject(),
-			quantity,
-			avgPrice,
-			totalCostOfStock,
-		});
+// Two queries whatever the portfolio size: every lot of the user's stocks is
+// loaded at once and grouped here, instead of one round trip per stock.
+export const listStocksForUser = async (userId) => {
+	const stocks = await Stock.find({ userId: new mongoose.Types.ObjectId(userId) });
+	if (stocks.length === 0) return [];
+
+	const lots = await History.find({ stockId: { $in: stocks.map((stock) => stock._id) } })
+		.select("stockId quantity quantitySold avgPrice")
+		// Same order the per-stock queries used, so the floating-point sums match.
+		.sort({ stockId: 1, date: 1, _id: 1 })
+		.lean();
+	const lotsByStock = new Map();
+	for (const lot of lots) {
+		const key = String(lot.stockId);
+		if (!lotsByStock.has(key)) lotsByStock.set(key, []);
+		lotsByStock.get(key).push(lot);
 	}
 
-	return stocksList;
+	return stocks.map((stock) => ({
+		...stock.toObject(),
+		...summariseOpenLots(lotsByStock.get(String(stock._id)) ?? []),
+	}));
 };
 
 export const deleteAllStocks = async (userId) => {
